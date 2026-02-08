@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Plan {
+  id             Int      @id @default(autoincrement())
+  providerCode   String
+  country        String   @default("PL")
+  planName       String
+  pricePLN       Float
+  cycle          String   @default("monthly")
+  screens        Int
+  uhd            Boolean
+  ads            Boolean
+  lastVerifiedAt DateTime @default(now())
+
+  @@unique([providerCode, planName], name: "providerCode_planName")
+}
+
+model Payment {
+  id        String       @id @default(cuid())
+  period    String       // YYYY-MM
+  amountPLN Float
+  status    String       // SIMULATED_PAID
+  createdAt DateTime     @default(now())
+  items     PaymentItem[]
+}
+
+model PaymentItem {
+  id           Int     @id @default(autoincrement())
+  paymentId    String
+  providerCode String
+  planName     String
+  pricePLN     Float
+  payment      Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+}
+
+model WatchEvent {
+  id        Int      @id @default(autoincrement())
+  title     String
+  minutes   Int
+  watchedAt DateTime @default(now())
+  period    String   // YYYY-MM
+}
