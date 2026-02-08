@@ -1,28 +1,56 @@
-// app/_layout.tsx
-import React from 'react';
-import { NavigationIndependentTree, NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
-
-import Home from '../src/screens/Home';
-import Payments from '../src/screens/Payments';
-import Report from '../src/screens/Report';
-
-const Stack = createStackNavigator();
+import { Stack } from "expo-router";
 
 export default function RootLayout() {
-  // 🔧 TS w RN v7 czasem wymusza dziwne propsy (`id`). Rzutujemy na any i po sprawie.
-  const Navigator = Stack.Navigator as unknown as React.ComponentType<any>;
-  const Screen = Stack.Screen as unknown as React.ComponentType<any>;
-
   return (
-    <NavigationIndependentTree>
-      <NavigationContainer>
-        <Navigator screenOptions={{ headerShown: true }}>
-          <Screen name="Home" component={Home} options={{ title: 'Subii' }} />
-          <Screen name="Payments" component={Payments} options={{ title: 'Płatności' }} />
-          <Screen name="Report" component={Report} options={{ title: 'Raport' }} />
-        </Navigator>
-      </NavigationContainer>
-    </NavigationIndependentTree>
+    <Stack
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: "#000",
+        },
+        headerTintColor: "#fff",
+        headerTitleStyle: {
+          fontWeight: "bold",
+        },
+      }}
+    >
+      <Stack.Screen 
+        name="index" 
+        options={{ 
+          title: "Home",
+          headerShown: false 
+        }} 
+      />
+      <Stack.Screen 
+        name="login" 
+        options={{ 
+          title: "Logowanie",
+          headerShown: false 
+        }} 
+      />
+      <Stack.Screen 
+        name="register" 
+        options={{ title: "Rejestracja" }} 
+      />
+      <Stack.Screen 
+        name="subscriptions-manage" 
+        options={{ title: "Moje subskrypcje" }} 
+      />
+      <Stack.Screen 
+        name="subscriptions-add" 
+        options={{ title: "Dodaj subskrypcję" }} 
+      />
+      <Stack.Screen 
+        name="payments" 
+        options={{ title: "Płatności" }} 
+      />
+      <Stack.Screen 
+        name="report" 
+        options={{ title: "Raport" }} 
+      />
+      <Stack.Screen 
+        name="search" 
+        options={{ title: "Wyszukiwarka" }} 
+      />
+    </Stack>
   );
 }

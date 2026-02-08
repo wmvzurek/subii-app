@@ -7,28 +7,153 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============================================
+// UŻYTKOWNIK
+// ============================================
+model User {
+  id            Int            @id @default(autoincrement())
+  email         String         @unique
+  passwordHash  String
+  firstName     String
+  lastName      String
+  username      String         @unique
+  dateOfBirth   DateTime
+  phone         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  
+  subscriptions Subscription[]
+  userTitles    UserTitle[]
+  payments      Payment[]
+  watchEvents   WatchEvent[]
+
+  @@map("users")
+}
+
+// ============================================
+// PLATFORMY I PLANY
+// ============================================
+model Provider {
+  code          String         @id
+  name          String
+  website       String?
+  logoUrl       String?
+  plans         Plan[]
+  subscriptions Subscription[]
+
+  @@map("providers")
+}
+
 model Plan {
-  id             Int      @id @default(autoincrement())
+  id             Int            @id @default(autoincrement())
   providerCode   String
-  country        String   @default("PL")
+  country        String         @default("PL")
   planName       String
   pricePLN       Float
-  cycle          String   @default("monthly")
+  cycle          String         @default("monthly")
   screens        Int
   uhd            Boolean
   ads            Boolean
-  lastVerifiedAt DateTime @default(now())
+  lastVerifiedAt DateTime       @default(now())
+  
+  provider       Provider       @relation(fields: [providerCode], references: [code])
+  subscriptions  Subscription[]
 
-  @@unique([providerCode, planName], name: "providerCode_planName")
+  @@unique([providerCode, planName])
+  @@map("plans")
 }
 
+// ============================================
+// SUBSKRYPCJE UŻYTKOWNIKA
+// ============================================
+model Subscription {
+  id               Int       @id @default(autoincrement())
+  userId           Int
+  providerCode     String
+  planId           Int
+  priceOverridePLN Float?    // jeśli użytkownik płaci inną cenę
+  nextDueDate      DateTime
+  status           String    @default("active") // active, paused, cancelled
+  createdAt        DateTime  @default(now())
+  
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider         Provider  @relation(fields: [providerCode], references: [code])
+  plan             Plan      @relation(fields: [planId], references: [id])
+
+  @@map("subscriptions")
+}
+
+// ============================================
+// FILMY/SERIALE (CACHE Z TMDB)
+// ============================================
+model Title {
+  id             Int            @id @default(autoincrement())
+  tmdbId         Int            @unique
+  imdbId         String?
+  titlePL        String
+  titleOriginal  String
+  year           Int?
+  runtime        Int?
+  plot           String?
+  posterUrl      String?
+  genres         String         // JSON array jako string
+  createdAt      DateTime       @default(now())
+  
+  availability   Availability[]
+  userTitles     UserTitle[]
+
+  @@map("titles")
+}
+
+model Availability {
+  id           Int      @id @default(autoincrement())
+  titleId      Int
+  providerCode String
+  offerType    String   // "subscription", "rent", "buy"
+  pricePLN     Float?
+  quality      String?  // "SD", "HD", "4K"
+  link         String?
+  region       String   @default("PL")
+  lastSeenAt   DateTime @default(now())
+  
+  title        Title    @relation(fields: [titleId], references: [id], onDelete: Cascade)
+
+  @@map("availability")
+}
+
+// ============================================
+// ULUBIONE / OBEJRZANE
+// ============================================
+model UserTitle {
+  userId    Int
+  titleId   Int
+  favorite  Boolean  @default(false)
+  watched   Boolean  @default(false)
+  rating    Int?     // 1-10
+  updatedAt DateTime @default(now()) @updatedAt
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     Title    @relation(fields: [titleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, titleId])
+  @@map("user_titles")
+}
+
+// ============================================
+// PŁATNOŚCI (SYMULACJA)
+// ============================================
 model Payment {
-  id        String       @id @default(cuid())
-  period    String       // YYYY-MM
+  id        String        @id @default(cuid())
+  userId    Int
+  period    String        // YYYY-MM
   amountPLN Float
-  status    String       // SIMULATED_PAID
-  createdAt DateTime     @default(now())
+  status    String        @default("SIMULATED_PAID")
+  createdAt DateTime      @default(now())
+  
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   items     PaymentItem[]
+
+  @@map("payments")
 }
 
 model PaymentItem {
@@ -37,13 +162,24 @@ model PaymentItem {
   providerCode String
   planName     String
   pricePLN     Float
+  
   payment      Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@map("payment_items")
 }
 
+// ============================================
+// HISTORIA OGLĄDANIA
+// ============================================
 model WatchEvent {
   id        Int      @id @default(autoincrement())
+  userId    Int
   title     String
   minutes   Int
   watchedAt DateTime @default(now())
   period    String   // YYYY-MM
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("watch_events")
 }

@@ -1,54 +1,93 @@
 // src/app/api/report/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
+import { getUserFromRequest } from "@/lib/auth";
 
 const prisma = new PrismaClient();
 
-function cors() {
-  return { "access-control-allow-origin": "*", "content-type": "application/json" };
-}
-
 export async function GET(req: NextRequest) {
+  const userId = getUserFromRequest(req);
+
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const { searchParams } = new URL(req.url);
-    const period = searchParams.get("period") || new Date().toISOString().slice(0, 7); // YYYY-MM
+    const period = searchParams.get("period") || new Date().toISOString().slice(0, 7);
 
-    // 1) Koszty = lista aktywnych planów w PL
-    const plans = await prisma.plan.findMany({ where: { country: "PL" } });
-    const costs = plans.map((p) => ({
-      providerCode: p.providerCode,
-      pricePLN: p.pricePLN,
+    // 1) Koszty - aktywne subskrypcje usera
+    const subscriptions = await prisma.subscription.findMany({
+      where: { userId, status: "active" },
+      include: { plan: true, provider: true }
+    });
+
+    const costs = subscriptions.map(sub => ({
+      providerCode: sub.providerCode,
+      providerName: sub.provider.name,
+      planName: sub.plan.planName,
+      pricePLN: sub.priceOverridePLN || sub.plan.pricePLN,
     }));
 
-    // 2) Oglądane (MVP – demo jeśli brak danych w danym okresie)
-    let watched = await prisma.watchEvent.findMany({ where: { period }, take: 10 });
+    const totalCost = costs.reduce((sum, c) => sum + c.pricePLN, 0);
 
+    // 2) Historia oglądania w danym okresie
+    let watched = await prisma.watchEvent.findMany({
+      where: { userId, period },
+      orderBy: { watchedAt: "desc" },
+      take: 20
+    });
+
+    // Jeśli brak danych - zasiej demo dane
     if (watched.length === 0) {
-      // Zasień demodane (UWAGA: usuwamy skipDuplicates, bo powodował błąd typów)
       await prisma.watchEvent.createMany({
         data: [
-          { title: "Incepcja", minutes: 148, period },
-          { title: "Duna", minutes: 155, period },
-          { title: "Na noże", minutes: 130, period },
+          { userId, title: "Incepcja", minutes: 148, period },
+          { userId, title: "Duna", minutes: 155, period },
+          { userId, title: "Na noże", minutes: 130, period },
         ],
       });
-      watched = await prisma.watchEvent.findMany({ where: { period } });
+      watched = await prisma.watchEvent.findMany({
+        where: { userId, period }
+      });
     }
 
-    // 3) Proste sugestie oszczędności
+    // 3) Sugestie oszczędności
     const suggestions: string[] = [];
-    if (watched.length < 2) {
+    
+    if (watched.length < 3) {
       suggestions.push(
         "Mało oglądałaś w tym miesiącu — rozważ pauzę subskrypcji z najmniejszą liczbą seansów."
       );
     }
 
-    return NextResponse.json({ period, costs, watched, suggestions }, { headers: cors() });
-  } catch (err) {
-    console.error("[/api/report] error:", err);
+    // Sprawdź czy są niewykorzystane platformy
+    const watchedProviders = new Set<string>();
+    // TODO: w przyszłości możesz dodać pole providerCode do WatchEvent
+    
+    if (subscriptions.length > 3) {
+      suggestions.push(
+        "Masz wiele aktywnych subskrypcji. Sprawdź czy wszystkie są potrzebne."
+      );
+    }
+
+    return NextResponse.json({
+      period,
+      totalCost,
+      costs,
+      watched,
+      suggestions,
+      summary: {
+        activeSubscriptions: subscriptions.length,
+        watchedTitles: watched.length,
+        totalMinutes: watched.reduce((sum, w) => sum + w.minutes, 0)
+      }
+    });
+  } catch (error) {
+    console.error("[GET /api/report] error:", error);
     return NextResponse.json(
       { error: "Failed to build report" },
-      { status: 500, headers: cors() }
+      { status: 500 }
     );
   }
 }
