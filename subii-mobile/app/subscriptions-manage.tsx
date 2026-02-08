@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import { View, Text, FlatList, Pressable, Alert, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback } from "react";
 import { subscriptionsApi } from "../src/lib/api";
 
 export default function SubscriptionsManage() {
@@ -9,9 +11,11 @@ export default function SubscriptionsManage() {
   const [subs, setSubs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadSubs();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadSubs();
+    }, [])
+  );
 
   const loadSubs = async () => {
     setLoading(true);

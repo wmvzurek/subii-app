@@ -27,26 +27,26 @@ export default function SubscriptionsAdd() {
   };
 
   const handleAdd = async () => {
-    if (!selectedPlan) {
-      Alert.alert("Błąd", "Wybierz plan");
-      return;
-    }
-    if (!nextDueDate) {
-      Alert.alert("Błąd", "Podaj datę następnej płatności (YYYY-MM-DD)");
-      return;
-    }
+  if (!selectedPlan) {
+    Alert.alert("Błąd", "Wybierz plan");
+    return;
+  }
+  if (!nextDueDate) {
+    Alert.alert("Błąd", "Podaj datę następnej płatności (YYYY-MM-DD)");
+    return;
+  }
 
-    try {
-      await subscriptionsApi.create({
-        planId: selectedPlan.id,
-        nextDueDate,
-      });
-      Alert.alert("Sukces", "Subskrypcja dodana!");
-      router.back();
-    } catch (error: any) {
-      Alert.alert("Błąd", error.response?.data?.error || "Nie udało się dodać");
-    }
-  };
+  try {
+    await subscriptionsApi.create({
+      planId: selectedPlan.id,
+      nextDueDate,
+    });
+    Alert.alert("Sukces", "Subskrypcja dodana!");
+    router.back(); // ← Wraca do poprzedniego ekranu, który się auto-odświeży
+  } catch (error: any) {
+    Alert.alert("Błąd", error.response?.data?.error || "Nie udało się dodać");
+  }
+};
 
   if (loading) {
     return (

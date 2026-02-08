@@ -1,32 +1,3 @@
-/*
-  Warnings:
-
-  - You are about to drop the `Payment` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `PaymentItem` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `Plan` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `WatchEvent` table. If the table is not empty, all the data it contains will be lost.
-
-*/
--- DropTable
-PRAGMA foreign_keys=off;
-DROP TABLE "Payment";
-PRAGMA foreign_keys=on;
-
--- DropTable
-PRAGMA foreign_keys=off;
-DROP TABLE "PaymentItem";
-PRAGMA foreign_keys=on;
-
--- DropTable
-PRAGMA foreign_keys=off;
-DROP TABLE "Plan";
-PRAGMA foreign_keys=on;
-
--- DropTable
-PRAGMA foreign_keys=off;
-DROP TABLE "WatchEvent";
-PRAGMA foreign_keys=on;
-
 -- CreateTable
 CREATE TABLE "users" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -72,7 +43,9 @@ CREATE TABLE "subscriptions" (
     "planId" INTEGER NOT NULL,
     "priceOverridePLN" REAL,
     "nextDueDate" DATETIME NOT NULL,
-    "status" TEXT NOT NULL DEFAULT 'active',
+    "status" TEXT NOT NULL DEFAULT 'pending',
+    "activatedAt" DATETIME,
+    "cancelledAt" DATETIME,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "subscriptions_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "subscriptions_providerCode_fkey" FOREIGN KEY ("providerCode") REFERENCES "providers" ("code") ON DELETE RESTRICT ON UPDATE CASCADE,
@@ -123,6 +96,15 @@ CREATE TABLE "user_titles" (
 );
 
 -- CreateTable
+CREATE TABLE "wallets" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "userId" INTEGER NOT NULL,
+    "balance" REAL NOT NULL DEFAULT 0,
+    "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "wallets_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
 CREATE TABLE "payments" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "userId" INTEGER NOT NULL,
@@ -165,3 +147,6 @@ CREATE UNIQUE INDEX "plans_providerCode_planName_key" ON "plans"("providerCode",
 
 -- CreateIndex
 CREATE UNIQUE INDEX "titles_tmdbId_key" ON "titles"("tmdbId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "wallets_userId_key" ON "wallets"("userId");

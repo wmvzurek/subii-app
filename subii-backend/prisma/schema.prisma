@@ -26,6 +26,7 @@ model User {
   userTitles    UserTitle[]
   payments      Payment[]
   watchEvents   WatchEvent[]
+  wallet        Wallet?        // ← DODAJ TO
 
   @@map("users")
 }
@@ -71,9 +72,11 @@ model Subscription {
   userId           Int
   providerCode     String
   planId           Int
-  priceOverridePLN Float?    // jeśli użytkownik płaci inną cenę
+  priceOverridePLN Float?
   nextDueDate      DateTime
-  status           String    @default("active") // active, paused, cancelled
+  status           String    @default("pending") // pending, active, paused, cancelled
+  activatedAt      DateTime? // ← DODAJ
+  cancelledAt      DateTime? // ← DODAJ
   createdAt        DateTime  @default(now())
   
   user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -142,6 +145,17 @@ model UserTitle {
 // ============================================
 // PŁATNOŚCI (SYMULACJA)
 // ============================================
+model Wallet {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  balance   Float    @default(0)
+  updatedAt DateTime @default(now()) @updatedAt
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("wallets")
+}
+
 model Payment {
   id        String        @id @default(cuid())
   userId    Int

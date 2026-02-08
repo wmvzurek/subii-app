@@ -1,7 +1,7 @@
 // app/search.tsx
 import { useState } from "react";
 import { View, TextInput, Pressable, Text, FlatList, Image } from "react-native";
-import { api } from "../src/lib/api";
+import { api } from "../../src/lib/api";
 import { Link } from "expo-router";
 
 export default function Search() {
