@@ -1,34 +1,60 @@
 import { useState, useEffect } from "react";
-import { View, Text, TextInput, Pressable, Alert, ActivityIndicator, ScrollView } from "react-native";
+import { View, Text, TextInput, Pressable, Alert, ActivityIndicator, ScrollView, RefreshControl } from "react-native";
+import { useRouter } from "expo-router";
 import { api } from "../../src/lib/api";
+import { storage } from "../../src/lib/storage";
 
 export default function Wallet() {
+  const router = useRouter();
   const [balance, setBalance] = useState(0);
   const [required, setRequired] = useState<any>(null);
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [refreshing, setRefreshing] = useState(false); // ← Upewnij się że to jest
 
   useEffect(() => {
+    loadUser();
     loadData();
   }, []);
 
+  const loadUser = async () => {
+    const savedUser = await storage.getUser();
+    setUser(savedUser);
+  };
+
   const loadData = async () => {
     try {
-      // Pobierz saldo
+      const token = await storage.getToken();
+      if (!token) {
+        router.replace("/login" as any);
+        return;
+      }
+
       const balanceRes = await api.get("/api/wallet");
       setBalance(balanceRes.data.balance);
 
-      // Pobierz wymaganą kwotę
       const requiredRes = await api.get("/api/wallet/required?period=month");
       setRequired(requiredRes.data);
 
-      // Auto-ustaw kwotę do doładowania (ile brakuje)
       if (requiredRes.data.missing > 0) {
         setAmount(requiredRes.data.missing.toFixed(2));
       }
-    } catch (error) {
+    } catch (error: any) {
+      if (error.response?.status === 401) {
+        await storage.clearAuth();
+        router.replace("/login" as any);
+        return;
+      }
       Alert.alert("Błąd", "Nie udało się pobrać danych");
     }
+  };
+
+  const onRefresh = async () => { // ← Upewnij się że to jest
+    setRefreshing(true);
+    await loadUser();
+    await loadData();
+    setRefreshing(false);
   };
 
   const topUp = async () => {
@@ -44,7 +70,7 @@ export default function Wallet() {
       setBalance(res.data.newBalance);
       setAmount("");
       Alert.alert("Sukces", `Doładowano ${val.toFixed(2)} zł`);
-      loadData(); // Odśwież dane
+      loadData();
     } catch {
       Alert.alert("Błąd", "Nie udało się doładować");
     } finally {
@@ -58,8 +84,41 @@ export default function Wallet() {
     }
   };
 
-  return (
-    <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }}>
+  // Sprawdzenie weryfikacji emaila
+  if (user && !user.emailVerified) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: '#f5f5f5' }}>
+        <Text style={{ fontSize: 48, marginBottom: 16 }}>🔒</Text>
+        <Text style={{ fontSize: 20, fontWeight: '700', marginBottom: 8, textAlign: 'center' }}>
+          Portfel niedostępny
+        </Text>
+        <Text style={{ fontSize: 14, color: '#666', textAlign: 'center', marginBottom: 20 }}>
+          Aby korzystać z portfela, musisz najpierw zweryfikować swój adres email.
+        </Text>
+        <Pressable
+          onPress={() => router.push('/profile' as any)}
+          style={{ padding: 16, backgroundColor: '#000', borderRadius: 10 }}
+        >
+          <Text style={{ color: '#fff', fontWeight: '700' }}>
+            Przejdź do profilu
+          </Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+   return (
+    <ScrollView 
+      contentContainerStyle={{ padding: 20, gap: 16 }}
+      refreshControl={
+        <RefreshControl 
+          refreshing={refreshing} 
+          onRefresh={onRefresh}
+          tintColor="#000"
+          title="Odświeżanie..."
+        />
+      }
+    >
       <Text style={{ fontSize: 24, fontWeight: "700" }}>Portfel</Text>
       
       {/* Aktualne saldo */}

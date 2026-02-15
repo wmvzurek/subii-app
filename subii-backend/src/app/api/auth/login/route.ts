@@ -49,7 +49,8 @@ export async function POST(req: Request) {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        username: user.username,
+        phone: user.phone,
+        emailVerified: user.emailVerified, // ← DODAJ
       },
     });
   } catch (error) {

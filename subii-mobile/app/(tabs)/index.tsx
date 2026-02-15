@@ -2,11 +2,12 @@ import { useState, useCallback } from "react";
 import { View, Text, FlatList, Pressable, RefreshControl } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { api } from "../../src/lib/api";
+import { storage } from "../../src/lib/storage";
 
 export default function Home() {
   const router = useRouter();
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
+  const [refreshing, setRefreshing] = useState(false); // ← Upewnij się że to jest
 
   useFocusEffect(
     useCallback(() => {
@@ -16,15 +17,26 @@ export default function Home() {
 
   const loadSubscriptions = async () => {
     try {
+      const token = await storage.getToken();
+      if (!token) {
+        router.replace("/login" as any);
+        return;
+      }
+
       const res = await api.get('/api/subscriptions');
       const active = (res.data.subscriptions || []).filter((s: any) => s.status === 'active');
       setSubscriptions(active);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Błąd ładowania subskrypcji:', error);
+      
+      if (error.response?.status === 401) {
+        await storage.clearAuth();
+        router.replace("/login" as any);
+      }
     }
   };
 
-  const onRefresh = async () => {
+  const onRefresh = async () => { // ← Upewnij się że to jest
     setRefreshing(true);
     await loadSubscriptions();
     setRefreshing(false);
@@ -59,7 +71,12 @@ export default function Home() {
           numColumns={2}
           contentContainerStyle={{ padding: 16 }}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={onRefresh}
+              tintColor="#000"
+              title="Odświeżanie..."
+            />
           }
           keyExtractor={(item) => String(item.id)}
           renderItem={({ item }) => (

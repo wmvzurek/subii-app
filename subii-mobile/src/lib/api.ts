@@ -2,15 +2,13 @@
 import axios from "axios";
 import { storage } from "./storage";
 
-// ZMIEŃ NA SWÓJ ADRES (192.168.x.x to Twoje IP w sieci lokalnej)
-export const BASE_URL = "http://192.168.1.114:3000";
+export const BASE_URL = "http://192.168.1.114:3000"; // ZMIEŃ NA SWOJE IP
 
 export const api = axios.create({
   baseURL: BASE_URL,
   timeout: 15000,
 });
 
-// Interceptor - automatycznie dodaje token do każdego requesta
 api.interceptors.request.use(async (config) => {
   const token = await storage.getToken();
   if (token) {
@@ -19,28 +17,24 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
-// Interceptor - obsługa błędów 401 (wylogowanie)
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
       await storage.clearAuth();
-      // TODO: nawiguj do ekranu logowania
     }
     return Promise.reject(error);
   }
 );
 
-// API helpers
 export const authApi = {
   async register(data: {
     email: string;
     password: string;
     firstName: string;
     lastName: string;
-    username: string;
-    dateOfBirth: string; // YYYY-MM-DD
-    phone?: string;
+    phone: string; // ← Nie jest już opcjonalny
+    dateOfBirth: string; // ← DODAJ TO (format YYYY-MM-DD)
   }) {
     const res = await api.post("/api/auth/register", data);
     return res.data;
@@ -53,9 +47,9 @@ export const authApi = {
 
   async me() {
     const res = await api.get("/api/auth/me");
-    return res.data;
+    return res.data.user;
   }
-};
+};  
 
 export const subscriptionsApi = {
   async getAll() {

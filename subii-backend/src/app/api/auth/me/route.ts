@@ -1,4 +1,3 @@
-// src/app/api/auth/me/route.ts
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { getUserFromRequest } from "@/lib/auth";
@@ -19,9 +18,9 @@ export async function GET(req: Request) {
       email: true,
       firstName: true,
       lastName: true,
-      username: true,
       dateOfBirth: true,
       phone: true,
+      emailVerified: true,
       createdAt: true,
     },
   });

@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { View, Text, FlatList, Pressable, Alert, ActivityIndicator, TextInput } from "react-native";
 import { useRouter } from "expo-router";
 import { plansApi, subscriptionsApi } from "../src/lib/api";
+import { storage } from "../src/lib/storage"; // ← DODAJ
 
 export default function SubscriptionsAdd() {
   const router = useRouter();
@@ -10,10 +11,30 @@ export default function SubscriptionsAdd() {
   const [loading, setLoading] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
   const [nextDueDate, setNextDueDate] = useState("");
+    const [user, setUser] = useState<any>(null); // ← DODAJ
 
   useEffect(() => {
+    checkUser(); // ← DODAJ
     loadPlans();
   }, []);
+
+  const checkUser = async () => {
+    const savedUser = await storage.getUser();
+    setUser(savedUser);
+    
+    if (!savedUser?.emailVerified) {
+      Alert.alert(
+        "Weryfikacja wymagana",
+        "Aby dodawać subskrypcje, musisz najpierw zweryfikować swój adres email.",
+        [
+          {
+            text: "OK",
+            onPress: () => router.back()
+          }
+        ]
+      );
+    }
+  };
 
   const loadPlans = async () => {
     try {

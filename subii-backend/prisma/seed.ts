@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("🌱 Starting seed...");
 
-  // 1) PROVIDERS (upsert zamiast createMany)
+  // 1) PROVIDERS
   const providers = [
     { code: "netflix", name: "Netflix", website: "https://netflix.com" },
     { code: "disney_plus", name: "Disney+", website: "https://disneyplus.com" },
@@ -24,24 +24,15 @@ async function main() {
   }
   console.log("✅ Providers seeded");
 
-  // 2) PLANS (upsert)
+  // 2) PLANS
   const plans = [
-    // Netflix
     { providerCode: "netflix", planName: "Standard z reklamami", pricePLN: 33, cycle: "monthly", screens: 2, uhd: false, ads: true },
     { providerCode: "netflix", planName: "Standard", pricePLN: 60, cycle: "monthly", screens: 2, uhd: false, ads: false },
     { providerCode: "netflix", planName: "Premium", pricePLN: 80, cycle: "monthly", screens: 4, uhd: true, ads: false },
-    
-    // Disney+
     { providerCode: "disney_plus", planName: "Miesięczny", pricePLN: 37.99, cycle: "monthly", screens: 4, uhd: true, ads: false },
-    
-    // Prime Video
     { providerCode: "prime_video", planName: "Prime", pricePLN: 49, cycle: "monthly", screens: 3, uhd: true, ads: false },
-    
-    // Max
     { providerCode: "hbo_max", planName: "Basic", pricePLN: 29.99, cycle: "monthly", screens: 2, uhd: false, ads: true },
     { providerCode: "hbo_max", planName: "Standard", pricePLN: 39.99, cycle: "monthly", screens: 2, uhd: true, ads: false },
-    
-    // Apple TV+
     { providerCode: "apple_tv", planName: "Monthly", pricePLN: 34.99, cycle: "monthly", screens: 6, uhd: true, ads: false },
   ];
 
@@ -66,7 +57,7 @@ async function main() {
   }
   console.log("✅ Plans seeded");
 
-  // 3) DEMO USER (upsert)
+  // 3) DEMO USER
   const hashedPassword = await bcrypt.hash("haslo123", 10);
   
   const user = await prisma.user.upsert({
@@ -77,14 +68,14 @@ async function main() {
       passwordHash: hashedPassword,
       firstName: "Anna",
       lastName: "Kowalska",
-      username: "anna_k",
       dateOfBirth: new Date("1995-05-15"),
-      phone: "+48123456789",
+      phone: "123456789",
+      emailVerified: true,
     },
   });
   console.log("✅ Demo user created/updated");
 
-  // 4) WALLET dla Anny (upsert)
+  // 4) WALLET
   await prisma.wallet.upsert({
     where: { userId: user.id },
     update: {},
@@ -95,7 +86,7 @@ async function main() {
   });
   console.log("✅ Wallet created for Anna");
 
-  // 5) DEMO SUBSCRIPTIONS (tylko jeśli nie istnieją)
+  // 5) DEMO SUBSCRIPTIONS
   const netflixPlan = await prisma.plan.findFirst({ 
     where: { providerCode: "netflix", planName: "Standard" } 
   });
