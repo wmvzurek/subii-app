@@ -1,21 +1,28 @@
-// app/subscriptions-add.tsx
 import { useState, useEffect } from "react";
-import { View, Text, FlatList, Pressable, Alert, ActivityIndicator, TextInput } from "react-native";
+import { 
+  View, 
+  Text, 
+  FlatList, 
+  Pressable, 
+  Alert, 
+  ActivityIndicator, 
+  Image,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { plansApi, subscriptionsApi } from "../src/lib/api";
-import { storage } from "../src/lib/storage"; // ← DODAJ
+import { storage } from "../src/lib/storage";
+import { getProviderLogo } from "../src/lib/provider-logos";
 
 export default function SubscriptionsAdd() {
   const router = useRouter();
-  const [plans, setPlans] = useState<any[]>([]);
+  const [providers, setProviders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedPlan, setSelectedPlan] = useState<any>(null);
-  const [nextDueDate, setNextDueDate] = useState("");
-    const [user, setUser] = useState<any>(null); // ← DODAJ
+  const [user, setUser] = useState<any>(null);
+  const [userSubscriptions, setUserSubscriptions] = useState<string[]>([]);
 
   useEffect(() => {
-    checkUser(); // ← DODAJ
-    loadPlans();
+    checkUser();
+    loadProviders();
   }, []);
 
   const checkUser = async () => {
@@ -26,120 +33,136 @@ export default function SubscriptionsAdd() {
       Alert.alert(
         "Weryfikacja wymagana",
         "Aby dodawać subskrypcje, musisz najpierw zweryfikować swój adres email.",
-        [
-          {
-            text: "OK",
-            onPress: () => router.back()
-          }
-        ]
+        [{ text: "OK", onPress: () => router.back() }]
       );
     }
   };
 
-  const loadPlans = async () => {
+  const loadProviders = async () => {
     try {
       const res = await plansApi.getAll();
-      setPlans(res.plans || []);
-    } catch {
-      Alert.alert("Błąd", "Nie udało się pobrać planów");
+      const plans = res.plans || [];
+      
+      // Pobierz aktywne subskrypcje użytkownika - NIE blokuj wyboru
+      // const activeCodes = await subscriptionsApi.getActiveProviderCodes();
+      // setUserSubscriptions(activeCodes);
+      
+      // Grupuj plany po providerCode
+      const providerMap = new Map();
+      plans.forEach((plan: any) => {
+        if (!providerMap.has(plan.providerCode)) {
+          providerMap.set(plan.providerCode, {
+            code: plan.providerCode,
+            name: getProviderName(plan.providerCode),
+            logo: getProviderLogo(plan.providerCode),
+            plansCount: 0
+          });
+        }
+        const provider = providerMap.get(plan.providerCode);
+        provider.plansCount++;
+      });
+
+      setProviders(Array.from(providerMap.values()));
+    } catch (error) {
+      Alert.alert("Błąd", "Nie udało się pobrać providerów");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAdd = async () => {
-  if (!selectedPlan) {
-    Alert.alert("Błąd", "Wybierz plan");
-    return;
-  }
-  if (!nextDueDate) {
-    Alert.alert("Błąd", "Podaj datę następnej płatności (YYYY-MM-DD)");
-    return;
-  }
-
-  try {
-    await subscriptionsApi.create({
-      planId: selectedPlan.id,
-      nextDueDate,
-    });
-    Alert.alert("Sukces", "Subskrypcja dodana!");
-    router.back(); // ← Wraca do poprzedniego ekranu, który się auto-odświeży
-  } catch (error: any) {
-    Alert.alert("Błąd", error.response?.data?.error || "Nie udało się dodać");
-  }
-};
+  const getProviderName = (code: string): string => {
+    const names: Record<string, string> = {
+      netflix: 'Netflix',
+      disney_plus: 'Disney+',
+      prime_video: 'Prime Video',
+      hbo_max: 'Max',
+      apple_tv: 'Apple TV+',
+    };
+    return names[code] || code;
+  };
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" />
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: '#f5f5f5' }}>
+        <ActivityIndicator size="large" color="#000" />
       </View>
     );
   }
 
   return (
-    <View style={{ flex: 1, padding: 16, gap: 12 }}>
-      <Text style={{ fontSize: 20, fontWeight: "700" }}>Wybierz plan</Text>
+    <View style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
+      <View style={{ padding: 20, paddingTop: 60, backgroundColor: '#fff' }}>
+        <Pressable onPress={() => router.back()} style={{ marginBottom: 16 }}>
+          <Text style={{ fontSize: 28 }}>←</Text>
+        </Pressable>
+        <Text style={{ fontSize: 28, fontWeight: '800' }}>Wybierz platformę</Text>
+        <Text style={{ fontSize: 14, color: '#666', marginTop: 4 }}>
+          Dostępne: {providers.length}
+        </Text>
+      </View>
 
       <FlatList
-        data={plans}
-        keyExtractor={(item) => String(item.id)}
-        renderItem={({ item }) => (
-          <Pressable
-            onPress={() => setSelectedPlan(item)}
-            style={{
-              padding: 14,
-              borderWidth: 2,
-              borderColor: selectedPlan?.id === item.id ? "#000" : "#ddd",
-              borderRadius: 10,
-              marginBottom: 10,
-              backgroundColor: selectedPlan?.id === item.id ? "#f0f0f0" : "#fff"
-            }}
-          >
-            <Text style={{ fontWeight: "700", fontSize: 16 }}>
-              {item.providerCode} — {item.planName}
-            </Text>
-            <Text style={{ color: "#555", marginTop: 4 }}>
-              {item.pricePLN.toFixed(2)} zł / miesiąc
-            </Text>
-            <Text style={{ color: "#777", fontSize: 12, marginTop: 2 }}>
-              {item.screens} ekrany • {item.uhd ? "4K" : "HD"} • {item.ads ? "z reklamami" : "bez reklam"}
-            </Text>
-          </Pressable>
-        )}
+        data={providers}
+        numColumns={2}
+        contentContainerStyle={{ padding: 16 }}
+        keyExtractor={(item) => item.code}
+         renderItem={({ item }) => {
+          // USUŃ TO CAŁKOWICIE - nie blokuj wyboru platformy
+          // const isSubscribed = userSubscriptions.includes(item.code);
+          
+          return (
+            <Pressable
+              onPress={() => {
+                router.push(`/subscriptions-select-plan?provider=${item.code}` as any);
+              }}
+              style={{
+                flex: 1,
+                margin: 8,
+                padding: 20,
+                backgroundColor: '#fff',
+                borderRadius: 16,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+                elevation: 3,
+                minHeight: 160,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {item.logo && (
+                <Image
+                  source={item.logo}
+                  style={{ 
+                    width: 80, 
+                    height: 80, 
+                    marginBottom: 12,
+                    resizeMode: 'contain'
+                  }}
+                />
+              )}
+              
+              <Text style={{ 
+                fontSize: 16, 
+                fontWeight: '700', 
+                textAlign: 'center',
+                marginBottom: 4
+              }}>
+                {item.name}
+              </Text>
+              
+              <Text style={{ 
+                fontSize: 12, 
+                color: '#999',
+                marginTop: 4
+              }}>
+                {item.plansCount} {item.plansCount === 1 ? 'plan' : 'planów'}
+              </Text>
+            </Pressable>
+          );
+        }}
       />
-
-      {selectedPlan && (
-        <View style={{ gap: 8, marginTop: 12 }}>
-          <Text style={{ fontWeight: "600" }}>Data następnej płatności (YYYY-MM-DD):</Text>
-          <TextInput
-            value={nextDueDate}
-            onChangeText={setNextDueDate}
-            placeholder="2025-03-15"
-            style={{
-              borderWidth: 1,
-              borderColor: "#ddd",
-              borderRadius: 10,
-              padding: 14,
-              fontSize: 16
-            }}
-          />
-
-          <Pressable
-            onPress={handleAdd}
-            style={{
-              padding: 16,
-              backgroundColor: "#000",
-              borderRadius: 10,
-              marginTop: 8
-            }}
-          >
-            <Text style={{ color: "#fff", textAlign: "center", fontWeight: "700" }}>
-              ✅ Dodaj subskrypcję
-            </Text>
-          </Pressable>
-        </View>
-      )}
     </View>
   );
 }

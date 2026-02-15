@@ -13,10 +13,11 @@ export async function GET(req: NextRequest) {
 
   try {
     // 1) Pobierz wszystkie aktywne subskrypcje
+    // 1) Pobierz wszystkie subskrypcje (aktywne + oczekujące które wkrótce będą aktywne)
     const subscriptions = await prisma.subscription.findMany({
       where: { 
         userId, 
-        status: "active" 
+        status: { in: ["active", "pending"] } // Uwzględnij pending
       },
       include: { plan: true, provider: true }
     });

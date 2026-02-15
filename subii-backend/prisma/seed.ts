@@ -8,12 +8,12 @@ async function main() {
 
   // 1) PROVIDERS
   const providers = [
-    { code: "netflix", name: "Netflix", website: "https://netflix.com" },
-    { code: "disney_plus", name: "Disney+", website: "https://disneyplus.com" },
-    { code: "prime_video", name: "Prime Video", website: "https://primevideo.com" },
-    { code: "hbo_max", name: "Max", website: "https://max.com" },
-    { code: "apple_tv", name: "Apple TV+", website: "https://tv.apple.com" },
-  ];
+  { code: "netflix", name: "Netflix", website: "https://netflix.com", logoUrl: "/providers/netflix.png" },
+  { code: "disney_plus", name: "Disney+", website: "https://disneyplus.com", logoUrl: "/providers/disney_plus.png" },
+  { code: "prime_video", name: "Prime Video", website: "https://primevideo.com", logoUrl: "/providers/prime_video.png" },
+  { code: "hbo_max", name: "HBO Max", website: "https://max.com", logoUrl: "/providers/hbo_max.png" },
+  { code: "apple_tv", name: "Apple TV+", website: "https://tv.apple.com", logoUrl: "/providers/apple_tv.png" },
+];
 
   for (const provider of providers) {
     await prisma.provider.upsert({
@@ -25,16 +25,31 @@ async function main() {
   console.log("✅ Providers seeded");
 
   // 2) PLANS
-  const plans = [
-    { providerCode: "netflix", planName: "Standard z reklamami", pricePLN: 33, cycle: "monthly", screens: 2, uhd: false, ads: true },
-    { providerCode: "netflix", planName: "Standard", pricePLN: 60, cycle: "monthly", screens: 2, uhd: false, ads: false },
-    { providerCode: "netflix", planName: "Premium", pricePLN: 80, cycle: "monthly", screens: 4, uhd: true, ads: false },
-    { providerCode: "disney_plus", planName: "Miesięczny", pricePLN: 37.99, cycle: "monthly", screens: 4, uhd: true, ads: false },
-    { providerCode: "prime_video", planName: "Prime", pricePLN: 49, cycle: "monthly", screens: 3, uhd: true, ads: false },
-    { providerCode: "hbo_max", planName: "Basic", pricePLN: 29.99, cycle: "monthly", screens: 2, uhd: false, ads: true },
-    { providerCode: "hbo_max", planName: "Standard", pricePLN: 39.99, cycle: "monthly", screens: 2, uhd: true, ads: false },
-    { providerCode: "apple_tv", planName: "Monthly", pricePLN: 34.99, cycle: "monthly", screens: 6, uhd: true, ads: false },
-  ];
+  // Zaktualizowane dane planów streamingowych - Polska, luty 2026
+const plans = [
+  // NETFLIX (3 plany)
+  { providerCode: "netflix", planName: "Basic", pricePLN: 33, cycle: "monthly", screens: 1, uhd: false, ads: false },
+  { providerCode: "netflix", planName: "Standard", pricePLN: 49, cycle: "monthly", screens: 2, uhd: false, ads: false },
+  { providerCode: "netflix", planName: "Premium", pricePLN: 67, cycle: "monthly", screens: 4, uhd: true, ads: false },
+
+  // DISNEY+ (2 plany podstawowe)
+  { providerCode: "disney_plus", planName: "Standard", pricePLN: 34.99, cycle: "monthly", screens: 2, uhd: false, ads: false },
+  { providerCode: "disney_plus", planName: "Premium", pricePLN: 59.99, cycle: "monthly", screens: 4, uhd: true, ads: false },
+
+  // PRIME VIDEO / AMAZON PRIME (2 warianty)
+  { providerCode: "prime_video", planName: "Prime Video miesięczny", pricePLN: 15.50, cycle: "monthly", screens: 3, uhd: true, ads: false },
+  { providerCode: "prime_video", planName: "Prime Video roczny", pricePLN: 69, cycle: "yearly", screens: 3, uhd: true, ads: false },
+
+  // HBO MAX (3 plany)
+  { providerCode: "hbo_max", planName: "Basic (z reklamami)", pricePLN: 29.99, cycle: "monthly", screens: 2, uhd: false, ads: true },
+  { providerCode: "hbo_max", planName: "Standard", pricePLN: 39.99, cycle: "monthly", screens: 2, uhd: false, ads: false },
+  { providerCode: "hbo_max", planName: "Premium", pricePLN: 49.99, cycle: "monthly", screens: 4, uhd: true, ads: false },
+
+  // APPLE TV+ (1 główny plan)
+  { providerCode: "apple_tv", planName: "Apple TV+ miesięczny", pricePLN: 34.99, cycle: "monthly", screens: 6, uhd: true, ads: false },
+  // Apple TV+ nie ma oficjalnej standardowej oferty „rocznej” osobno – zwykle dostępne są promocje lub pakiety Apple One
+
+];
 
   for (const plan of plans) {
     await prisma.plan.upsert({

@@ -57,6 +57,15 @@ export const subscriptionsApi = {
     return res.data;
   },
 
+  // ← DODAJ TĘ FUNKCJĘ
+  async getActiveProviderCodes(): Promise<string[]> {
+    const res = await api.get("/api/subscriptions");
+    const active = (res.data.subscriptions || [])
+      .filter((s: any) => s.status === 'active')
+      .map((s: any) => s.providerCode);
+    return active;
+  },
+
   async create(data: {
     planId: number;
     nextDueDate: string;
