@@ -86,6 +86,7 @@ const plans = [
       dateOfBirth: new Date("1995-05-15"),
       phone: "123456789",
       emailVerified: true,
+      billingDay: 10,
     },
   });
   console.log("✅ Demo user created/updated");
@@ -117,15 +118,14 @@ const plans = [
 
     if (!existingNetflix) {
       await prisma.subscription.create({
-        data: {
-          userId: user.id,
-          providerCode: "netflix",
-          planId: netflixPlan.id,
-          nextDueDate: new Date("2025-03-15"),
-          status: "active",
-          activatedAt: new Date(),
-        },
-      });
+  data: {
+    userId: user.id,
+    providerCode: "netflix",
+    planId: netflixPlan.id,
+    renewalDay: 17,
+    status: "active",
+  },
+});
       console.log("✅ Netflix subscription created");
     } else {
       console.log("ℹ️  Netflix subscription already exists");
@@ -139,15 +139,14 @@ const plans = [
 
     if (!existingDisney) {
       await prisma.subscription.create({
-        data: {
-          userId: user.id,
-          providerCode: "disney_plus",
-          planId: disneyPlan.id,
-          nextDueDate: new Date("2025-03-20"),
-          status: "active",
-          activatedAt: new Date(),
-        },
-      });
+  data: {
+    userId: user.id,
+    providerCode: "disney_plus",
+    planId: disneyPlan.id,
+    renewalDay: 27,
+    status: "active",
+  },
+});
       console.log("✅ Disney+ subscription created");
     } else {
       console.log("ℹ️  Disney+ subscription already exists");

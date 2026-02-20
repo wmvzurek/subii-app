@@ -121,6 +121,28 @@ export default function Wallet() {
     >
       <Text style={{ fontSize: 24, fontWeight: "700" }}>Portfel</Text>
       
+      {/* Dzień rozliczeniowy */}
+{user?.billingDay ? (
+  <View style={{ padding: 16, backgroundColor: "#000", borderRadius: 12 }}>
+    <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 13 }}>Twój dzień rozliczeniowy</Text>
+    <Text style={{ color: "#fff", fontSize: 22, fontWeight: "800", marginTop: 2 }}>
+      {user.billingDay}. każdego miesiąca
+    </Text>
+    <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, marginTop: 4 }}>
+      Jedna zbiorcza płatność za wszystkie platformy
+    </Text>
+  </View>
+) : (
+  <View style={{ padding: 16, backgroundColor: "#fff3cd", borderRadius: 12, borderWidth: 1, borderColor: "#ffc107" }}>
+    <Text style={{ fontSize: 14, color: "#856404", fontWeight: "600" }}>
+      ⚠️ Nie masz ustawionego dnia rozliczeniowego
+    </Text>
+    <Text style={{ fontSize: 12, color: "#856404", marginTop: 4 }}>
+      Zostanie on ustawiony przy dodaniu pierwszej subskrypcji.
+    </Text>
+  </View>
+)}
+
       {/* Aktualne saldo */}
       <View style={{ padding: 20, backgroundColor: "#f0f0f0", borderRadius: 12 }}>
         <Text style={{ fontSize: 14, color: "#666" }}>Dostępne środki:</Text>

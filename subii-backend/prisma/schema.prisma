@@ -19,6 +19,7 @@ model User {
   dateOfBirth   DateTime
   phone         String         // ← ZMIENIONE: usunięto ? (teraz obowiązkowe)
   emailVerified Boolean        @default(false)
+  billingDay    Int?    // dzień miesiąca 1-28, null = nieustalony
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   
@@ -27,6 +28,7 @@ model User {
   payments      Payment[]
   watchEvents   WatchEvent[]
   wallet        Wallet?
+  billingCycles BillingCycle[]
 
   @@map("users")
 }
@@ -60,6 +62,7 @@ model Plan {
   
   provider       Provider       @relation(fields: [providerCode], references: [code])
   subscriptions  Subscription[]
+  pendingSubscriptions Subscription[] @relation("PendingPlan")
 
   @@unique([providerCode, planName])
   @@map("plans")
@@ -73,16 +76,20 @@ model Subscription {
   userId           Int
   providerCode     String
   planId           Int
+  pendingPlanId    Int?      // nowy plan czekający na wejście w życie
   priceOverridePLN Float?
-  nextDueDate      DateTime
-  status           String    @default("pending") // pending, active, paused, cancelled
-  activatedAt      DateTime? // ← DODAJ
-  cancelledAt      DateTime? // ← DODAJ
+  renewalDay       Int
+  status           String    @default("active")
+  // active | cancelled | pending_change | pending_cancellation
+  activeUntil      DateTime? // data do kiedy działa przy pending_cancellation
+  cancelledAt      DateTime?
   createdAt        DateTime  @default(now())
-  
+
   user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   provider         Provider  @relation(fields: [providerCode], references: [code])
   plan             Plan      @relation(fields: [planId], references: [id])
+  pendingPlan      Plan?     @relation("PendingPlan", fields: [pendingPlanId], references: [id])
+  billingItems     BillingCycleItem[]
 
   @@map("subscriptions")
 }
@@ -197,4 +204,37 @@ model WatchEvent {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("watch_events")
+}
+
+model BillingCycle {
+  id          String             @id @default(cuid())
+  userId      Int
+  period      String             // "2026-03"
+  billingDate DateTime           // konkretna data płatności np. 2026-03-10
+  totalPLN    Float
+  status      String             @default("pending") // pending, paid, overdue
+  createdAt   DateTime           @default(now())
+
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items       BillingCycleItem[]
+
+  @@unique([userId, period])
+  @@map("billing_cycles")
+}
+
+model BillingCycleItem {
+  id             Int          @id @default(autoincrement())
+  billingCycleId String
+  subscriptionId Int
+  providerCode   String
+  planName       String
+  pricePLN       Float
+  periodFrom     DateTime
+  periodTo       DateTime
+  creditApplied  Float        @default(0)
+
+  billingCycle   BillingCycle @relation(fields: [billingCycleId], references: [id], onDelete: Cascade)
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@map("billing_cycle_items")
 }

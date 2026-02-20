@@ -21,6 +21,7 @@ export async function GET(req: Request) {
       dateOfBirth: true,
       phone: true,
       emailVerified: true,
+      billingDay: true,
       createdAt: true,
     },
   });

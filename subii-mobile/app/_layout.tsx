@@ -44,6 +44,14 @@ export default function RootLayout() {
             title: "Zarządzaj subskrypcjami" 
           }} 
         />
+        <Stack.Screen
+  name="billing-setup"
+  options={{
+    presentation: "modal",
+    headerShown: false,
+    animation: "slide_from_bottom",
+  }}
+/>
       </Stack>
     </AuthProvider>
   );

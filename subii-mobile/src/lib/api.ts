@@ -66,19 +66,20 @@ export const subscriptionsApi = {
     return active;
   },
 
-  async create(data: {
-    planId: number;
-    nextDueDate: string;
-    priceOverridePLN?: number;
-  }) {
+ async create(data: {
+  planId: number;
+  renewalDay: number;
+  paymentOption: "now" | "next_billing";
+  priceOverridePLN?: number;
+}) {
     const res = await api.post("/api/subscriptions", data);
     return res.data;
   },
 
   async delete(id: number) {
-    const res = await api.delete(`/api/subscriptions/${id}`);
-    return res.data;
-  },
+  const res = await api.delete(`/api/subscriptions/${id}`);
+  return res.data;
+},
 
   async update(id: number, data: any) {
     const res = await api.patch(`/api/subscriptions/${id}`, data);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { getUserFromRequest } from "@/lib/auth";
+import { calculateUpgradeCost } from "@/lib/billing";
 
 const prisma = new PrismaClient();
 
@@ -9,31 +10,39 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const userId = getUserFromRequest(req);
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const { id } = await params; // ← DODAJ await
+  const { id } = await params;
   const subscriptionId = parseInt(id);
 
-  // Sprawdź czy subskrypcja należy do usera
   const subscription = await prisma.subscription.findFirst({
     where: { id: subscriptionId, userId },
   });
 
   if (!subscription) {
-    return NextResponse.json(
-      { error: "Subskrypcja nie znaleziona lub brak dostępu" },
-      { status: 404 }
-    );
+    return NextResponse.json({ error: "Subskrypcja nie znaleziona" }, { status: 404 });
   }
 
-  await prisma.subscription.delete({
+  // Oblicz activeUntil – do końca bieżącego okresu (następny billing day)
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  const billingDay = user?.billingDay || 1;
+  const today = new Date();
+  const activeUntil = new Date(today.getFullYear(), today.getMonth(), billingDay);
+  if (activeUntil <= today) activeUntil.setMonth(activeUntil.getMonth() + 1);
+
+  await prisma.subscription.update({
     where: { id: subscriptionId },
+    data: {
+      status: "pending_cancellation",
+      activeUntil,
+      cancelledAt: new Date(),
+    }
   });
 
-  return NextResponse.json({ message: "Subskrypcja usunięta" });
+  return NextResponse.json({
+    message: "Subskrypcja zostanie dezaktywowana",
+    activeUntil,
+  });
 }
 
 export async function PATCH(
@@ -41,64 +50,87 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const userId = getUserFromRequest(req);
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const { id } = await params; // ← DODAJ await
+  const { id } = await params;
   const subscriptionId = parseInt(id);
   const body = await req.json();
 
-  // Sprawdź własność
   const subscription = await prisma.subscription.findFirst({
     where: { id: subscriptionId, userId },
+    include: { plan: true }
   });
 
   if (!subscription) {
-    return NextResponse.json(
-      { error: "Subskrypcja nie znaleziona" },
-      { status: 404 }
-    );
+    return NextResponse.json({ error: "Subskrypcja nie znaleziona" }, { status: 404 });
   }
 
-  // Przygotuj dane do aktualizacji
+  // Zmiana planu
+  if (body.planId && body.planId !== subscription.planId) {
+    const newPlan = await prisma.plan.findUnique({ where: { id: body.planId } });
+    if (!newPlan) return NextResponse.json({ error: "Plan nie znaleziony" }, { status: 404 });
+
+    if (body.upgradeOption === "now") {
+      // Zmień od razu
+      const oldPrice = subscription.priceOverridePLN || subscription.plan.pricePLN;
+      const newPrice = newPlan.pricePLN;
+
+      const updated = await prisma.subscription.update({
+        where: { id: subscriptionId },
+        data: {
+          planId: body.planId,
+          providerCode: newPlan.providerCode,
+          pendingPlanId: null,
+          status: "active",
+        },
+        include: { plan: true, provider: true },
+      });
+
+      // Jeśli upgrade – dodaj credit
+      if (newPrice > oldPrice) {
+        const { creditAfterUpgrade } = calculateUpgradeCost(oldPrice, newPrice, subscription.renewalDay);
+        if (creditAfterUpgrade > 0) {
+          const wallet = await prisma.wallet.findUnique({ where: { userId } });
+          if (wallet) {
+            await prisma.wallet.update({
+              where: { userId },
+              data: { balance: wallet.balance + creditAfterUpgrade }
+            });
+          }
+        }
+      }
+
+      return NextResponse.json(updated);
+    } else {
+      // Zmień przy następnej płatności – ustaw pending_change
+      const updated = await prisma.subscription.update({
+        where: { id: subscriptionId },
+        data: {
+          pendingPlanId: body.planId,
+          status: "pending_change",
+        },
+        include: { plan: true, provider: true },
+      });
+
+      return NextResponse.json(updated);
+    }
+  }
+
+  // Inne aktualizacje
   const updateData: {
-    nextDueDate?: Date;
-    status?: string;
-    priceOverridePLN?: number | null;
     planId?: number;
     providerCode?: string;
+    priceOverridePLN?: number | null;
   } = {};
-
-  if (body.nextDueDate) {
-    updateData.nextDueDate = new Date(body.nextDueDate);
-  }
-
-  if (body.status) {
-    updateData.status = body.status;
-  }
 
   if (body.priceOverridePLN !== undefined) {
     updateData.priceOverridePLN = body.priceOverridePLN;
   }
 
-  // Jeśli zmienia się planId, pobierz nowy plan aby zaktualizować providerCode
-  if (body.planId) {
-    const newPlan = await prisma.plan.findUnique({ where: { id: body.planId } });
-    if (newPlan) {
-      updateData.planId = body.planId;
-      updateData.providerCode = newPlan.providerCode;
-    }
-  }
-
   const updated = await prisma.subscription.update({
     where: { id: subscriptionId },
     data: updateData,
-    include: {
-      plan: true,
-      provider: true,
-    },
+    include: { plan: true, provider: true },
   });
 
   return NextResponse.json(updated);
