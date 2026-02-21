@@ -8,6 +8,7 @@ import { plansApi, subscriptionsApi } from "../src/lib/api";
 import { getProviderLogo, formatPlanName, getProviderDescription } from "../src/lib/provider-logos";
 import { MaterialIcons } from "@expo/vector-icons";
 import { storage } from "../src/lib/storage";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function SubscriptionsSelectPlan() {
   const router = useRouter();
@@ -25,6 +26,7 @@ export default function SubscriptionsSelectPlan() {
   const [showDowngradeInfo, setShowDowngradeInfo] = useState(false);
   const [renewalDay, setRenewalDay] = useState<number | null>(null);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (!provider) return;
@@ -54,7 +56,8 @@ export default function SubscriptionsSelectPlan() {
       setHasAnySubscription(allSubs.length > 0);
 
       const userSub = allSubs.find(
-        (s: any) => s?.providerCode === provider && s?.status === "active"
+        (s: any) => s?.providerCode === provider && 
+        (s?.status === "active" || s?.status === "pending_change")
       );
       setCurrentUserPlan(userSub || null);
     } catch {
@@ -65,27 +68,28 @@ export default function SubscriptionsSelectPlan() {
   };
 
   const handlePlanSelect = (plan: any) => {
-    setSelectedPlan(plan);
-
-    if (currentUserPlan) {
-      const oldPrice = currentUserPlan.priceOverridePLN || currentUserPlan.plan?.pricePLN || 0;
-      const newPrice = plan.pricePLN || 0;
-
-      if (plan.id === currentUserPlan.planId) {
-        Alert.alert("Info", "To jest Twój obecny plan.");
-        setSelectedPlan(null);
-        return;
-      }
-
-      if (newPrice > oldPrice) {
-        setShowUpgradeOptions(true);
-      } else {
-        setShowDowngradeInfo(true);
-      }
-    } else {
-      // Nowa subskrypcja – renewalDay = dzisiejszy dzień, od razu opcje płatności
+    if (!currentUserPlan) {
+      setSelectedPlan(plan);
       setRenewalDay(new Date().getDate());
       setShowAddOptions(true);
+      return;
+    }
+
+    const currentPlanId = currentUserPlan.pendingPlanId || currentUserPlan.planId;
+    const oldPrice = currentUserPlan.priceOverridePLN || currentUserPlan.plan?.pricePLN || 0;
+    const newPrice = plan.pricePLN || 0;
+
+    if (plan.id === currentUserPlan.planId && !currentUserPlan.pendingPlanId) {
+      Alert.alert("Info", "To jest Twój obecny plan.");
+      return;
+    }
+
+    setSelectedPlan(plan);
+
+    if (newPrice > oldPrice) {
+      setShowUpgradeOptions(true);
+    } else {
+      setShowDowngradeInfo(true);
     }
   };
 
@@ -275,7 +279,7 @@ export default function SubscriptionsSelectPlan() {
 
         {/* Header */}
         <View style={{
-          padding: 20, paddingTop: 60, backgroundColor: "#fff",
+          padding: 20, paddingTop: insets.top + 16, backgroundColor: "#fff",
           borderBottomWidth: 1, borderBottomColor: "#eee"
         }}>
           <Pressable onPress={() => router.back()} style={{ marginBottom: 16 }}>
@@ -313,7 +317,12 @@ export default function SubscriptionsSelectPlan() {
             const ads = Boolean(plan?.ads);
             const cycle = plan?.cycle === "yearly" ? "yearly" : "monthly";
             const isCurrentPlan = currentUserPlan?.planId === planId;
+            const isPendingPlan = currentUserPlan?.pendingPlanId === planId;
             const isSelected = selectedPlan?.id === planId;
+            const currentPrice = currentUserPlan?.priceOverridePLN || currentUserPlan?.plan?.pricePLN || 0;
+            const priceDiff = currentUserPlan ? price - currentPrice : 0;
+            const isUpgrade = priceDiff > 0;
+            const isDowngrade = priceDiff < 0;
 
             return (
               <Pressable
@@ -321,7 +330,10 @@ export default function SubscriptionsSelectPlan() {
                 onPress={() => handlePlanSelect(plan)}
                 style={{
                   padding: 16, borderWidth: 2,
-                  borderColor: isCurrentPlan ? "rgba(134,239,172,0.6)" : isSelected ? "#000" : "#ddd",
+                  borderColor: isCurrentPlan ? "rgba(134,239,172,0.6)"
+                  : isPendingPlan ? "rgba(59,130,246,0.5)"
+                  : isSelected ? "#000"
+                  : "#ddd",
                   borderRadius: 16, backgroundColor: "#fff",
                   shadowColor: "#000", shadowOffset: { width: 0, height: 1 },
                   shadowOpacity: 0.08, shadowRadius: 3, elevation: 2,
@@ -341,7 +353,20 @@ export default function SubscriptionsSelectPlan() {
                       }}>
                         <MaterialIcons name="check-circle" size={14} color="#16a34a" />
                         <Text style={{ color: "#16a34a", fontSize: 11, fontWeight: "700" }}>
-                          Twój plan
+                          Twój aktualny plan
+                        </Text>
+                      </View>
+                    )}
+                    {isPendingPlan && (
+                      <View style={{
+                        alignSelf: "flex-start", paddingHorizontal: 8, paddingVertical: 4,
+                        backgroundColor: "rgba(59,130,246,0.12)", borderRadius: 8, marginBottom: 8,
+                        flexDirection: "row", alignItems: "center", gap: 4,
+                        borderWidth: 1, borderColor: "rgba(59,130,246,0.4)"
+                      }}>
+                        <MaterialIcons name="schedule" size={14} color="#2563eb" />
+                        <Text style={{ color: "#2563eb", fontSize: 11, fontWeight: "700" }}>
+                          Oczekujący plan
                         </Text>
                       </View>
                     )}
@@ -362,16 +387,35 @@ export default function SubscriptionsSelectPlan() {
                         text={ads ? "Z reklamami" : "Bez reklam"}
                         warning={ads}
                       />
-                    </View>
+                   {/* Różnica ceny - pokazuj dla wszystkich planów gdy user ma subskrypcję */}
+                    {currentUserPlan && !isCurrentPlan && (
+                      <View style={{
+                        marginTop: 10, paddingHorizontal: 10, paddingVertical: 6,
+                        borderRadius: 8,
+                        backgroundColor: isUpgrade ? "rgba(239,68,68,0.08)" : "rgba(34,197,94,0.08)",
+                        borderWidth: 1,
+                        borderColor: isUpgrade ? "rgba(239,68,68,0.25)" : "rgba(34,197,94,0.25)",
+                        flexDirection: "row", alignItems: "center", gap: 6
+                      }}>
+                        <Text style={{ fontSize: 13, fontWeight: "700", color: isUpgrade ? "#dc2626" : "#16a34a" }}>
+                          {isUpgrade ? "↑ Upgrade" : "↓ Downgrade"}
+                        </Text>
+                        <Text style={{ fontSize: 13, color: isUpgrade ? "#dc2626" : "#16a34a" }}>
+                          {isUpgrade ? `+${priceDiff.toFixed(2)} zł` : `${priceDiff.toFixed(2)} zł`}
+                          {cycle === "yearly" ? "/rok" : "/mies"}
+                        </Text>
+                      </View>
+                    )}
                   </View>
-                  {isSelected && !isCurrentPlan && (
-                    <View style={{
-                      width: 28, height: 28, borderRadius: 14,
-                      backgroundColor: "#000", justifyContent: "center", alignItems: "center"
-                    }}>
-                      <Text style={{ color: "#fff", fontSize: 16 }}>✓</Text>
-                    </View>
-                  )}
+                </View>
+                {isSelected && !isCurrentPlan && (
+                  <View style={{
+                    width: 28, height: 28, borderRadius: 14,
+                    backgroundColor: "#000", justifyContent: "center", alignItems: "center"
+                  }}>
+                    <Text style={{ color: "#fff", fontSize: 16 }}>✓</Text>
+                  </View>
+                )}
                 </View>
               </Pressable>
             );

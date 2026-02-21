@@ -3,11 +3,13 @@ import { useState } from "react";
 import { View, TextInput, Pressable, Text, FlatList, Image } from "react-native";
 import { api } from "../../src/lib/api";
 import { Link } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function Search() {
   const [q, setQ] = useState("");
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const onSearch = async () => {
     if (!q.trim()) return;
@@ -21,7 +23,7 @@ export default function Search() {
   };
 
   return (
-    <View style={{ flex:1, padding:16 }}>
+    <View style={{ flex:1, padding:16,paddingTop: insets.top+10}}>
       <View style={{ flexDirection:"row", gap:8 }}>
         <TextInput
           value={q}

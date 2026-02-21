@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { storage } from "../../src/lib/storage";
 import { useAuth } from "../../src/contexts/AuthContext";
 import { api, authApi } from "../../src/lib/api";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function Profile() {
   const router = useRouter();
@@ -11,6 +12,7 @@ export default function Profile() {
   const [user, setUser] = useState<any>(null);
   const [resendingEmail, setResendingEmail] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     loadUser();
@@ -73,7 +75,7 @@ export default function Profile() {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
-      <View style={{ padding: 20, paddingTop: 60, backgroundColor: '#fff' }}>
+      <View style={{ padding: 20, paddingTop: insets.top+10, backgroundColor: '#fff' }}>
         <Text style={{ fontSize: 28, fontWeight: '800' }}>Profil</Text>
       </View>
 

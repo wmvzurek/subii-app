@@ -7,6 +7,7 @@ import { useRouter } from "expo-router";
 import { plansApi, subscriptionsApi, api } from "../src/lib/api";
 import { storage } from "../src/lib/storage";
 import { getProviderLogo } from "../src/lib/provider-logos";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const BILLING_DAYS = [1, 5, 10, 15, 20, 25, 28];
 
@@ -18,6 +19,7 @@ export default function SubscriptionsAdd() {
   const [showBillingSetup, setShowBillingSetup] = useState(false);
   const [selectedBillingDay, setSelectedBillingDay] = useState<number | null>(null);
   const [savingBillingDay, setSavingBillingDay] = useState(false);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     initScreen();
@@ -118,7 +120,7 @@ export default function SubscriptionsAdd() {
   if (showBillingSetup) {
     return (
       <View style={{ flex: 1, backgroundColor: "#fff" }}>
-        <View style={{ padding: 20, paddingTop: 60 }}>
+        <View style={{ padding: 20, paddingTop: insets.top + 16}}>
           <Pressable onPress={() => router.back()} style={{ marginBottom: 24 }}>
             <Text style={{ fontSize: 28 }}>←</Text>
           </Pressable>
@@ -212,7 +214,7 @@ export default function SubscriptionsAdd() {
 
   return (
     <View style={{ flex: 1, backgroundColor: "#f5f5f5" }}>
-      <View style={{ padding: 20, paddingTop: 60, backgroundColor: "#fff" }}>
+      <View style={{ padding: 20, paddingTop: insets.top + 16, backgroundColor: "#fff" }}>
         <Pressable onPress={() => router.back()} style={{ marginBottom: 16 }}>
           <Text style={{ fontSize: 28 }}>←</Text>
         </Pressable>

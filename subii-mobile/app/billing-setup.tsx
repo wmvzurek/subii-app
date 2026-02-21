@@ -10,6 +10,7 @@ import {
 import { useRouter } from "expo-router";
 import { api } from "../src/lib/api";
 import { storage } from "../src/lib/storage";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const SUGGESTED_DAYS = [1, 5, 10, 15, 20, 25, 28];
 
@@ -17,6 +18,7 @@ export default function BillingSetup() {
   const router = useRouter();
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const handleConfirm = async () => {
   if (!selectedDay) {
@@ -44,7 +46,7 @@ export default function BillingSetup() {
 
   return (
     <ScrollView
-      contentContainerStyle={{ padding: 24, paddingTop: 60, backgroundColor: "#fff", flexGrow: 1 }}
+      contentContainerStyle={{ padding: 24, paddingTop: insets.top + 16, backgroundColor: "#fff", flexGrow: 1 }}
     >
       <Pressable onPress={() => router.back()} style={{ marginBottom: 24 }}>
         <Text style={{ fontSize: 28 }}>←</Text>

@@ -3,6 +3,7 @@ import { View, Text, TextInput, Pressable, Alert, ActivityIndicator, ScrollView,
 import { useRouter } from "expo-router";
 import { api } from "../../src/lib/api";
 import { storage } from "../../src/lib/storage";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function Wallet() {
   const router = useRouter();
@@ -12,6 +13,7 @@ export default function Wallet() {
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [refreshing, setRefreshing] = useState(false); // ← Upewnij się że to jest
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     loadUser();
@@ -109,13 +111,14 @@ export default function Wallet() {
 
    return (
     <ScrollView 
-      contentContainerStyle={{ padding: 20, gap: 16 }}
+      contentContainerStyle={{ padding: 20,paddingTop: insets.top+10, gap: 16 }}
       refreshControl={
         <RefreshControl 
           refreshing={refreshing} 
           onRefresh={onRefresh}
           tintColor="#000"
           title="Odświeżanie..."
+          
         />
       }
     >

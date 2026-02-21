@@ -4,10 +4,12 @@ import { View, Text, TextInput, Pressable, ScrollView } from "react-native";
 import { api } from "../src/lib/api";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function Report() {
   const [period, setPeriod] = useState<string>(new Date().toISOString().slice(0,7)); // YYYY-MM
   const [data, setData] = useState<any>(null);
+  const insets = useSafeAreaInsets();
 
   const loadReport = async () => {
     const res = await api.get("/api/report", { params: { period } });

@@ -117,6 +117,21 @@ export async function PATCH(
   }
 
   // Inne aktualizacje
+  // Reaktywacja
+  if (body.status === "active") {
+    const reactivated = await prisma.subscription.update({
+      where: { id: subscriptionId },
+      data: {
+        status: "active",
+        activeUntil: null,
+        cancelledAt: null,
+      },
+      include: { plan: true, provider: true },
+    });
+    return NextResponse.json(reactivated);
+  }
+
+  // Inne aktualizacje
   const updateData: {
     planId?: number;
     providerCode?: string;

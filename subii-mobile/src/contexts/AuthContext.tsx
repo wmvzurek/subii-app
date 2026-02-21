@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!isAuthenticated && inAuthGroup) {
       // Nie zalogowany próbuje wejść do chronionej części
       router.replace('/login' as any);
-    } else if (isAuthenticated && !inAuthGroup && !['subscriptions-add', 'subscriptions-select-plan', 'subscriptions-manage'].includes(segments[0] || '')) {
+    } else if (isAuthenticated && !inAuthGroup && !['subscriptions-add', 'subscriptions-select-plan', 'subscriptions-manage', 'subscription-detail'].includes(segments[0] || '')) {
       // Zalogowany jest na login/register - przekieruj do głównej
       router.replace('/(tabs)' as any);
     }
