@@ -65,10 +65,9 @@ export async function sendVerificationEmail(
               </p>
               <p><strong>Link będzie ważny przez 24 godziny.</strong></p>
               <p>Dopóki nie potwierdzisz swojego adresu email, nie będziesz mógł:</p>
-              <ul>
-                <li>Korzystać z portfela</li>
-                <li>Dodawać subskrypcji</li>
-              </ul>
+<ul>
+  <li>Dodawać subskrypcji</li>
+</ul>
             </div>
             <div class="footer">
               <p>To automatyczna wiadomość - nie odpowiadaj na nią.</p>

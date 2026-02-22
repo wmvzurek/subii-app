@@ -126,12 +126,6 @@ export async function POST(req: Request) {
       },
     });
 
-    await prisma.wallet.create({
-      data: {
-        userId: user.id,
-        balance: 0,
-      },
-    });
 
     const token = generateToken({ userId: user.id, email: user.email });
     const verificationToken = generateToken({ 

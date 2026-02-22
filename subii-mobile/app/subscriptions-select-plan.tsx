@@ -6,7 +6,7 @@ import {
   ScrollView, Modal, KeyboardAvoidingView, Platform,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { plansApi, subscriptionsApi } from "../src/lib/api";
+import { plansApi, subscriptionsApi, api } from "../src/lib/api";
 import { getProviderLogo, formatPlanName, getProviderDescription } from "../src/lib/provider-logos";
 import { MaterialIcons } from "@expo/vector-icons";
 import { storage } from "../src/lib/storage";
@@ -24,8 +24,7 @@ export default function SubscriptionsSelectPlan() {
   const [hasAnySubscription, setHasAnySubscription] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [showAddOptions, setShowAddOptions] = useState(false);
-  const [showUpgradeOptions, setShowUpgradeOptions] = useState(false);
-  const [showDowngradeInfo, setShowDowngradeInfo] = useState(false);
+  const [showChangePlan, setShowChangePlan] = useState(false);
   const [renewalDay, setRenewalDay] = useState<number | null>(null);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const insets = useSafeAreaInsets();
@@ -37,180 +36,52 @@ export default function SubscriptionsSelectPlan() {
     return () => { ref.current = false; };
   }, [provider]);
 
-  const loadData = async (ref: { current: boolean }) => {
-    try {
-      const savedUser = await storage.getUser();
-      if (ref.current) setUser(savedUser);
-
-      const [plansRes, subsRes] = await Promise.all([
-        plansApi.getAll(),
-        subscriptionsApi.getAll(),
-      ]);
-
-      if (!ref.current) return;
-
-      const filtered = (plansRes?.plans || []).filter(
-        (p: any) => p?.providerCode === provider
-      );
-      setPlans(filtered);
-
-      const allSubs = subsRes?.subscriptions || [];
-      setHasAnySubscription(allSubs.length > 0);
-
-      const userSub = allSubs.find(
-        (s: any) => s?.providerCode === provider && 
-        (s?.status === "active" || s?.status === "pending_change")
-      );
-      setCurrentUserPlan(userSub || null);
-    } catch {
-      Alert.alert("Błąd", "Nie udało się pobrać danych");
-    } finally {
-      if (ref.current) setLoading(false);
-    }
-  };
-
-  const handlePlanSelect = (plan: any) => {
-    if (!currentUserPlan) {
-      setSelectedPlan(plan);
-      setRenewalDay(new Date().getDate());
-      setShowAddOptions(true);
-      return;
-    }
-
-    const currentPlanId = currentUserPlan.pendingPlanId || currentUserPlan.planId;
-    const oldPrice = currentUserPlan.priceOverridePLN || currentUserPlan.plan?.pricePLN || 0;
-    const newPrice = plan.pricePLN || 0;
-
-    if (plan.id === currentUserPlan.planId && !currentUserPlan.pendingPlanId) {
-      Alert.alert("Brak zmian", "Ten plan jest już aktywny.");
-      return;
-    }
-
-    setSelectedPlan(plan);
-
-    if (newPrice > oldPrice) {
-      setShowUpgradeOptions(true);
-    } else {
-      setShowDowngradeInfo(true);
-    }
-  };
-
-  const handleAddNow = async () => {
-    if (!selectedPlan || !renewalDay) return;
-    setShowAddOptions(false);
-
-    try {
-      await subscriptionsApi.create({
-  planId: selectedPlan.id,
-  paymentOption: "now",
-});
-       Alert.alert(
-    "Subskrypcja aktywowana",
-    `Od teraz korzystasz z ${getProviderName(provider)}.`
-  );
-      router.back();
-    } catch (e: any) {
-      Alert.alert("Coś poszło nie tak", e.response?.data?.error || "Nie udało się dodać subskrypcji.");
-    }
-  };
-
-  const handleAddNextBilling = async () => {
-    if (!selectedPlan || !renewalDay) return;
-    setShowAddOptions(false);
-
-    try {
-      await subscriptionsApi.create({
-  planId: selectedPlan.id,
-  paymentOption: "next_billing",
-});
-      Alert.alert(
-        "Subskrypcja aktywowana",
-        `Od teraz korzystasz z ${getProviderName(provider)}.\nOpłata zostanie doliczona do najbliższej płatności.`
-  );
-      router.back();
-    } catch (e: any) {
-      Alert.alert("Coś poszło nie tak", e.response?.data?.error || "Nie udało się dodać subskrypcji.");
-    }
-  };
-
-  const handleUpgradeNow = async () => {
-    if (!selectedPlan || !currentUserPlan) return;
-    setShowUpgradeOptions(false);
-
-    try {
-      await subscriptionsApi.update(currentUserPlan.id, {
-        planId: selectedPlan.id,
-        upgradeOption: "now",
-      });
-      const { credit } = getUpgradeCalc();
-      Alert.alert(
-        "Plan został zmieniony",
-        `Nowy plan jest aktywny od razu.`
-      );
-      router.back();
-    } catch (e: any) {
-      Alert.alert("Coś poszło nie tak", e.response?.data?.error || "Nie udało się zmienić planu.");
-    }
-  };
-
-  const handleUpgradeNextBilling = async () => {
-    if (!selectedPlan || !currentUserPlan) return;
-    setShowUpgradeOptions(false);
-
-    try {
-      await subscriptionsApi.update(currentUserPlan.id, {
-        planId: selectedPlan.id,
-        upgradeOption: "next_billing",
-      });
-      Alert.alert(
-        "Plan został zmieniony",
-        `Dostęp do nowego planu masz od razu. Opłata zostanie rozliczona przy najbliższej płatności.`
-      );
-      router.back();
-    } catch (e: any) {
-      Alert.alert("Coś poszło nie tak", e.response?.data?.error || "Nie udało się zmienić planu.");
-    }
-  };
-
-  const handleDowngradeConfirm = async () => {
-    if (!selectedPlan || !currentUserPlan) return;
-    setShowDowngradeInfo(false);
-
-    try {
-      await subscriptionsApi.update(currentUserPlan.id, {
-        planId: selectedPlan.id,
-        upgradeOption: "next_billing",
-      });
-      Alert.alert(
-        "Plan został zmieniony",
-        `Obecny plan pozostaje aktywny do końca bieżącego okresu. Nowy plan zacznie obowiązywać od następnego cyklu rozliczeniowego.`
-      );
-      router.back();
-    } catch (e: any) {
-      Alert.alert("Coś poszło nie tak", e.response?.data?.error || "Nie udało się zmienić planu.");
-    }
-  };
-
-  const handleCancelSubscription = async () => {
-  if (!currentUserPlan) return;
-  setShowCancelConfirm(false);
-
+ const loadData = async (ref: { current: boolean }) => {
   try {
-    const res = await subscriptionsApi.delete(currentUserPlan.id);
-    const until = res.activeUntil
-      ? new Date(res.activeUntil).toLocaleDateString("pl-PL")
-      : "—";
-    Alert.alert(
-      "Subskrypcja została anulowana",
-      `${providerName} aktywny do ${until}.\nKolejna opłata nie zostanie naliczona.`
+    // Pobierz świeże dane usera z API (nie tylko z storage)
+    const [savedUser, meRes, plansRes, subsRes] = await Promise.all([
+      storage.getUser(),
+      api.get("/api/auth/me").catch(() => null),
+      plansApi.getAll(),
+      subscriptionsApi.getAll(),
+    ]);
+
+    // Połącz dane z storage z świeżymi z API
+    const freshUser = meRes?.data?.user
+      ? { ...savedUser, ...meRes.data.user }
+      : savedUser;
+
+    if (ref.current) setUser(freshUser);
+
+    // Zaktualizuj storage żeby był spójny
+    if (meRes?.data?.user) {
+      await storage.setUser({ ...savedUser, ...meRes.data.user });
+    }
+
+    if (!ref.current) return;
+
+    const filtered = (plansRes?.plans || []).filter(
+      (p: any) => p?.providerCode === provider
     );
-    router.back();
-  } catch (e: any) {
-    Alert.alert("Coś poszło nie tak", e.response?.data?.error || "Nie udało się anulować subskrypcji.");
+    setPlans(filtered);
+
+    const allSubs = subsRes?.subscriptions || [];
+    setHasAnySubscription(allSubs.length > 0);
+
+    const userSub = allSubs.find(
+      (s: any) => s?.providerCode === provider &&
+      (s?.status === "active" || s?.status === "pending_change")
+    );
+    setCurrentUserPlan(userSub || null);
+  } catch {
+    Alert.alert("Błąd", "Nie udało się pobrać danych");
+  } finally {
+    if (ref.current) setLoading(false);
   }
 };
 
-  // Helpers
+  // ── Helpers ──
+
   const getProviderName = (code: string): string => {
     const names: Record<string, string> = {
       netflix: "Netflix", disney_plus: "Disney+",
@@ -219,31 +90,69 @@ export default function SubscriptionsSelectPlan() {
     return names[code] || code;
   };
 
-  const getNextBillingDateStr = (): string => {
+  /**
+   * Zwraca datę płatności zbiorczej która obejmuje daną datę odnowienia.
+   * Bez argumentu – najbliższy billingDay.
+   */
+  const getNextBillingDateStr = (renewalDate?: string): string => {
     const billingDay = user?.billingDay;
     if (!billingDay) return "—";
+
     const today = new Date();
+    const renewal = renewalDate ? new Date(renewalDate) : null;
+
+    if (renewal) {
+      let windowStart = new Date(today.getFullYear(), today.getMonth(), billingDay);
+      if (windowStart <= today) {
+        windowStart = new Date(today.getFullYear(), today.getMonth() + 1, billingDay);
+      }
+      for (let i = 0; i < 24; i++) {
+        const windowEnd = new Date(
+          windowStart.getFullYear(),
+          windowStart.getMonth() + 1,
+          billingDay - 1
+        );
+        windowEnd.setHours(23, 59, 59, 999);
+        if (renewal >= windowStart && renewal <= windowEnd) {
+          return windowStart.toLocaleDateString("pl-PL");
+        }
+        windowStart = new Date(
+          windowStart.getFullYear(),
+          windowStart.getMonth() + 1,
+          billingDay
+        );
+      }
+    }
+
+    // Fallback – najbliższy billingDay
     const candidate = new Date(today.getFullYear(), today.getMonth(), billingDay);
     if (candidate <= today) candidate.setMonth(candidate.getMonth() + 1);
     return candidate.toLocaleDateString("pl-PL");
   };
 
-  const getNextRenewalDateStr = (): string => {
-    const day = renewalDay || new Date().getDate();
-    const today = new Date();
-    const candidate = new Date(today.getFullYear(), today.getMonth(), day);
-    if (candidate <= today) candidate.setMonth(candidate.getMonth() + 1);
-    return candidate.toLocaleDateString("pl-PL");
-  };
+  /**
+   * Zwraca pierwszy billingDay który wypada PO danej dacie odnowienia.
+   * Używane dla downgrade – kiedy nowy plan zaczyna obowiązywać.
+   */
+  /**
+ * nextRenewalDate - 1 dzień = ostatni dzień dostępu.
+ * Używane: downgrade "Obecny plan obowiązuje do" + rezygnacja "Dostęp zachowasz do"
+ */
+const getRenewalMinusOne = (renewalDate?: string): string => {
+  if (!renewalDate) return "—";
+  const d = new Date(renewalDate);
+  d.setDate(d.getDate() - 1);
+  return d.toLocaleDateString("pl-PL");
+};
 
-  const getSecondRenewalDateStr = (): string => {
-    const day = renewalDay || new Date().getDate();
-    const today = new Date();
-    const first = new Date(today.getFullYear(), today.getMonth(), day);
-    if (first <= today) first.setMonth(first.getMonth() + 1);
-    const second = new Date(first.getFullYear(), first.getMonth() + 1, day);
-    return second.toLocaleDateString("pl-PL");
-  };
+/**
+ * nextRenewalDate wprost = data kiedy nowy plan wchodzi w życie.
+ * Używane: downgrade "Nowy plan zacznie od"
+ */
+const getRenewalDateStr = (renewalDate?: string): string => {
+  if (!renewalDate) return "—";
+  return new Date(renewalDate).toLocaleDateString("pl-PL");
+};
 
   const getUpgradeCalc = () => {
     if (!selectedPlan || !currentUserPlan) return { diff: 0, credit: 0, daysLeft: 0 };
@@ -259,6 +168,95 @@ export default function SubscriptionsSelectPlan() {
     return { diff: Math.max(0, diff), credit: Math.max(0, credit), daysLeft };
   };
 
+  // ── Handlers ──
+
+  const handlePlanSelect = (plan: any) => {
+    if (!currentUserPlan) {
+      setSelectedPlan(plan);
+      setRenewalDay(new Date().getDate());
+      setShowAddOptions(true);
+      return;
+    }
+
+    if (plan.id === currentUserPlan.planId && !currentUserPlan.pendingPlanId) {
+      Alert.alert("Brak zmian", "Ten plan jest już aktywny.");
+      return;
+    }
+
+    setSelectedPlan(plan);
+    setShowChangePlan(true);
+  };
+
+  const handleAddNow = async () => {
+    if (!selectedPlan) return;
+    setShowAddOptions(false);
+    try {
+      await subscriptionsApi.create({
+        planId: selectedPlan.id,
+        paymentOption: "now",
+      });
+      Alert.alert(
+        "Subskrypcja aktywowana",
+        `Od teraz korzystasz z ${getProviderName(provider)}.`
+      );
+      router.back();
+    } catch (e: any) {
+      Alert.alert("Coś poszło nie tak", e.response?.data?.error || "Nie udało się dodać subskrypcji.");
+    }
+  };
+
+  const handleAddNextBilling = async () => {
+    if (!selectedPlan) return;
+    setShowAddOptions(false);
+    try {
+      await subscriptionsApi.create({
+        planId: selectedPlan.id,
+        paymentOption: "next_billing",
+      });
+      Alert.alert(
+        "Subskrypcja aktywowana",
+        `Od teraz korzystasz z ${getProviderName(provider)}.\nOpłata zostanie doliczona do najbliższej płatności.`
+      );
+      router.back();
+    } catch (e: any) {
+      Alert.alert("Coś poszło nie tak", e.response?.data?.error || "Nie udało się dodać subskrypcji.");
+    }
+  };
+
+  const handleChangePlanConfirm = async () => {
+    if (!selectedPlan || !currentUserPlan) return;
+    setShowChangePlan(false);
+    try {
+      await subscriptionsApi.update(currentUserPlan.id, {
+        planId: selectedPlan.id,
+        upgradeOption: "now",
+      });
+      router.back();
+    } catch (e: any) {
+      Alert.alert("Coś poszło nie tak", e.response?.data?.error || "Nie udało się zmienić planu.");
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    if (!currentUserPlan) return;
+    setShowCancelConfirm(false);
+    try {
+      const res = await subscriptionsApi.delete(currentUserPlan.id);
+      const until = res.activeUntil
+        ? new Date(res.activeUntil).toLocaleDateString("pl-PL")
+        : "—";
+      Alert.alert(
+        "Subskrypcja została anulowana",
+        `${providerName} aktywny do ${until}.\nKolejna opłata nie zostanie naliczona.`
+      );
+      router.back();
+    } catch (e: any) {
+      Alert.alert("Coś poszło nie tak", e.response?.data?.error || "Nie udało się anulować subskrypcji.");
+    }
+  };
+
+  // ── Render ──
+
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -270,8 +268,7 @@ export default function SubscriptionsSelectPlan() {
   const logo = getProviderLogo(provider);
   const providerName = getProviderName(provider);
   const description = getProviderDescription(provider);
-  const { diff: upgradeDiff, credit: upgradeCredit, daysLeft } = getUpgradeCalc();
-  const todayStr = new Date().toLocaleDateString("pl-PL");
+  const { diff: upgradeDiff, daysLeft } = getUpgradeCalc();
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
@@ -319,10 +316,6 @@ export default function SubscriptionsSelectPlan() {
             const isCurrentPlan = currentUserPlan?.planId === planId;
             const isPendingPlan = currentUserPlan?.pendingPlanId === planId;
             const isSelected = selectedPlan?.id === planId;
-            const currentPrice = currentUserPlan?.priceOverridePLN || currentUserPlan?.plan?.pricePLN || 0;
-            const priceDiff = currentUserPlan ? price - currentPrice : 0;
-            const isUpgrade = priceDiff > 0;
-            const isDowngrade = priceDiff < 0;
 
             return (
               <Pressable
@@ -331,9 +324,9 @@ export default function SubscriptionsSelectPlan() {
                 style={{
                   padding: 16, borderWidth: 2,
                   borderColor: isCurrentPlan ? "rgba(134,239,172,0.6)"
-                  : isPendingPlan ? "rgba(59,130,246,0.5)"
-                  : isSelected ? "#000"
-                  : "#ddd",
+                    : isPendingPlan ? "rgba(59,130,246,0.5)"
+                    : isSelected ? "#000"
+                    : "#ddd",
                   borderRadius: 16, backgroundColor: "#fff",
                   shadowColor: "#000", shadowOffset: { width: 0, height: 1 },
                   shadowOpacity: 0.08, shadowRadius: 3, elevation: 2,
@@ -387,80 +380,57 @@ export default function SubscriptionsSelectPlan() {
                         text={ads ? "Z reklamami" : "Bez reklam"}
                         warning={ads}
                       />
-                   {/* Różnica ceny - pokazuj dla wszystkich planów gdy user ma subskrypcję */}
-                    {currentUserPlan && !isCurrentPlan && (
-                      <View style={{
-                        marginTop: 10, paddingHorizontal: 10, paddingVertical: 6,
-                        borderRadius: 8,
-                        backgroundColor: isUpgrade ? "rgba(239,68,68,0.08)" : "rgba(34,197,94,0.08)",
-                        borderWidth: 1,
-                        borderColor: isUpgrade ? "rgba(239,68,68,0.25)" : "rgba(34,197,94,0.25)",
-                        flexDirection: "row", alignItems: "center", gap: 6
-                      }}>
-                        <Text style={{ fontSize: 13, fontWeight: "700", color: isUpgrade ? "#dc2626" : "#16a34a" }}>
-                          {isUpgrade ? "↑ Upgrade" : "↓ Downgrade"}
-                        </Text>
-                        <Text style={{ fontSize: 13, color: isUpgrade ? "#dc2626" : "#16a34a" }}>
-                          {isUpgrade ? `+${priceDiff.toFixed(2)} zł` : `${priceDiff.toFixed(2)} zł`}
-                          {cycle === "yearly" ? "/rok" : "/mies"}
-                        </Text>
-                      </View>
-                    )}
+                    </View>
                   </View>
-                </View>
-                {isSelected && !isCurrentPlan && (
-                  <View style={{
-                    width: 28, height: 28, borderRadius: 14,
-                    backgroundColor: "#000", justifyContent: "center", alignItems: "center"
-                  }}>
-                    <Text style={{ color: "#fff", fontSize: 16 }}>✓</Text>
-                  </View>
-                )}
+                  {isSelected && !isCurrentPlan && (
+                    <View style={{
+                      width: 28, height: 28, borderRadius: 14,
+                      backgroundColor: "#000", justifyContent: "center", alignItems: "center"
+                    }}>
+                      <Text style={{ color: "#fff", fontSize: 16 }}>✓</Text>
+                    </View>
+                  )}
                 </View>
               </Pressable>
             );
           })}
-          {/* Przycisk rezygnacji – tylko gdy jest aktywny plan */}
-{currentUserPlan && currentUserPlan.status !== "pending_cancellation" && (
-  <Pressable
+
+          {/* Przycisk rezygnacji */}
+          {currentUserPlan && currentUserPlan.status !== "pending_cancellation" && (
+            <Pressable
               onPress={() => setShowCancelConfirm(true)}
               style={{
-                paddingVertical: 16,
-                paddingHorizontal: 16,
-                backgroundColor: "#fff",
-                borderRadius: 14,
-                borderWidth: 1.5,
-                borderColor: "#fca5a5",
-                alignItems: "center",
-                justifyContent: "center",
+                paddingVertical: 16, paddingHorizontal: 16,
+                backgroundColor: "#fff", borderRadius: 14,
+                borderWidth: 1.5, borderColor: "#fca5a5",
+                alignItems: "center", justifyContent: "center",
               }}
             >
               <Text style={{ color: "#dc2626", fontWeight: "800", fontSize: 15 }}>
                 Anuluj subskrypcję
               </Text>
             </Pressable>
-)}
+          )}
 
-{currentUserPlan?.status === "pending_cancellation" && (
-  <View style={{
-    marginTop: 8, padding: 16,
-    backgroundColor: "#fff5f5",
-    borderRadius: 14, borderWidth: 1.5,
-    borderColor: "#fca5a5",
-  }}>
-    <Text style={{ color: "#dc2626", textAlign: "center", fontWeight: "700", fontSize: 15 }}>
-      🚫 Rezygnacja w toku
-    </Text>
-    <Text style={{ color: "#dc2626", textAlign: "center", fontSize: 13, marginTop: 4 }}>
-      Dostęp do: {currentUserPlan.activeUntil
-        ? new Date(currentUserPlan.activeUntil).toLocaleDateString("pl-PL")
-        : "—"}
-    </Text>
-  </View>
-)}
+          {currentUserPlan?.status === "pending_cancellation" && (
+            <View style={{
+              marginTop: 8, padding: 16,
+              backgroundColor: "#fff5f5", borderRadius: 14,
+              borderWidth: 1.5, borderColor: "#fca5a5",
+            }}>
+              <Text style={{ color: "#dc2626", textAlign: "center", fontWeight: "700", fontSize: 15 }}>
+                🚫 Rezygnacja w toku
+              </Text>
+              <Text style={{ color: "#dc2626", textAlign: "center", fontSize: 13, marginTop: 4 }}>
+                Dostęp do: {currentUserPlan.activeUntil
+                  ? new Date(currentUserPlan.activeUntil).toLocaleDateString("pl-PL")
+                  : "—"}
+              </Text>
+            </View>
+          )}
         </ScrollView>
 
-        {/* ── MODAL: Opcje dodania nowej platformy ── */}
+        {/* ── MODAL: Dodanie nowej platformy ── */}
         <Modal
           visible={showAddOptions}
           transparent
@@ -476,10 +446,11 @@ export default function SubscriptionsSelectPlan() {
                 Wybierz formę płatności
               </Text>
               <Text style={{ fontSize: 13, color: "#999", marginBottom: 20 }}>
-                {providerName} · {selectedPlan?.pricePLN?.toFixed(2)} zł/mies
+                {providerName} · {selectedPlan?.pricePLN?.toFixed(2)} zł
+                {selectedPlan?.cycle === "yearly" ? "/rok" : "/mies"}
               </Text>
 
-              {/* Opcja A */}
+              {/* Opcja A – zapłać teraz */}
               <Pressable
                 onPress={handleAddNow}
                 style={{
@@ -488,20 +459,19 @@ export default function SubscriptionsSelectPlan() {
                 }}
               >
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
-  <MaterialIcons name="bolt" size={18} color="#fff" />
-  <Text style={{ color: "#fff", fontWeight: "800", fontSize: 16 }}>Zapłać teraz</Text>
-</View>
+                  <MaterialIcons name="bolt" size={18} color="#fff" />
+                  <Text style={{ color: "#fff", fontWeight: "800", fontSize: 16 }}>Zapłać teraz</Text>
+                </View>
                 <Text style={{ color: "rgba(255,255,255,0.75)", fontSize: 13, lineHeight: 20 }}>
-  Nowy plan zostanie aktywowany natychmiast. Dokonujesz jednorazowej opłaty w wysokości{" "}
-  <Text style={{ color: "#fff", fontWeight: "700" }}>
-    {selectedPlan?.pricePLN?.toFixed(2)} zł
-  </Text>.
-  Najbliższa płatność w Subii ({getNextBillingDateStr()}) nie obejmie pakietu tego pakietu.
-  Rozliczenie tej usługi rozpocznie się od kolejnego okresu.
-</Text>
+                  Nowy plan zostanie aktywowany natychmiast. Dokonujesz jednorazowej opłaty w wysokości{" "}
+                  <Text style={{ color: "#fff", fontWeight: "700" }}>
+                    {selectedPlan?.pricePLN?.toFixed(2)} zł
+                  </Text>.{" "}
+                  Rozliczenie tej usługi w Subii rozpocznie się od kolejnego okresu.
+                </Text>
               </Pressable>
 
-              {/* Opcja B */}
+              {/* Opcja B – zapłać później */}
               <Pressable
                 onPress={handleAddNextBilling}
                 style={{
@@ -511,18 +481,17 @@ export default function SubscriptionsSelectPlan() {
                 }}
               >
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
-  <MaterialIcons name="event" size={18} color="#111" />
-  <Text style={{ color: "#000", fontWeight: "800", fontSize: 16 }}>
-    Zapłać później
-  </Text>
-</View>
+                  <MaterialIcons name="event" size={18} color="#111" />
+                  <Text style={{ color: "#000", fontWeight: "800", fontSize: 16 }}>Zapłać później</Text>
+                </View>
                 <Text style={{ color: "#555", fontSize: 13, lineHeight: 20 }}>
-  Dostęp do nowych funkcji otrzymasz natychmiast. Rozliczenie pakietu {providerName}
-  zostanie doliczone do najbliższej płatności w Subii ({getNextBillingDateStr()})
-  i obejmie dwa okresy rozliczeniowe.
-  {"\n"}
-  Każda kolejna płatność będzie już naliczana w standardowej wysokości za jeden miesiąc.
-</Text>
+                  Dostęp otrzymasz natychmiast. Rozliczenie zostanie doliczone do najbliższej płatności w Subii (
+                  <Text style={{ fontWeight: "700", color: "#000" }}>
+                    {getNextBillingDateStr()}
+                  </Text>
+                  ) i obejmie dwa okresy rozliczeniowe.{"\n"}
+                  Każda kolejna płatność będzie naliczana w standardowej wysokości za jeden miesiąc.
+                </Text>
               </Pressable>
 
               <Pressable
@@ -535,148 +504,151 @@ export default function SubscriptionsSelectPlan() {
           </View>
         </Modal>
 
-        {/* ── MODAL: Opcje upgrade (tańszy→droższy) ── */}
-        {/* ── MODAL: Upgrade (tańszy→droższy) ── */}
-<Modal
-  visible={showUpgradeOptions}
-  transparent
-  animationType="slide"
-  onRequestClose={() => setShowUpgradeOptions(false)}
->
-  <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
-    <View
-      style={{
-        backgroundColor: "#fff",
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        padding: 24,
-      }}
-    >
-      {/* Nagłówek: przejście z planu na plan */}
-      <Text style={{ fontSize: 20, fontWeight: "800", marginBottom: 6 }}>
-        Zmiana planu
-      </Text>
-
-      <Text style={{ fontSize: 13, color: "#999", marginBottom: 16 }}>
-        {currentUserPlan?.plan?.planName} ({(currentUserPlan?.priceOverridePLN || currentUserPlan?.plan?.pricePLN || 0).toFixed(2)} zł)
-        {"  →  "}
-        {selectedPlan?.planName} ({selectedPlan?.pricePLN?.toFixed(2)} zł)
-      </Text>
-
-      {/* Opis (bez punktów) */}
-      <View
-        style={{
-          padding: 16,
-          backgroundColor: "#f9f9f9",
-          borderRadius: 14,
-          borderWidth: 1.5,
-          borderColor: "#e0e0e0",
-          marginBottom: 16,
-        }}
-      >
-
-        <Text style={{ color: "#555", fontSize: 13, lineHeight: 20 }}>
-          Po zmianie planu korzystasz z nowej wersji natychmiast. Najbliższa płatność w Subii
-          ({getNextBillingDateStr()}) będzie w wysokości{" "}
-          <Text style={{ fontWeight: "700" }}>{selectedPlan?.pricePLN?.toFixed(2)} zł</Text>{" "}
-          oraz zostanie powiększona o proporcjonalny koszt podwyższenia planu za pozostałe{" "}
-          <Text style={{ fontWeight: "700" }}>{daysLeft}</Text> dni (ok.{" "}
-          <Text style={{ fontWeight: "700" }}>{upgradeDiff.toFixed(2)} zł</Text>).
-          Każda kolejna płatność będzie już naliczana według ceny nowego planu.
-        </Text>
-      </View>
-
-      {/* CTA */}
-      <Pressable
-        onPress={handleUpgradeNow}
-        style={{
-          padding: 18,
-          backgroundColor: "#000",
-          borderRadius: 14,
-          marginBottom: 12,
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 8,
-        }}
-      >
-        <MaterialIcons name="sync" size={18} color="#fff" />
-        <Text style={{ color: "#fff", textAlign: "center", fontWeight: "800", fontSize: 16 }}>
-          Zmień plan
-        </Text>
-      </Pressable>
-
-      <Pressable
-        onPress={() => {
-          setShowUpgradeOptions(false);
-          setSelectedPlan(null);
-        }}
-        style={{
-          padding: 14,
-          backgroundColor: "#f0f0f0",
-          borderRadius: 12,
-          alignItems: "center",
-        }}
-      >
-        <Text style={{ fontWeight: "600" }}>Anuluj</Text>
-      </Pressable>
-    </View>
-  </View>
-</Modal>
-
-        {/* ── MODAL: Info o downgrade (droższy→tańszy) ── */}
+        {/* ── MODAL: Zmiana planu (upgrade i downgrade) ── */}
         <Modal
-          visible={showDowngradeInfo}
+          visible={showChangePlan}
           transparent
           animationType="slide"
-          onRequestClose={() => setShowDowngradeInfo(false)}
+          onRequestClose={() => { setShowChangePlan(false); setSelectedPlan(null); }}
         >
           <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
             <View style={{
-              backgroundColor: "#fff", borderTopLeftRadius: 24,
-              borderTopRightRadius: 24, padding: 24
+              backgroundColor: "#fff",
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              padding: 24,
             }}>
-              <Text style={{ fontSize: 20, fontWeight: "800", marginBottom: 4 }}>
-                Zmiana planu
-              </Text>
-              <Text style={{ fontSize: 13, color: "#999", marginBottom: 20 }}>
-                {currentUserPlan?.plan?.planName} ({(currentUserPlan?.priceOverridePLN || currentUserPlan?.plan?.pricePLN || 0).toFixed(2)} zł)
-                {" → "}
-                {selectedPlan?.planName} ({selectedPlan?.pricePLN?.toFixed(2)} zł)
-              </Text>
+              {(() => {
+                if (!selectedPlan || !currentUserPlan) return null;
 
-              <View style={{
-                padding: 16, backgroundColor: "#f0f9ff", borderRadius: 12,
-                marginBottom: 20, borderWidth: 1, borderColor: "#bae6fd"
-              }}>
-                <Text style={{ fontSize: 14, color: "#0369a1", lineHeight: 22 }}>
+                const oldPrice = currentUserPlan.priceOverridePLN || currentUserPlan.plan?.pricePLN || 0;
+                const newPrice = selectedPlan.pricePLN || 0;
+                const isUpgrade = newPrice > oldPrice;
+                const oldPlan = currentUserPlan.plan;
+
+                // Co się zmienia
+                const changes: { text: string; positive: boolean }[] = [];
+                const oldScreens = oldPlan?.screens ?? 0;
+                const newScreens = selectedPlan?.screens ?? 0;
+                const oldUhd = oldPlan?.uhd ?? false;
+                const newUhd = selectedPlan?.uhd ?? false;
+                const oldAds = oldPlan?.ads ?? false;
+                const newAds = selectedPlan?.ads ?? false;
+
+                if (newScreens !== oldScreens) {
+                  changes.push({
+                    text: `Ekrany: ${oldScreens} → ${newScreens}`,
+                    positive: newScreens > oldScreens,
+                  });
+                }
+                if (newUhd !== oldUhd) {
+                  changes.push({
+                    text: newUhd ? "Jakość 4K Ultra HD" : "Jakość HD (bez 4K)",
+                    positive: newUhd,
+                  });
+                }
+                if (newAds !== oldAds) {
+                  changes.push({
+                    text: newAds ? "Reklamy włączone" : "Bez reklam",
+                    positive: !newAds,
+                  });
+                }
+const billingDateStr = getNextBillingDateStr(currentUserPlan?.nextRenewalDate);
+const currentPlanUntilStr = getRenewalMinusOne(currentUserPlan?.nextRenewalDate);
+const newPlanStartStr = getRenewalDateStr(currentUserPlan?.nextRenewalDate);
+
+                return (
+                  <>
+                    {/* Nagłówek */}
+                    <Text style={{ fontSize: 20, fontWeight: "800", marginBottom: 4 }}>
+                      Zmiana planu
+                    </Text>
+                    <Text style={{ fontSize: 13, color: "#999", marginBottom: 16 }}>
+                      {formatPlanName(provider, oldPlan?.planName ?? "")} ({oldPrice.toFixed(2)} zł)
+                      {"  →  "}
+                      {formatPlanName(provider, selectedPlan?.planName ?? "")} ({newPrice.toFixed(2)} zł)
+                    </Text>
+
+                    {/* Co się zmienia */}
+                    {changes.length > 0 && (
+                      <View style={{
+                        backgroundColor: "#f9f9f9", borderRadius: 12,
+                        padding: 14, marginBottom: 14, gap: 8,
+                      }}>
+                        <Text style={{ fontSize: 13, fontWeight: "700", color: "#333", marginBottom: 2 }}>
+                          Co się zmienia:
+                        </Text>
+                        {changes.map((c, i) => (
+                          <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                            <Text style={{ fontSize: 14, color: c.positive ? "#16a34a" : "#dc2626" }}>
+                              {c.positive ? "✓" : "✕"}
+                            </Text>
+                            <Text style={{ fontSize: 13, color: "#333" }}>{c.text}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+
+                    {/* Info o płatności */}
+                    <View style={{
+                      padding: 16,
+                      backgroundColor: isUpgrade ? "#fff5f0" : "#f0f9ff",
+                      borderRadius: 12, marginBottom: 20,
+                      borderWidth: 1,
+                      borderColor: isUpgrade ? "#fed7aa" : "#bae6fd",
+                    }}>
+                      {isUpgrade ? (
+                        <Text style={{ fontSize: 14, color: "#9a3412", lineHeight: 22 }}>
+                          Po zmianie planu korzystasz z nowej wersji natychmiast.{"\n\n"}
+                          Najbliższa płatność w Subii (
+                          <Text style={{ fontWeight: "700" }}>{billingDateStr}</Text>
+                          ) będzie w wysokości{" "}
+                          <Text style={{ fontWeight: "700" }}>{newPrice.toFixed(2)} zł</Text>
+                          {" "}oraz zostanie powiększona o proporcjonalny koszt podwyższenia za pozostałe{" "}
+                          <Text style={{ fontWeight: "700" }}>{daysLeft} dni</Text>
+                          {" "}(ok.{" "}
+                          <Text style={{ fontWeight: "700" }}>{upgradeDiff.toFixed(2)} zł</Text>
+                          ).{"\n\n"}
+                          Każda kolejna płatność będzie naliczana według nowej ceny.
+                        </Text>
+                      ) : (
+ <Text style={{ fontSize: 14, color: "#0369a1", lineHeight: 22 }}>
   Obecny plan obowiązuje do{" "}
+  <Text style={{ fontWeight: "700" }}>{currentPlanUntilStr}</Text>.{"\n\n"}
+  Nowy plan{" "}
   <Text style={{ fontWeight: "700" }}>
-    {getNextBillingDateStr()}
-  </Text>.
-  {"\n\n"}
-  Od kolejnego okresu rozliczeniowego opłata w Subii będzie naliczana według nowej ceny{" "}
-  <Text style={{ fontWeight: "700" }}>
-    {selectedPlan?.pricePLN?.toFixed(2)} zł/mies
-  </Text>.
-</Text>
-              </View>
+    {formatPlanName(provider, selectedPlan?.planName ?? "")}
+  </Text>
+  {" "}zacznie obowiązywać od{" "}
+  <Text style={{ fontWeight: "700" }}>{newPlanStartStr}</Text>.{"\n\n"}
+                          Od tego momentu opłata w Subii będzie naliczana według nowej ceny{" "}
+                          <Text style={{ fontWeight: "700" }}>{newPrice.toFixed(2)} zł / mies</Text>.
+                        </Text>
+                      )}
+                    </View>
 
-              <Pressable
-                onPress={handleDowngradeConfirm}
-                style={{ padding: 18, backgroundColor: "#000", borderRadius: 14, marginBottom: 12 }}
-              >
-                <Text style={{ color: "#fff", textAlign: "center", fontWeight: "700", fontSize: 16 }}>
-                  Potwierdź zmianę planu
-                </Text>
-              </Pressable>
+                    {/* Przyciski */}
+                    <Pressable
+                      onPress={handleChangePlanConfirm}
+                      style={{
+                        padding: 18, backgroundColor: "#000",
+                        borderRadius: 14, marginBottom: 12, alignItems: "center",
+                      }}
+                    >
+                      <Text style={{ color: "#fff", fontWeight: "800", fontSize: 16 }}>
+                        Potwierdź zmianę planu
+                      </Text>
+                    </Pressable>
 
-              <Pressable
-                onPress={() => { setShowDowngradeInfo(false); setSelectedPlan(null); }}
-                style={{ padding: 14, backgroundColor: "#f0f0f0", borderRadius: 12, alignItems: "center" }}
-              >
-                <Text style={{ fontWeight: "600" }}>Anuluj</Text>
-              </Pressable>
+                    <Pressable
+                      onPress={() => { setShowChangePlan(false); setSelectedPlan(null); }}
+                      style={{ padding: 14, backgroundColor: "#f0f0f0", borderRadius: 12, alignItems: "center" }}
+                    >
+                      <Text style={{ fontWeight: "700", color: "#333" }}>Anuluj</Text>
+                    </Pressable>
+                  </>
+                );
+              })()}
             </View>
           </View>
         </Modal>
@@ -723,56 +695,60 @@ export default function SubscriptionsSelectPlan() {
         </Modal>
 
         {/* ── MODAL: Potwierdzenie rezygnacji ── */}
-<Modal
-  visible={showCancelConfirm}
-  transparent
-  animationType="slide"
-  onRequestClose={() => setShowCancelConfirm(false)}
->
-  <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
-    <View style={{
-      backgroundColor: "#fff", borderTopLeftRadius: 24,
-      borderTopRightRadius: 24, padding: 24
-    }}>
-      <Text style={{ fontSize: 20, fontWeight: "800", marginBottom: 4 }}>
-        Zrezygnować z {providerName}?
-      </Text>
-      <Text style={{ fontSize: 13, color: "#999", marginBottom: 20 }}>
-        {currentUserPlan?.plan?.planName} · {(currentUserPlan?.priceOverridePLN || currentUserPlan?.plan?.pricePLN || 0).toFixed(2)} zł/mies
-      </Text>
+        <Modal
+          visible={showCancelConfirm}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowCancelConfirm(false)}
+        >
+          <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
+            <View style={{
+              backgroundColor: "#fff", borderTopLeftRadius: 24,
+              borderTopRightRadius: 24, padding: 24
+            }}>
+              <Text style={{ fontSize: 20, fontWeight: "800", marginBottom: 4 }}>
+                Zrezygnować z {providerName}?
+              </Text>
+              <Text style={{ fontSize: 13, color: "#999", marginBottom: 20 }}>
+                {currentUserPlan?.plan?.planName} · {(currentUserPlan?.priceOverridePLN || currentUserPlan?.plan?.pricePLN || 0).toFixed(2)} zł/mies
+              </Text>
 
-      <View style={{
-        padding: 16, backgroundColor: "#fff5f5", borderRadius: 12,
-        marginBottom: 20, borderWidth: 1, borderColor: "#fca5a5"
-      }}>
-        <Text style={{ fontSize: 14, color: "#dc2626", lineHeight: 22 }}>
-          • Dostęp do {providerName} zachowasz do <Text style={{ fontWeight: "700" }}>{getNextBillingDateStr()}</Text>{"\n"}
-          • Przy następnej płatności zbiorczej ta platforma <Text style={{ fontWeight: "700" }}>nie zostanie doliczona</Text>{"\n"}
-          • Po tym dniu subskrypcja wygaśnie automatycznie
-        </Text>
-      </View>
+              <View style={{
+                padding: 16, backgroundColor: "#fff5f5", borderRadius: 12,
+                marginBottom: 20, borderWidth: 1, borderColor: "#fca5a5"
+              }}>
+                <Text style={{ fontSize: 14, color: "#dc2626", lineHeight: 24 }}>
+                  {"• "}Dostęp do {providerName} zachowasz do{" "}
+<Text style={{ fontWeight: "700" }}>
+  {getRenewalMinusOne(currentUserPlan?.nextRenewalDate)}
+</Text>
+                  {"\n• "}Przy następnej płatności zbiorczej ta platforma{" "}
+                  <Text style={{ fontWeight: "700" }}>nie zostanie doliczona</Text>
+                  {"\n• "}Po tym dniu subskrypcja wygaśnie automatycznie
+                </Text>
+              </View>
 
-      <Pressable
-        onPress={handleCancelSubscription}
-        style={{
-          padding: 18, backgroundColor: "#dc2626",
-          borderRadius: 14, marginBottom: 12
-        }}
-      >
-        <Text style={{ color: "#fff", textAlign: "center", fontWeight: "700", fontSize: 16 }}>
-          Tak, rezygnuję
-        </Text>
-      </Pressable>
+              <Pressable
+                onPress={handleCancelSubscription}
+                style={{
+                  padding: 18, backgroundColor: "#dc2626",
+                  borderRadius: 14, marginBottom: 12
+                }}
+              >
+                <Text style={{ color: "#fff", textAlign: "center", fontWeight: "700", fontSize: 16 }}>
+                  Tak, rezygnuję
+                </Text>
+              </Pressable>
 
-      <Pressable
-        onPress={() => setShowCancelConfirm(false)}
-        style={{ padding: 14, backgroundColor: "#f0f0f0", borderRadius: 12, alignItems: "center" }}
-      >
-        <Text style={{ fontWeight: "600" }}>Anuluj</Text>
-      </Pressable>
-    </View>
-  </View>
-</Modal>
+              <Pressable
+                onPress={() => setShowCancelConfirm(false)}
+                style={{ padding: 14, backgroundColor: "#f0f0f0", borderRadius: 12, alignItems: "center" }}
+              >
+                <Text style={{ fontWeight: "600" }}>Anuluj</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
 
       </View>
     </KeyboardAvoidingView>

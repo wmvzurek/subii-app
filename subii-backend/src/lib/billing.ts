@@ -8,7 +8,6 @@ export type BillingPreviewItem = {
   providerName: string;
   planName: string;
   pricePLN: number;
-  renewalDay: number;
   periodFrom: Date;
   periodTo: Date;
   pendingCharge: number;
@@ -116,7 +115,6 @@ export async function calculateBillingPreview(userId: number): Promise<BillingPr
       providerName: sub.provider.name,
       planName: sub.plan.planName,
       pricePLN: price,
-      renewalDay: renewalDate.getDate(), // zachowaj dla kompatybilności typu
       periodFrom,
       periodTo,
       pendingCharge,

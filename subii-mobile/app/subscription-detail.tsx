@@ -26,33 +26,53 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
  * - yearly: co rok od createdAt (szuka pierwszej daty > dziś)
  * - monthly: najbliższy renewalDay po dzisiejszej dacie
  */
-function getNextRenewalDate(
-  createdAt: string,
-  renewalDay: number,
-  cycle: string = "monthly"
-): Date {
-  const created = new Date(createdAt);
-  const today = new Date();
-  if (cycle === "yearly") {
-    const next = new Date(created);
-    while (next <= today) next.setFullYear(next.getFullYear() + 1);
-    return next;
-  }
-  let candidate = new Date(today.getFullYear(), today.getMonth(), renewalDay);
-  if (candidate <= today) candidate.setMonth(candidate.getMonth() + 1);
-  return candidate;
-}
 
 /**
  * Zwraca tekstową datę najbliższej "zintegrowanej płatności" użytkownika
  * na podstawie user.billingDay.
  */
-function getNextBillingDateFromDay(billingDay?: number): string {
-  if (!billingDay) return "—";
+function getNextBillingDateForSubscription(
+  billingDay: number | undefined,
+  nextRenewalDate: string | undefined
+): string {
+  if (!billingDay || !nextRenewalDate) return "—";
+
+  const renewal = new Date(nextRenewalDate);
   const today = new Date();
-  const candidate = new Date(today.getFullYear(), today.getMonth(), billingDay);
-  if (candidate <= today) candidate.setMonth(candidate.getMonth() + 1);
-  return candidate.toLocaleDateString("pl-PL");
+
+  // Szukamy okna billingowego które obejmuje nextRenewalDate
+  // Okno: od billingDay danego miesiąca do billingDay następnego miesiąca - 1 dzień
+  // Iterujemy okna do przodu aż znajdziemy to które zawiera renewal
+
+  // Startujemy od bieżącego okna
+  let windowStart = new Date(today.getFullYear(), today.getMonth(), billingDay);
+  if (windowStart <= today) {
+    windowStart = new Date(today.getFullYear(), today.getMonth() + 1, billingDay);
+  }
+
+  // Szukamy okna które zawiera renewalDate (max 24 miesiące do przodu)
+  for (let i = 0; i < 24; i++) {
+    const windowEnd = new Date(
+      windowStart.getFullYear(),
+      windowStart.getMonth() + 1,
+      billingDay - 1
+    );
+    windowEnd.setHours(23, 59, 59, 999);
+
+    if (renewal >= windowStart && renewal <= windowEnd) {
+      return windowStart.toLocaleDateString("pl-PL");
+    }
+
+    // Następne okno
+    windowStart = new Date(
+      windowStart.getFullYear(),
+      windowStart.getMonth() + 1,
+      billingDay
+    );
+  }
+
+  // Fallback – jeśli nie znaleziono (nie powinno się zdarzyć)
+  return renewal.toLocaleDateString("pl-PL");
 }
 
 /**
@@ -357,7 +377,10 @@ const price = isPendingChange && subscription.pendingPlan
   const nextRenewalStr = subscription.nextRenewalDate
     ? new Date(subscription.nextRenewalDate).toLocaleDateString("pl-PL")
     : "—";
-  const nextBillingStr = getNextBillingDateFromDay(user?.billingDay);
+const nextBillingStr = getNextBillingDateForSubscription(
+  user?.billingDay,
+  subscription.nextRenewalDate
+);
 
   // Data wygaśnięcia dostępu (dla komunikatów) - jeśli backend ustawi activeUntil, użyj tego,
   // w innym wypadku fallback do nextRenewal.
@@ -482,37 +505,36 @@ const price = isPendingChange && subscription.pendingPlan
         )}
 
         {/* Karta informacyjna gdy jest pending_change i jest pendingPlan */}
-        {isPendingChange && subscription.pendingPlan && (
-          <View
-            style={{
-              backgroundColor: "#eff6ff",
-              borderRadius: 16,
-              padding: 16,
-              borderWidth: 1,
-              borderColor: "#bfdbfe",
-              gap: 12,
-            }}
-          >
-            <Text style={{ fontSize: 14, fontWeight: "800", color: "#1d4ed8" }}>
-              {subscription.plan?.planName} → {subscription.pendingPlan.planName}
-            </Text>
+{isPendingChange && subscription.pendingPlan && (
+  <View style={{
+    backgroundColor: "#eff6ff",
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#bfdbfe",
+    gap: 12,
+  }}>
+    <Text style={{ fontSize: 14, fontWeight: "800", color: "#1d4ed8" }}>
+      Zmiana planu w toku
+    </Text>
 
-            <InfoRow
-              label="Aktywny od"
-              value={new Date(subscription.createdAt).toLocaleDateString("pl-PL")}
-              highlight
-            />
+    <Text style={{ fontSize: 13, color: "#1d4ed8", lineHeight: 20 }}>
+      {subscription.plan?.planName} → {subscription.pendingPlan.planName}
+    </Text>
 
-            <InfoRow
-              label="Cena po zmianie"
-              value={`${subscription.pendingPlan.pricePLN?.toFixed(2)} zł / ${
-                cycle === "yearly" ? "rok" : "mies."
-              }`}
-            />
-
-            <InfoRow label="Nowa cena od" value={nextRenewalStr} />
-          </View>
-        )}
+    <InfoRow
+      label="Obecny plan do"
+      value={nextRenewalStr}
+      highlight
+    />
+    <InfoRow
+      label="Nowa cena od następnego okresu"
+      value={`${subscription.pendingPlan.pricePLN?.toFixed(2)} zł / ${
+        cycle === "yearly" ? "rok" : "mies."
+      }`}
+    />
+  </View>
+)}
 
         {/* Szczegóły planu */}
         <View
@@ -548,24 +570,35 @@ const price = isPendingChange && subscription.pendingPlan
         </View>
 
         {/* Rozliczenie */}
-        <View
-          style={{
-            backgroundColor: "#fff",
-            borderRadius: 16,
-            padding: 20,
-            gap: 14,
-          }}
-        >
-          <Text style={{ fontSize: 16, fontWeight: "800", marginBottom: 4 }}>
-            Rozliczenie
-          </Text>
-          <InfoRow
-            label="Aktywna od"
-            value={new Date(subscription.createdAt).toLocaleDateString("pl-PL")}
-          />
-          <InfoRow label="Następne odnowienie" value={nextRenewalStr} highlight />
-          <InfoRow label="Płatność" value={nextBillingStr} />
-        </View>
+<View
+  style={{
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
+    gap: 14,
+  }}
+>
+  <Text style={{ fontSize: 16, fontWeight: "800", marginBottom: 4 }}>
+    Rozliczenie
+  </Text>
+  <InfoRow
+    label="Aktywna od"
+    value={new Date(subscription.createdAt).toLocaleDateString("pl-PL")}
+  />
+  <InfoRow
+    label={cycle === "yearly" ? "Następne odnowienie (roczne)" : "Następne odnowienie"}
+    value={nextRenewalStr}
+    highlight
+  />
+  <InfoRow
+    label="Cena"
+    value={`${price.toFixed(2)} zł / ${cycle === "yearly" ? "rok" : "mies."}`}
+  />
+  <InfoRow
+    label="Najbliższa płatność zbiorcza"
+    value={nextBillingStr}
+  />
+</View>
 
         {/* Nowości */}
         <View style={{ gap: 10 }}>
