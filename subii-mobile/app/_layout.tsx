@@ -61,6 +61,14 @@ export default function RootLayout() {
               animation: "slide_from_right",
             }}
           />
+          <Stack.Screen
+  name="titles/[tmdbId]"
+  options={{
+    headerShown: false,
+    presentation: "card",
+    animation: "slide_from_right",
+  }}
+/>
         </Stack>
       </AuthProvider>
     </SafeAreaProvider>

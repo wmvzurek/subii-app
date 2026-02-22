@@ -183,7 +183,7 @@ export default function SubscriptionDetail() {
                 : isPendingChange ? "#2563eb"
                 : "#16a34a"
             }}>
-              {isPendingCancellation ? "DO DEZAKTYWACJI"
+              {isPendingCancellation ? "WYGASA"
                 : isPendingChange ? "ZMIANA PLANU"
                 : "AKTYWNA"}
             </Text>
@@ -192,6 +192,54 @@ export default function SubscriptionDetail() {
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 40 }}>
+
+{/* Do dezaktywacji - nad szczegółami planu */}
+{isPendingCancellation && (
+  <View style={{
+    backgroundColor: "#fff5f5", borderRadius: 16, padding: 16,
+    borderWidth: 1, borderColor: "#fca5a5", gap: 8
+  }}>
+    <Text style={{ fontSize: 14, fontWeight: "800", color: "#dc2626" }}>
+      ⚠️ Subskrypcja do dezaktywacji
+    </Text>
+    <Text style={{ fontSize: 13, color: "#dc2626", lineHeight: 20 }}>
+      Dostęp aktywny do{" "}
+      <Text style={{ fontWeight: "700" }}>
+        {subscription.activeUntil
+          ? new Date(subscription.activeUntil).toLocaleDateString("pl-PL")
+          : nextRenewalStr}
+      </Text>
+      . Po tej dacie dostęp zostanie zakończony.
+    </Text>
+  </View>
+)}
+
+{/* Zmiana planu w toku - nad szczegółami planu */}
+{isPendingChange && subscription.pendingPlan && (
+  <View style={{
+    backgroundColor: "#eff6ff", borderRadius: 16, padding: 16,
+    borderWidth: 1, borderColor: "#bfdbfe", gap: 10
+  }}>
+    <Text style={{ fontSize: 14, fontWeight: "800", color: "#1d4ed8" }}>
+      🔄 Zmiana planu w toku
+    </Text>
+    <InfoRow label="Poprzedni plan" value={subscription.plan?.planName} />
+    <InfoRow label="Nowy plan" value={subscription.pendingPlan.planName} />
+    <InfoRow
+      label="Nowa cena"
+      value={`${subscription.pendingPlan.pricePLN?.toFixed(2)} zł / ${cycle === "yearly" ? "rok" : "mies"}`}
+    />
+    <InfoRow
+      label="Zmiana aktywna od"
+      value={new Date(subscription.createdAt).toLocaleDateString("pl-PL")}
+    />
+    <InfoRow
+      label="Nowa cena od"
+      value={nextRenewalStr}
+      highlight
+    />
+  </View>
+)}
 
         {/* Szczegóły planu */}
         <View style={{ backgroundColor: "#fff", borderRadius: 16, padding: 20, gap: 14 }}>
@@ -204,75 +252,24 @@ export default function SubscriptionDetail() {
         </View>
 
         {/* Rozliczenie */}
-        <View style={{ backgroundColor: "#fff", borderRadius: 16, padding: 20, gap: 14 }}>
-          <Text style={{ fontSize: 16, fontWeight: "800", marginBottom: 4 }}>Rozliczenie</Text>
-          <InfoRow
-            label="Aktywna od"
-            value={new Date(subscription.createdAt).toLocaleDateString("pl-PL")}
-          />
-          <InfoRow
-            label="Dzień odnowienia"
-            value={cycle === "yearly"
-              ? `Rocznie (${new Date(subscription.createdAt).toLocaleDateString("pl-PL", { day: "numeric", month: "long" })})`
-              : `${subscription.renewalDay}. każdego miesiąca`}
-          />
-          <InfoRow label="Następne odnowienie" value={nextRenewalStr} highlight />
-          <InfoRow label="Płatność zbiorcza" value={nextBillingStr} />
-          <InfoRow
-            label="Status rozliczenia"
-            value={isActive ? "Rozliczona ✅"
-              : isPendingChange ? "Zmiana w toku 🔄"
-              : "Do zakończenia ⚠️"}
-          />
-        </View>
+<View style={{ backgroundColor: "#fff", borderRadius: 16, padding: 20, gap: 14 }}>
+  <Text style={{ fontSize: 16, fontWeight: "800", marginBottom: 4 }}>Rozliczenie</Text>
+  <InfoRow
+    label="Aktywna od"
+    value={new Date(subscription.createdAt).toLocaleDateString("pl-PL")}
+  />
+  <InfoRow
+    label="Następne odnowienie"
+    value={nextRenewalStr}
+    highlight
+  />
+  <InfoRow
+    label="Płatność (zbiorcza)"
+    value={nextBillingStr}
+  />
+</View>
 
-        {/* Zmiana planu w toku */}
-        {isPendingChange && subscription.pendingPlan && (
-          <View style={{
-            backgroundColor: "#eff6ff", borderRadius: 16, padding: 20,
-            borderWidth: 1, borderColor: "#bfdbfe", gap: 12
-          }}>
-            <Text style={{ fontSize: 15, fontWeight: "800", color: "#1d4ed8" }}>
-              🔄 Zmiana planu w toku
-            </Text>
-            <InfoRow label="Obecny plan" value={subscription.plan?.planName} />
-            <InfoRow label="Nowy plan" value={subscription.pendingPlan.planName} />
-            <InfoRow
-              label="Nowa cena"
-              value={`${subscription.pendingPlan.pricePLN?.toFixed(2)} zł / ${cycle === "yearly" ? "rok" : "mies"}`}
-            />
-            <InfoRow label="Wejdzie w życie" value={nextBillingStr} highlight />
-          </View>
-        )}
-
-        {/* Do dezaktywacji */}
-        {isPendingCancellation && (
-          <View style={{
-            backgroundColor: "#fff5f5", borderRadius: 16, padding: 20,
-            borderWidth: 1, borderColor: "#fca5a5", gap: 12
-          }}>
-            <Text style={{ fontSize: 15, fontWeight: "800", color: "#dc2626" }}>
-              ⚠️ Subskrypcja do dezaktywacji
-            </Text>
-            <InfoRow
-              label="Aktywna do"
-              value={subscription.activeUntil
-                ? new Date(subscription.activeUntil).toLocaleDateString("pl-PL")
-                : nextRenewalStr}
-              highlight
-            />
-            <InfoRow label="Po tej dacie" value="Dostęp zostanie zakończony" />
-            <Pressable
-              onPress={() => setShowReactivateConfirm(true)}
-              style={{
-                marginTop: 8, padding: 14, backgroundColor: "#000",
-                borderRadius: 12, alignItems: "center"
-              }}
-            >
-              <Text style={{ color: "#fff", fontWeight: "700" }}>🔄 Aktywuj ponownie</Text>
-            </Pressable>
-          </View>
-        )}
+      
 
         {/* Polecane filmy */}
         <View style={{ gap: 10 }}>

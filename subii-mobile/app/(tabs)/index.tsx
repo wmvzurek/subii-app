@@ -15,9 +15,11 @@ import { getProviderLogo } from "../../src/lib/provider-logos";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 /**
- * Liczy datę kolejnego odnowienia subskrypcji:
- * - yearly: co rok od createdAt
- * - monthly: najbliższy renewalDay po dzisiejszej dacie
+ * Funkcja pomocnicza obliczająca datę kolejnego odnowienia subskrypcji.
+ * 
+ * Logika:
+ * - yearly → dodaje kolejne lata do daty utworzenia aż przekroczy dzisiejszą datę
+ * - monthly → wylicza najbliższy renewalDay w bieżącym lub następnym miesiącu
  */
 function getNextRenewalDate(
   createdAt: string,
@@ -27,6 +29,7 @@ function getNextRenewalDate(
   const created = new Date(createdAt);
   const today = new Date();
 
+  // Jeżeli subskrypcja roczna — zwiększamy rok aż data będzie w przyszłości
   if (cycle === "yearly") {
     const next = new Date(created);
     while (next <= today) {
@@ -35,7 +38,7 @@ function getNextRenewalDate(
     return next;
   }
 
-  // monthly - następny renewalDay po dziś
+  // Jeżeli miesięczna — sprawdzamy najbliższy renewalDay
   const candidate = new Date(today.getFullYear(), today.getMonth(), renewalDay);
   if (candidate <= today) candidate.setMonth(candidate.getMonth() + 1);
   return candidate;
@@ -43,41 +46,52 @@ function getNextRenewalDate(
 
 export default function Home() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const insets = useSafeAreaInsets(); // pozwala uwzględnić bezpieczne obszary (notch, dynamic island)
 
-  // Lista subskrypcji pobrana z backendu
+  // Stan przechowujący listę subskrypcji z backendu
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
 
-  // Stan odświeżania listy (pull-to-refresh)
+  // Stan do obsługi pull-to-refresh
   const [refreshing, setRefreshing] = useState(false);
 
-  // Stan ładowania ekranu
+  // Stan globalnego ładowania ekranu
   const [loading, setLoading] = useState(true);
 
-  // Id użytkownika z local storage
+  // ID aktualnie zalogowanego użytkownika
   const [userId, setUserId] = useState<number | null>(null);
 
-  // User z danymi billingowymi (jeśli używasz gdzieś indziej)
+  // Obiekt usera (może zawierać dane billingowe itp.)
   const [userWithBilling, setUserWithBilling] = useState<any>(null);
 
-  /** Wczytaj usera z storage przy starcie */
+  /**
+   * useEffect uruchamiany przy pierwszym renderze
+   * Wczytuje użytkownika z local storage
+   */
   useEffect(() => {
     loadUserId();
   }, []);
 
-  /** Po ustawieniu userId pobierz subskrypcje */
+  /**
+   * Po ustawieniu userId pobieramy subskrypcje z backendu
+   */
   useEffect(() => {
     if (userId) loadSubscriptions();
   }, [userId]);
 
-  /** Przy powrocie na ekran odśwież subskrypcje */
+  /**
+   * useFocusEffect uruchamia się przy każdym powrocie na ekran
+   * (np. po dodaniu nowej subskrypcji)
+   */
   useFocusEffect(
     useCallback(() => {
       if (userId) loadSubscriptions();
     }, [userId])
   );
 
-  /** Ładuje usera z local storage (jak brak -> przerzuca do login) */
+  /**
+   * Pobiera usera z AsyncStorage.
+   * Jeśli nie ma usera → przekierowanie do logowania.
+   */
   const loadUserId = async () => {
     try {
       const user = await storage.getUser();
@@ -92,7 +106,10 @@ export default function Home() {
     }
   };
 
-  /** Pobiera subskrypcje z API (jak 401 -> wylogowanie) */
+  /**
+   * Pobiera subskrypcje z backendowego API.
+   * Jeśli backend zwróci 401 → wylogowanie.
+   */
   const loadSubscriptions = async () => {
     try {
       const token = await storage.getToken();
@@ -115,14 +132,18 @@ export default function Home() {
     }
   };
 
-  /** Pull-to-refresh */
+  /**
+   * Funkcja obsługująca pull-to-refresh
+   */
   const onRefresh = async () => {
     setRefreshing(true);
     await loadSubscriptions();
     setRefreshing(false);
   };
 
-  /** Loader ekranu */
+  /**
+   * Jeśli ekran jest w trakcie ładowania → pokazujemy loader
+   */
   if (loading) {
     return (
       <View
@@ -138,7 +159,10 @@ export default function Home() {
     );
   }
 
-  /** Suma miesięczna (roczne liczone jako /12) */
+  /**
+   * Obliczenie łącznego kosztu miesięcznego.
+   * Subskrypcje roczne przeliczane są na koszt miesięczny (price / 12).
+   */
   const totalMonthly = subscriptions.reduce((sum, s) => {
     const price = s.priceOverridePLN || s.plan?.pricePLN || 0;
     if (s.plan?.cycle === "yearly") return sum + price / 12;
@@ -146,9 +170,9 @@ export default function Home() {
   }, 0);
 
   return (
-    // Główny wrapper ekranu
     <View style={{ flex: 1, backgroundColor: "#f5f5f5" }}>
-      {/* HEADER: tytuł + (plus) wycentrowany do dwóch linii tekstu */}
+      
+      {/* ================= HEADER ================= */}
       <View
         style={{
           padding: 20,
@@ -160,20 +184,22 @@ export default function Home() {
           style={{
             flexDirection: "row",
             justifyContent: "space-between",
-            alignItems: "center", // <-- to centruje plus względem całego bloku tekstu
+            alignItems: "center",
           }}
         >
-          {/* BLOK TEKSTOWY (2 linie jako jeden element) */}
           <View>
+            {/* Tytuł ekranu */}
             <Text style={{ fontSize: 28, fontWeight: "800" }}>
               Moje subskrypcje
             </Text>
+
+            {/* Liczba aktywnych + suma miesięczna */}
             <Text style={{ fontSize: 14, color: "#666", marginTop: 4 }}>
               {subscriptions.length} aktywnych · {totalMonthly.toFixed(2)} zł/mies
             </Text>
           </View>
 
-          {/* Przycisk dodania subskrypcji w nagłówku */}
+          {/* Przycisk dodawania nowej subskrypcji */}
           <Pressable
             onPress={() => router.push("/subscriptions-add" as any)}
             hitSlop={10}
@@ -203,9 +229,11 @@ export default function Home() {
         </View>
       </View>
 
-      {/* TREŚĆ: pusta lista vs lista subskrypcji */}
+      {/* ================= TREŚĆ ================= */}
       {subscriptions.length === 0 ? (
-        // Widok pusty
+        /**
+         * Widok pustej listy (empty state)
+         */
         <View
           style={{
             flex: 1,
@@ -235,7 +263,9 @@ export default function Home() {
           </Pressable>
         </View>
       ) : (
-        // Lista subskrypcji
+        /**
+         * Lista subskrypcji renderowana przez FlatList
+         */
         <FlatList
           data={subscriptions}
           numColumns={1}
@@ -249,14 +279,15 @@ export default function Home() {
           }
           keyExtractor={(item) => String(item.id)}
           renderItem={({ item }) => {
+            // Pobranie logo dostawcy (Netflix, Disney itd.)
             const logo = getProviderLogo(item.providerCode);
 
-            // Statusy subskrypcji
+            // Sprawdzenie statusu subskrypcji
             const isPendingChange = item.status === "pending_change";
             const isPendingCancellation = item.status === "pending_cancellation";
-            const isActive = item.status === "active"; // zostawione jak w Twoim kodzie
+            const isActive = item.status === "active";
 
-            // Badge kolory (UI)
+            // Dynamiczne kolory badge w zależności od statusu
             const badgeBg = isPendingCancellation
               ? "rgba(239,68,68,0.15)"
               : isPendingChange
@@ -276,12 +307,11 @@ export default function Home() {
               : "#16a34a";
 
             const badgeText = isPendingCancellation
-              ? "DO DEZAKTYWACJI"
+              ? "WYGASA"
               : isPendingChange
               ? "ZMIANA PLANU"
               : "AKTYWNA";
 
-            // Dane do wyświetlenia
             const cycle = item.plan?.cycle || "monthly";
             const nextRenewal = getNextRenewalDate(
               item.createdAt,
@@ -291,6 +321,9 @@ export default function Home() {
             const nextRenewalStr = nextRenewal.toLocaleDateString("pl-PL");
             const price = item.priceOverridePLN || item.plan?.pricePLN || 0;
 
+            /**
+             * Pojedynczy kafelek subskrypcji
+             */
             return (
               <Pressable
                 onPress={() =>
@@ -307,26 +340,31 @@ export default function Home() {
                   elevation: 3,
                   flexDirection: "row",
                   alignItems: "center",
-                  justifyContent: "center",
-                  gap: 15,
                 }}
               >
                 {/* Logo dostawcy */}
                 {logo && (
                   <Image
                     source={logo}
-                    style={{ width: 56, height: 56, resizeMode: "contain" }}
+                    style={{
+                      width: 68,
+                      height: 68,
+                      resizeMode: "contain",
+                      marginRight: 14,
+                    }}
                   />
                 )}
 
-                <View style={{ flex: 1, justifyContent: "center", gap: 12 }}>
-                  {/* Nazwa + badge */}
+                {/* Środkowa część kafelka */}
+                <View style={{ flex: 1 }}>
+                  
+                  {/* Górny wiersz: nazwa + badge statusu */}
                   <View
                     style={{
                       flexDirection: "row",
-                      alignItems: "center",
                       justifyContent: "space-between",
-                      marginBottom: 4,
+                      alignItems: "flex-start",
+                      marginBottom: 10,
                     }}
                   >
                     <Text
@@ -334,20 +372,23 @@ export default function Home() {
                         fontSize: 16,
                         fontWeight: "800",
                         color: "#000",
+                        flex: 1,
+                        marginRight: 10,
                       }}
+                      numberOfLines={1}
                     >
                       {item.provider?.name || item.providerCode}
                     </Text>
 
+                    {/* Badge statusu */}
                     <View
                       style={{
                         paddingHorizontal: 8,
-                        paddingVertical: 3,
+                        paddingVertical: 4,
                         backgroundColor: badgeBg,
                         borderRadius: 8,
                         borderWidth: 1,
                         borderColor: badgeBorder,
-                        marginRight: -15,
                       }}
                     >
                       <Text
@@ -362,68 +403,27 @@ export default function Home() {
                     </View>
                   </View>
 
-                  {/* Plan + cykl */}
-                  <Text style={{ fontSize: 13, color: "#555", marginBottom: 6 }}>
+                  {/* Plan + cykl płatności */}
+                  <Text
+                    style={{ fontSize: 13, color: "#666" }}
+                    numberOfLines={1}
+                  >
                     {item.plan?.planName} ·{" "}
                     {cycle === "yearly" ? "roczna" : "miesięczna"}
                   </Text>
-
-                  {/* Cena + info o odnowieniu / końcu */}
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <Text style={{ fontSize: 20, fontWeight: "800", color: "#000" }}>
-                      {price.toFixed(2)} zł
-                      <Text
-                        style={{
-                          fontSize: 12,
-                          fontWeight: "400",
-                          color: "#999",
-                        }}
-                      >
-                        {cycle === "yearly" ? "/rok" : "/mies"}
-                      </Text>
-                    </Text>
-
-                    <View style={{ alignItems: "flex-end", marginRight: -15 }}>
-                      {isPendingCancellation && item.activeUntil ? (
-                        <Text
-                          style={{
-                            fontSize: 11,
-                            color: "#dc2626",
-                            fontWeight: "600",
-                          }}
-                        >
-                          Do:{" "}
-                          {new Date(item.activeUntil).toLocaleDateString("pl-PL")}
-                        </Text>
-                      ) : (
-                        <Text style={{ fontSize: 9, color: "#999" }}>
-                          Odnowienie: {nextRenewalStr}
-                        </Text>
-                      )}
-
-                      {isPendingChange && item.pendingPlan && (
-                        <Text
-                          style={{
-                            fontSize: 9,
-                            color: "#2563eb",
-                            fontWeight: "600",
-                          }}
-                        >
-                          → {item.pendingPlan.planName}
-                        </Text>
-                      )}
-                    </View>
-                  </View>
                 </View>
 
-                {/* Strzałka do szczegółów */}
-                <Text style={{ fontSize: 18, color: "#ccc" }}>›</Text>
+                {/* Chevron wskazujący możliwość przejścia do szczegółów */}
+                <Text
+                  style={{
+                    fontSize: 20,
+                    color: "#c7c7c7",
+                    marginLeft: 10,
+                    fontWeight: "400",
+                  }}
+                >
+                  ›
+                </Text>
               </Pressable>
             );
           }}
