@@ -27,7 +27,8 @@ export async function GET(req: NextRequest) {
         with_watch_providers: providerId,
         watch_region: "PL",
         language: "pl-PL",
-        sort_by: "popularity.desc",
+        sort_by: "primary_release_date.desc",
+"primary_release_date.lte": new Date().toISOString().split("T")[0],
         page: 1,
       },
     });

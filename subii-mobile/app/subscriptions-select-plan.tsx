@@ -27,6 +27,7 @@ export default function SubscriptionsSelectPlan() {
   const [showChangePlan, setShowChangePlan] = useState(false);
   const [renewalDay, setRenewalDay] = useState<number | null>(null);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showReactivateConfirm, setShowReactivateConfirm] = useState(false);
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
@@ -69,9 +70,9 @@ export default function SubscriptionsSelectPlan() {
     setHasAnySubscription(allSubs.length > 0);
 
     const userSub = allSubs.find(
-      (s: any) => s?.providerCode === provider &&
-      (s?.status === "active" || s?.status === "pending_change")
-    );
+  (s: any) => s?.providerCode === provider &&
+  (s?.status === "active" || s?.status === "pending_change" || s?.status === "pending_cancellation")
+);
     setCurrentUserPlan(userSub || null);
   } catch {
     Alert.alert("Błąd", "Nie udało się pobrać danych");
@@ -224,18 +225,19 @@ const getRenewalDateStr = (renewalDate?: string): string => {
   };
 
   const handleChangePlanConfirm = async () => {
-    if (!selectedPlan || !currentUserPlan) return;
-    setShowChangePlan(false);
-    try {
-      await subscriptionsApi.update(currentUserPlan.id, {
-        planId: selectedPlan.id,
-        upgradeOption: "now",
-      });
-      router.back();
-    } catch (e: any) {
-      Alert.alert("Coś poszło nie tak", e.response?.data?.error || "Nie udało się zmienić planu.");
-    }
-  };
+  if (!selectedPlan || !currentUserPlan) return;
+  setShowChangePlan(false);
+  try {
+    await subscriptionsApi.update(currentUserPlan.id, {
+      planId: selectedPlan.id,
+    });
+    const ref = { current: true };
+    await loadData(ref);
+    router.back();
+  } catch (e: any) {
+    Alert.alert("Coś poszło nie tak", e.response?.data?.error || "Nie udało się zmienić planu.");
+  }
+};
 
   const handleCancelSubscription = async () => {
     if (!currentUserPlan) return;
@@ -254,6 +256,29 @@ const getRenewalDateStr = (renewalDate?: string): string => {
       Alert.alert("Coś poszło nie tak", e.response?.data?.error || "Nie udało się anulować subskrypcji.");
     }
   };
+
+  const handleReactivateConfirm = async () => {
+  if (!currentUserPlan) return;
+  setShowReactivateConfirm(false);
+  try {
+    await subscriptionsApi.update(currentUserPlan.id, {
+      status: "active",
+      activeUntil: null,
+      cancelledAt: null,
+    });
+    Alert.alert(
+      "Subskrypcja została aktywowana",
+      "Dostęp do platformy został przywrócony."
+    );
+    const ref = { current: true };
+    await loadData(ref);
+  } catch (e: any) {
+    Alert.alert(
+      "Nie udało się aktywować subskrypcji",
+      e.response?.data?.error || "Spróbuj ponownie za chwilę."
+    );
+  }
+};
 
   // ── Render ──
 
@@ -313,8 +338,10 @@ const getRenewalDateStr = (renewalDate?: string): string => {
             const uhd = Boolean(plan?.uhd);
             const ads = Boolean(plan?.ads);
             const cycle = plan?.cycle === "yearly" ? "yearly" : "monthly";
-            const isCurrentPlan = currentUserPlan?.planId === planId;
-            const isPendingPlan = currentUserPlan?.pendingPlanId === planId;
+            const isPendingCancellation = currentUserPlan?.status === "pending_cancellation";
+const isCurrentPlan = currentUserPlan?.planId === planId && !isPendingCancellation;
+const isCancelledPlan = currentUserPlan?.planId === planId && isPendingCancellation;
+const isPendingPlan = currentUserPlan?.pendingPlanId === planId;
             const isSelected = selectedPlan?.id === planId;
 
             return (
@@ -323,9 +350,10 @@ const getRenewalDateStr = (renewalDate?: string): string => {
                 onPress={() => handlePlanSelect(plan)}
                 style={{
                   padding: 16, borderWidth: 2,
-                  borderColor: isCurrentPlan ? "rgba(134,239,172,0.6)"
-                    : isPendingPlan ? "rgba(59,130,246,0.5)"
-                    : isSelected ? "#000"
+                  borderColor: isCancelledPlan ? "rgba(239,68,68,0.4)"
+  : isCurrentPlan ? "rgba(134,239,172,0.6)"
+  : isPendingPlan ? "rgba(59,130,246,0.5)"
+  : isSelected ? "#000"
                     : "#ddd",
                   borderRadius: 16, backgroundColor: "#fff",
                   shadowColor: "#000", shadowOffset: { width: 0, height: 1 },
@@ -350,6 +378,19 @@ const getRenewalDateStr = (renewalDate?: string): string => {
                         </Text>
                       </View>
                     )}
+                    {isCancelledPlan && (
+  <View style={{
+    paddingHorizontal: 8, paddingVertical: 3,
+    backgroundColor: "rgba(239,68,68,0.1)",
+    borderRadius: 6, borderWidth: 1,
+    borderColor: "rgba(239,68,68,0.4)",
+    alignSelf: "flex-start", marginBottom: 8,
+  }}>
+    <Text style={{ fontSize: 10, fontWeight: "800", color: "#dc2626" }}>
+      ANULOWANA
+    </Text>
+  </View>
+)}
                     {isPendingPlan && (
                       <View style={{
                         alignSelf: "flex-start", paddingHorizontal: 8, paddingVertical: 4,
@@ -413,21 +454,39 @@ const getRenewalDateStr = (renewalDate?: string): string => {
           )}
 
           {currentUserPlan?.status === "pending_cancellation" && (
-            <View style={{
-              marginTop: 8, padding: 16,
-              backgroundColor: "#fff5f5", borderRadius: 14,
-              borderWidth: 1.5, borderColor: "#fca5a5",
-            }}>
-              <Text style={{ color: "#dc2626", textAlign: "center", fontWeight: "700", fontSize: 15 }}>
-                🚫 Rezygnacja w toku
-              </Text>
-              <Text style={{ color: "#dc2626", textAlign: "center", fontSize: 13, marginTop: 4 }}>
-                Dostęp do: {currentUserPlan.activeUntil
-                  ? new Date(currentUserPlan.activeUntil).toLocaleDateString("pl-PL")
-                  : "—"}
-              </Text>
-            </View>
-          )}
+  <View style={{
+    marginTop: 8, padding: 16,
+    backgroundColor: "#fff5f5", borderRadius: 14,
+    borderWidth: 1.5, borderColor: "#fca5a5",
+    gap: 10,
+  }}>
+    <Text style={{ fontSize: 14, fontWeight: "800", color: "#dc2626" }}>
+      Subskrypcja została anulowana.
+    </Text>
+    <Text style={{ fontSize: 13, color: "#dc2626", lineHeight: 20 }}>
+      Dostęp do platformy wygaśnie{" "}
+      <Text style={{ fontWeight: "700" }}>
+        {currentUserPlan.activeUntil
+          ? new Date(currentUserPlan.activeUntil).toLocaleDateString("pl-PL")
+          : currentUserPlan.nextRenewalDate
+            ? new Date(currentUserPlan.nextRenewalDate).toLocaleDateString("pl-PL")
+            : "—"}
+      </Text>
+    </Text>
+    <Text
+      onPress={() => setShowReactivateConfirm(true)}
+      style={{
+        marginTop: 6,
+        fontSize: 14,
+        fontWeight: "700",
+        color: "#dc2626",
+        textAlign: "center",
+      }}
+    >
+      Włącz ponownie
+    </Text>
+  </View>
+)}
         </ScrollView>
 
         {/* ── MODAL: Dodanie nowej platformy ── */}
@@ -749,6 +808,70 @@ const newPlanStartStr = getRenewalDateStr(currentUserPlan?.nextRenewalDate);
             </View>
           </View>
         </Modal>
+{/* MODAL: Reaktywacja */}
+<Modal
+  visible={showReactivateConfirm}
+  transparent
+  animationType="slide"
+  onRequestClose={() => setShowReactivateConfirm(false)}
+>
+  <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
+    <View style={{
+      backgroundColor: "#fff",
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      padding: 24,
+    }}>
+      <Text style={{ fontSize: 20, fontWeight: "800", marginBottom: 6 }}>
+        Aktywować subskrypcję {providerName}?
+      </Text>
+      <Text style={{ fontSize: 13, color: "#666", lineHeight: 18, marginBottom: 20 }}>
+        Subskrypcja zostanie ponownie aktywowana. Dostęp pozostanie bez przerwy.
+      </Text>
+
+      <View style={{
+        padding: 16, backgroundColor: "#fff",
+        borderRadius: 12, borderWidth: 1,
+        borderColor: "#eee", gap: 10, marginBottom: 20,
+      }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+          <Text style={{ fontSize: 14, color: "#666" }}>Najbliższe odnowienie</Text>
+          <Text style={{ fontSize: 14, fontWeight: "800", color: "#000" }}>
+            {currentUserPlan?.nextRenewalDate
+              ? new Date(currentUserPlan.nextRenewalDate).toLocaleDateString("pl-PL")
+              : "—"}
+          </Text>
+        </View>
+        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+          <Text style={{ fontSize: 14, color: "#666" }}>Kwota</Text>
+          <Text style={{ fontSize: 14, fontWeight: "600", color: "#333" }}>
+            {(currentUserPlan?.priceOverridePLN || currentUserPlan?.plan?.pricePLN || 0).toFixed(2)} zł / {currentUserPlan?.plan?.cycle === "yearly" ? "rok" : "mies."}
+          </Text>
+        </View>
+      </View>
+
+      <Pressable
+        onPress={handleReactivateConfirm}
+        style={{
+          padding: 18, backgroundColor: "#000",
+          borderRadius: 14, marginBottom: 12,
+        }}
+      >
+        <Text style={{ color: "#fff", textAlign: "center", fontWeight: "800", fontSize: 16 }}>
+          Aktywuj subskrypcję
+        </Text>
+      </Pressable>
+
+      <Pressable
+        onPress={() => setShowReactivateConfirm(false)}
+        style={{ padding: 14, backgroundColor: "#f0f0f0", borderRadius: 12, alignItems: "center" }}
+      >
+        <Text style={{ fontWeight: "700", color: "#333" }}>Anuluj</Text>
+      </Pressable>
+    </View>
+  </View>
+</Modal>
+
 
       </View>
     </KeyboardAvoidingView>

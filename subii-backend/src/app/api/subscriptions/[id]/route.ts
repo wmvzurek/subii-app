@@ -23,12 +23,6 @@ export async function DELETE(
     return NextResponse.json({ error: "Subskrypcja nie znaleziona" }, { status: 404 });
   }
 
-  // Oblicz activeUntil – do końca bieżącego okresu (następny billing day)
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  const today = new Date();
-// activeUntil = następny renewalDay - 1 dzień
-// activeUntil = nextRenewalDate subskrypcji (już mamy tę datę w DB)
-  // activeUntil = nextRenewalDate - 1 dzień, koniec dnia
   const activeUntil = new Date(subscription.nextRenewalDate);
   activeUntil.setDate(activeUntil.getDate() - 1);
   activeUntil.setHours(23, 59, 59, 999);
@@ -68,46 +62,24 @@ export async function PATCH(
     return NextResponse.json({ error: "Subskrypcja nie znaleziona" }, { status: 404 });
   }
 
-  // Zmiana planu
+  // Zmiana planu → zawsze pending_change, wchodzi przy następnym odnowieniu
   if (body.planId && body.planId !== subscription.planId) {
     const newPlan = await prisma.plan.findUnique({ where: { id: body.planId } });
     if (!newPlan) return NextResponse.json({ error: "Plan nie znaleziony" }, { status: 404 });
 
-    if (body.upgradeOption === "now") {
-  const oldPrice = subscription.priceOverridePLN || subscription.plan.pricePLN;
-  const newPrice = newPlan.pricePLN;
+    const updated = await prisma.subscription.update({
+      where: { id: subscriptionId },
+      data: {
+        pendingPlanId: body.planId,
+        pendingChargePLN: null,
+        status: "pending_change",
+      },
+      include: { plan: true, provider: true, pendingPlan: true },
+    });
 
-  // Oblicz proporcjonalną dopłatę za dni od dziś do następnego odnowienia
-  let pendingChargePLN: number | null = null;
-
-  if (newPrice > oldPrice) {
-    const { diffToPayNow } = calculateUpgradeCost(
-      oldPrice,
-      newPrice,
-      subscription.nextRenewalDate
-    );
-    if (diffToPayNow > 0) {
-      pendingChargePLN = diffToPayNow;
-    }
+    return NextResponse.json(updated);
   }
 
-  const updated = await prisma.subscription.update({
-    where: { id: subscriptionId },
-    data: {
-      planId: body.planId,
-      providerCode: newPlan.providerCode,
-      pendingPlanId: null,
-      pendingChargePLN,   // ← zapisujemy dopłatę
-      status: "active",
-    },
-    include: { plan: true, provider: true },
-  });
-
-  return NextResponse.json(updated);
-}
-  }
-
-  // Inne aktualizacje
   // Reaktywacja
   if (body.status === "active") {
     const reactivated = await prisma.subscription.update({
@@ -122,7 +94,7 @@ export async function PATCH(
     return NextResponse.json(reactivated);
   }
 
-  // Inne aktualizacje
+  // Inne aktualizacje (np. priceOverridePLN)
   const updateData: {
     planId?: number;
     providerCode?: string;

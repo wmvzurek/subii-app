@@ -1,6 +1,6 @@
 //subscription-detail.tsx
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -15,7 +15,7 @@ import {
   Easing,
   StyleSheet,
 } from "react-native";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { api, subscriptionsApi } from "../src/lib/api";
 import { getProviderLogo } from "../src/lib/provider-logos";
@@ -232,10 +232,11 @@ export default function SubscriptionDetail() {
   const insets = useSafeAreaInsets();
 
   // załaduj dane przy wejściu / zmianie id
-  useEffect(() => {
+  useFocusEffect(
+  useCallback(() => {
     loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [id])
+);
 
   /**
    * Ładuje użytkownika ze storage + subskrypcje z API,
@@ -381,6 +382,18 @@ const nextBillingStr = getNextBillingDateForSubscription(
   user?.billingDay,
   subscription.nextRenewalDate
 );
+
+const pendingPlan = subscription.pendingPlan;
+const oldPrice = subscription.priceOverridePLN || subscription.plan?.pricePLN || 0;
+const newPrice = pendingPlan?.pricePLN ?? oldPrice;
+const oldScreens = subscription.plan?.screens ?? 0;
+const newScreens = pendingPlan?.screens ?? oldScreens;
+const oldUhd = subscription.plan?.uhd ?? false;
+const newUhd = pendingPlan?.uhd ?? oldUhd;
+const oldAds = subscription.plan?.ads ?? false;
+const newAds = pendingPlan?.ads ?? oldAds;
+const oldCycle = subscription.plan?.cycle ?? "monthly";
+const newCycle = pendingPlan?.cycle ?? oldCycle;
 
   // Data wygaśnięcia dostępu (dla komunikatów) - jeśli backend ustawi activeUntil, użyj tego,
   // w innym wypadku fallback do nextRenewal.
@@ -537,39 +550,76 @@ const nextBillingStr = getNextBillingDateForSubscription(
 )}
 
         {/* Szczegóły planu */}
-        <View
-          style={{
-            backgroundColor: "#fff",
-            borderRadius: 16,
-            padding: 20,
-            gap: 14,
-          }}
-        >
-          <Text style={{ fontSize: 16, fontWeight: "800", marginBottom: 4 }}>
-            Szczegóły planu
-          </Text>
-          <InfoRow
-            label="Cena"
-            value={`${price.toFixed(2)} zł / ${
-              cycle === "yearly" ? "rok" : "miesiąc"
-            }`}
-          />
-          <InfoRow
-            label="Ekrany"
-            value={String(subscription.plan?.screens ?? "—")}
-          />
-          <InfoRow
-            label="Jakość"
-            value={subscription.plan?.uhd ? "4K Ultra HD" : "HD"}
-          />
-          <InfoRow label="Reklamy" value={subscription.plan?.ads ? "Tak" : "Nie"} />
-          <InfoRow
-            label="Typ cyklu"
-            value={cycle === "yearly" ? "Roczna" : "Miesięczna"}
-          />
-        </View>
+<View
+  style={{
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
+    gap: 14,
+  }}
+>
+  <Text style={{ fontSize: 16, fontWeight: "800", marginBottom: 4 }}>
+    Szczegóły planu
+  </Text>
+
+  {isPendingChange && pendingPlan ? (
+    <>
+      <InfoRowTransition
+        label="Cena"
+        oldValue={`${oldPrice.toFixed(2)} zł / ${oldCycle === "yearly" ? "rok" : "miesiąc"}`}
+        newValue={`${newPrice.toFixed(2)} zł / ${newCycle === "yearly" ? "rok" : "miesiąc"}`}
+        changed={oldPrice !== newPrice || oldCycle !== newCycle}
+      />
+      <InfoRowTransition
+        label="Ekrany"
+        oldValue={String(oldScreens)}
+        newValue={String(newScreens)}
+        changed={oldScreens !== newScreens}
+      />
+      <InfoRowTransition
+        label="Jakość"
+        oldValue={oldUhd ? "4K Ultra HD" : "HD"}
+        newValue={newUhd ? "4K Ultra HD" : "HD"}
+        changed={oldUhd !== newUhd}
+      />
+      <InfoRowTransition
+        label="Reklamy"
+        oldValue={oldAds ? "Tak" : "Nie"}
+        newValue={newAds ? "Tak" : "Nie"}
+        changed={oldAds !== newAds}
+      />
+      <InfoRowTransition
+        label="Typ cyklu"
+        oldValue={oldCycle === "yearly" ? "Roczna" : "Miesięczna"}
+        newValue={newCycle === "yearly" ? "Roczna" : "Miesięczna"}
+        changed={oldCycle !== newCycle}
+      />
+    </>
+  ) : (
+    <>
+      <InfoRow
+        label="Cena"
+        value={`${price.toFixed(2)} zł / ${cycle === "yearly" ? "rok" : "miesiąc"}`}
+      />
+      <InfoRow
+        label="Ekrany"
+        value={String(subscription.plan?.screens ?? "—")}
+      />
+      <InfoRow
+        label="Jakość"
+        value={subscription.plan?.uhd ? "4K Ultra HD" : "HD"}
+      />
+      <InfoRow label="Reklamy" value={subscription.plan?.ads ? "Tak" : "Nie"} />
+      <InfoRow
+        label="Typ cyklu"
+        value={cycle === "yearly" ? "Roczna" : "Miesięczna"}
+      />
+    </>
+  )}
+</View>
 
         {/* Rozliczenie */}
+{/* Rozliczenie */}
 <View
   style={{
     backgroundColor: "#fff",
@@ -587,8 +637,9 @@ const nextBillingStr = getNextBillingDateForSubscription(
   />
   <InfoRow
     label={cycle === "yearly" ? "Następne odnowienie (roczne)" : "Następne odnowienie"}
-    value={nextRenewalStr}
-    highlight
+    value={isPendingCancellation ? "Anulowana" : nextRenewalStr}
+    highlight={!isPendingCancellation}
+    danger={isPendingCancellation}
   />
   <InfoRow
     label="Cena"
@@ -596,7 +647,8 @@ const nextBillingStr = getNextBillingDateForSubscription(
   />
   <InfoRow
     label="Najbliższa płatność zbiorcza"
-    value={nextBillingStr}
+    value={isPendingCancellation ? "Brak" : nextBillingStr}
+    muted={isPendingCancellation}
   />
 </View>
 
@@ -615,8 +667,12 @@ const nextBillingStr = getNextBillingDateForSubscription(
               data={movies}
               keyExtractor={(item) => String(item.id)}
               contentContainerStyle={{ gap: 12, paddingHorizontal: 2 }}
-              renderItem={({ item }) => (
-                <View
+renderItem={({ item }) => (
+                <Pressable
+                  onPress={() => router.push({
+                    pathname: "/titles/[tmdbId]",
+                    params: { tmdbId: String(item.id), mediaType: "movie" },
+                  } as any)}
                   style={{
                     width: 120,
                     backgroundColor: "#fff",
@@ -682,7 +738,7 @@ const nextBillingStr = getNextBillingDateForSubscription(
                       )}
                     </View>
                   </View>
-                </View>
+                </Pressable>
               )}
             />
           ) : (
@@ -924,10 +980,14 @@ function InfoRow({
   label,
   value,
   highlight,
+  danger,
+  muted,
 }: {
   label: string;
   value: string;
   highlight?: boolean;
+  danger?: boolean;
+  muted?: boolean;
 }) {
   return (
     <View
@@ -942,11 +1002,67 @@ function InfoRow({
         style={{
           fontSize: 14,
           fontWeight: highlight ? "800" : "600",
-          color: highlight ? "#000" : "#333",
+          color: danger ? "#dc2626" : muted ? "#aaa" : highlight ? "#000" : "#333",
         }}
       >
         {value}
       </Text>
+    </View>
+  );
+}
+
+function InfoRowTransition({
+  label,
+  oldValue,
+  newValue,
+  changed,
+}: {
+  label: string;
+  oldValue: string;
+  newValue: string;
+  changed: boolean;
+}) {
+  if (!changed) {
+    return (
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <Text style={{ fontSize: 14, color: "#666" }}>{label}</Text>
+        <Text style={{ fontSize: 14, fontWeight: "600", color: "#333" }}>
+          {oldValue}
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+      }}
+    >
+      <Text style={{ fontSize: 14, color: "#666" }}>{label}</Text>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+        <Text
+          style={{
+            fontSize: 14,
+            color: "#aaa",
+            textDecorationLine: "line-through",
+          }}
+        >
+          {oldValue}
+        </Text>
+        <Text style={{ fontSize: 13, color: "#aaa" }}>→</Text>
+        <Text style={{ fontSize: 14, fontWeight: "700", color: "#1d4ed8" }}>
+          {newValue}
+        </Text>
+      </View>
     </View>
   );
 }
