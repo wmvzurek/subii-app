@@ -131,6 +131,8 @@ export default function TitleScreen() {
         year: Number(details.release_date?.slice(0, 4) || details.first_air_date?.slice(0, 4) || 0),
         posterUrl: details.poster_path ? `https://image.tmdb.org/t/p/w500${details.poster_path}` : null,
         genres: JSON.stringify((details.genres || []).map((g: any) => g.id)),
+        runtime: details.runtime || null,
+        mediaType: isMovie ? "movie" : "tv",
         rating,
       });
 
@@ -160,6 +162,8 @@ export default function TitleScreen() {
         year: Number(details.release_date?.slice(0, 4) || details.first_air_date?.slice(0, 4) || 0),
         posterUrl: details.poster_path ? `https://image.tmdb.org/t/p/w500${details.poster_path}` : null,
         genres: JSON.stringify((details.genres || []).map((g: any) => g.id)),
+        runtime: details.runtime || null,
+        mediaType: isMovie ? "movie" : "tv",
         favorite: newVal,
       });
     } catch {
@@ -182,6 +186,8 @@ export default function TitleScreen() {
         year: Number(details.release_date?.slice(0, 4) || 0),
         posterUrl: details.poster_path ? `https://image.tmdb.org/t/p/w500${details.poster_path}` : null,
         genres: JSON.stringify((details.genres || []).map((g: any) => g.id)),
+        runtime: details.runtime || null,
+        mediaType: "movie",
         watched: newVal,
       });
     } catch {

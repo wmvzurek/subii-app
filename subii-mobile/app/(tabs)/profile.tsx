@@ -307,7 +307,7 @@ export default function Profile() {
 
             {/* Zmień hasło */}
             <Pressable
-              onPress={() => { setShowSettingsModal(false); router.push("/change-password" as any); }}
+              onPress={() => { setShowSettingsModal(false); setTimeout(() => router.push("/change-password" as any), 300); }}
               style={{ backgroundColor: "#fff", borderRadius: 14, padding: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}
             >
               <View>
@@ -360,7 +360,7 @@ export default function Profile() {
 
             {/* Regulamin */}
             <Pressable
-              onPress={() => { setShowSettingsModal(false); router.push("/terms" as any); }}
+              onPress={() => { setShowSettingsModal(false); setTimeout(() => router.push("/terms" as any), 300); }}
               style={{ backgroundColor: "#fff", borderRadius: 14, padding: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}
             >
               <Text style={{ fontSize: 15, fontWeight: "600", color: "#000" }}>Regulamin i prywatność</Text>
@@ -369,7 +369,7 @@ export default function Profile() {
 
             {/* Centrum pomocy */}
             <Pressable
-              onPress={() => { setShowSettingsModal(false); router.push("/help" as any); }}
+              onPress={() => { setShowSettingsModal(false); setTimeout(() => router.push("/help" as any), 300); }}
               style={{ backgroundColor: "#fff", borderRadius: 14, padding: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}
             >
               <Text style={{ fontSize: 15, fontWeight: "600", color: "#000" }}>Centrum pomocy</Text>

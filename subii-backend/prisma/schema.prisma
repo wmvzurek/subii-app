@@ -107,6 +107,7 @@ model Title {
   titleOriginal  String
   year           Int?
   runtime        Int?
+  mediaType      String?        // "movie" | "tv"
   plot           String?
   posterUrl      String?
   genres         String         // JSON array jako string

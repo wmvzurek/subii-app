@@ -46,18 +46,22 @@ export async function PATCH(req: NextRequest) {
   if (!tmdbId) return NextResponse.json({ error: "tmdbId required" }, { status: 400 });
 
   // Upewnij się że tytuł istnieje w bazie (upsert)
-  const title = await prisma.title.upsert({
-    where: { tmdbId },
-    update: {},
-    create: {
-      tmdbId,
-      titlePL: titlePL || "",
-      titleOriginal: titleOriginal || "",
-      year: year || null,
-      posterUrl: posterUrl || null,
-      genres: genres || "[]",
-    },
-  });
+  // PO:
+const title = await prisma.title.upsert({
+  where: { tmdbId },
+  update: {
+    ...(body.runtime !== undefined && { runtime: body.runtime }),
+  },
+  create: {
+    tmdbId,
+    titlePL: titlePL || "",
+    titleOriginal: titleOriginal || "",
+    year: year || null,
+    posterUrl: posterUrl || null,
+    genres: genres || "[]",
+    runtime: body.runtime || null,
+  },
+});
 
   const data: Record<string, boolean | Date> = { updatedAt: new Date() };
   if (watched !== undefined) data.watched = watched;

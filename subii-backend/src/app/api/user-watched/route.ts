@@ -62,15 +62,12 @@ export async function GET(req: NextRequest) {
 
   for (const ut of userTitles) {
     const t = ut.title;
-    const isTV = !t.runtime && episodesBySeriesId[t.tmdbId] !== undefined
-      || userEpisodes.some(e => e.tmdbSeriesId === t.tmdbId);
-
-    // Sprawdź czy to serial przez TMDB jeśli nie wiemy
-    let isTVTitle = isTV;
-    if (!isTVTitle && !ut.title.runtime) {
-      // brak runtime = prawdopodobnie serial, sprawdzimy po tmdbId
-      isTVTitle = userEpisodes.some(e => e.tmdbSeriesId === t.tmdbId);
-    }
+    // Rozróżnienie film/serial — najpierw po polu mediaType, potem po odcinkach
+    const isTVTitle =
+      t.mediaType === "tv" ||
+      episodesBySeriesId[t.tmdbId] !== undefined ||
+      userEpisodes.some(e => e.tmdbSeriesId === t.tmdbId);
+    
 
     if (isTVTitle || episodesBySeriesId[t.tmdbId]) {
       // Serial
