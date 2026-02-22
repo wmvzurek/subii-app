@@ -77,6 +77,40 @@ export default function RootLayout() {
     animation: "slide_from_right",
   }}
 />
+
+<Stack.Screen
+  name="change-password"
+  options={{
+    headerShown: false,
+    presentation: "card",
+    animation: "slide_from_right",
+  }}
+/>
+
+<Stack.Screen
+  name="watched-list"
+  options={{
+    headerShown: false,
+    presentation: "card",
+    animation: "slide_from_right",
+  }}
+/>
+<Stack.Screen
+  name="terms"
+  options={{
+    headerShown: false,
+    presentation: "card",
+    animation: "slide_from_right",
+  }}
+/>
+<Stack.Screen
+  name="help"
+  options={{
+    headerShown: false,
+    presentation: "card",
+    animation: "slide_from_right",
+  }}
+/>
         </Stack>
       </AuthProvider>
     </SafeAreaProvider>

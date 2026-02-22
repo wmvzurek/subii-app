@@ -14,15 +14,22 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
-    },
+  "supportsTablet": true,
+  "infoPlist": {
+    "NSPhotoLibraryUsageDescription": "Subii potrzebuje dostępu do galerii, aby ustawić zdjęcie profilowe."
+  }
+},
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "edgeToEdgeEnabled": true
-    },
+  "adaptiveIcon": {
+    "foregroundImage": "./assets/adaptive-icon.png",
+    "backgroundColor": "#ffffff"
+  },
+  "permissions": [
+    "android.permission.READ_MEDIA_IMAGES",
+    "android.permission.READ_EXTERNAL_STORAGE"
+  ],
+  "edgeToEdgeEnabled": true
+},
     "web": {
       "favicon": "./assets/favicon.png"
     },
