@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import {
   View,
   TextInput,
@@ -8,6 +8,7 @@ import {
   Pressable,
   ActivityIndicator,
   Keyboard,
+  ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { api } from "../../src/lib/api";
@@ -23,12 +24,37 @@ const CATEGORIES: { key: SearchCategory; label: string }[] = [
 
 export default function Search() {
   const [q, setQ] = useState("");
+  const [recommended, setRecommended] = useState<{
+    id: number; title: string; posterUrl: string | null;
+    year: string | null; mediaType: string; rating: number;
+  }[]>([]);
+  const [newTitles, setNewTitles] = useState<{
+    id: number; title: string; posterUrl: string | null;
+    year: string | null; mediaType: string; rating: number;
+  }[]>([]);
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [category, setCategory] = useState<SearchCategory>("movie");
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    loadDiscovery();
+  }, []);
+
+  const loadDiscovery = async () => {
+    try {
+      const [recRes, newRes] = await Promise.all([
+        api.get("/api/recommendations"),
+        api.get("/api/new-titles"),
+      ]);
+      setRecommended(recRes.data.recommended || []);
+      setNewTitles(newRes.data.newTitles || []);
+    } catch {
+      // opcjonalne
+    }
+  };
 
   const doSearch = useCallback(async (query: string, cat: SearchCategory) => {
     if (!query.trim()) {
@@ -137,6 +163,86 @@ export default function Search() {
           ))}
         </View>
       </View>
+
+      {/* Discovery — widoczne tylko gdy brak wyszukiwania */}
+      {q.length === 0 && (
+        <ScrollView showsVerticalScrollIndicator={false}>
+
+          {/* Rekomendowane dla Ciebie */}
+          {recommended.length > 0 && (
+            <View style={{ marginBottom: 24 }}>
+              <Text style={{ fontSize: 16, fontWeight: "800", color: "#000", paddingHorizontal: 16, marginBottom: 12 }}>
+                Rekomendowane dla Ciebie
+              </Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
+                {recommended.map((item) => (
+                  <Pressable
+                    key={item.id}
+                    onPress={() => router.push({ pathname: "/titles/[tmdbId]", params: { tmdbId: String(item.id), mediaType: item.mediaType } } as any)}
+                    style={{ width: 110 }}
+                  >
+                    {item.posterUrl ? (
+                      <Image source={{ uri: item.posterUrl }} style={{ width: 110, height: 160, borderRadius: 10 }} />
+                    ) : (
+                      <View style={{ width: 110, height: 160, borderRadius: 10, backgroundColor: "#e0e0e0", justifyContent: "center", alignItems: "center" }}>
+                        <Text style={{ fontSize: 30 }}>{item.mediaType === "movie" ? "🎬" : "📺"}</Text>
+                      </View>
+                    )}
+                    <Text style={{ fontSize: 12, fontWeight: "600", color: "#000", marginTop: 6 }} numberOfLines={2}>
+                      {item.title}
+                    </Text>
+                    {item.year && (
+                      <Text style={{ fontSize: 11, color: "#999" }}>{item.year}</Text>
+                    )}
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* Nowości */}
+          {newTitles.length > 0 && (
+            <View style={{ marginBottom: 24 }}>
+              <Text style={{ fontSize: 16, fontWeight: "800", color: "#000", paddingHorizontal: 16, marginBottom: 12 }}>
+                Nowości
+              </Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
+                {newTitles.map((item) => (
+                  <Pressable
+                    key={item.id}
+                    onPress={() => router.push({ pathname: "/titles/[tmdbId]", params: { tmdbId: String(item.id), mediaType: item.mediaType } } as any)}
+                    style={{ width: 110 }}
+                  >
+                    {item.posterUrl ? (
+                      <Image source={{ uri: item.posterUrl }} style={{ width: 110, height: 160, borderRadius: 10 }} />
+                    ) : (
+                      <View style={{ width: 110, height: 160, borderRadius: 10, backgroundColor: "#e0e0e0", justifyContent: "center", alignItems: "center" }}>
+                        <Text style={{ fontSize: 30 }}>{item.mediaType === "movie" ? "🎬" : "📺"}</Text>
+                      </View>
+                    )}
+                    <Text style={{ fontSize: 12, fontWeight: "600", color: "#000", marginTop: 6 }} numberOfLines={2}>
+                      {item.title}
+                    </Text>
+                    {item.year && (
+                      <Text style={{ fontSize: 11, color: "#999" }}>{item.year}</Text>
+                    )}
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* Pusty stan gdy brak rekomendacji */}
+          {recommended.length === 0 && newTitles.length === 0 && (
+            <View style={{ paddingTop: 60, alignItems: "center" }}>
+              <Text style={{ fontSize: 14, color: "#999", textAlign: "center", paddingHorizontal: 40 }}>
+                Oceń kilka tytułów żeby zobaczyć rekomendacje
+              </Text>
+            </View>
+          )}
+
+        </ScrollView>
+      )}
 
       {/* Loader */}
       {loading && (

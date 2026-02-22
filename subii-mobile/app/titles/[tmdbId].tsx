@@ -2,8 +2,9 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   View, Text, Image, Pressable, ScrollView,
-  ActivityIndicator,
+  ActivityIndicator, TouchableOpacity,
 } from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
 import { api, subscriptionsApi } from "../../src/lib/api";
 import { getProviderLogo, getProviderName } from "../../src/lib/provider-logos";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -25,6 +26,13 @@ export default function TitleScreen() {
   const [ratings, setRatings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeProviders, setActiveProviders] = useState<string[]>([]);
+ const [userTitleState, setUserTitleState] = useState<{ watched: boolean; favorite: boolean; rating?: number }>({ watched: false, favorite: false });
+  const [watchedEpisodes, setWatchedEpisodes] = useState<{seasonNumber: number, episodeNumber: number, durationMinutes: number | null}[]>([]);
+  const [seasons, setSeasons] = useState<any[]>([]);
+  const [expandedSeasons, setExpandedSeasons] = useState<number[]>([]);
+  const [seasonsLoading, setSeasonsLoading] = useState(false);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [selectedRating, setSelectedRating] = useState(0);
 
   useEffect(() => {
     loadAll();
@@ -54,6 +62,27 @@ export default function TitleScreen() {
           setRatings(r.data);
         } catch {
           // oceny opcjonalne
+        }
+      }
+      // Stan watched/favorite użytkownika
+      try {
+        const ut = await api.get(`/api/user-title`, { params: { tmdbId } });
+        setUserTitleState({ watched: ut.data.watched, favorite: ut.data.favorite, rating: ut.data.rating });
+        setWatchedEpisodes(ut.data.episodes || []);
+      } catch {
+        // brak stanu = domyślne false
+      }
+
+      // Dla seriali załaduj sezony
+      if (d.data.media_type === "tv" || d.data.first_air_date) {
+        setSeasonsLoading(true);
+        try {
+          const sv = await api.get(`/api/tv-seasons`, { params: { tmdbId } });
+          setSeasons(sv.data.seasons || []);
+        } catch {
+          // brak sezonów
+        } finally {
+          setSeasonsLoading(false);
         }
       }
     } catch {
@@ -88,6 +117,193 @@ export default function TitleScreen() {
     : null;
 
   const genres = (details.genres || []).map((g: any) => g.name).join(", ");
+  const isMovie = !!(details.title && !details.first_air_date) || details.media_type === "movie";
+
+  const submitRating = async (rating: number) => {
+    setShowRatingModal(false);
+    setSelectedRating(rating);
+    setUserTitleState(prev => ({ ...prev, rating }));
+    try {
+      await api.patch(`/api/user-title`, {
+        tmdbId: Number(tmdbId),
+        titlePL: details.title || details.name || "",
+        titleOriginal: details.original_title || details.original_name || "",
+        year: Number(details.release_date?.slice(0, 4) || details.first_air_date?.slice(0, 4) || 0),
+        posterUrl: details.poster_path ? `https://image.tmdb.org/t/p/w500${details.poster_path}` : null,
+        genres: JSON.stringify((details.genres || []).map((g: any) => g.id)),
+        rating,
+      });
+
+      // Zapisz słowa kluczowe w tle
+      const mediaType = isMovie ? "movie" : "tv";
+      try {
+        const kwRes = await api.get(`/api/title-keywords`, {
+          params: { tmdbId, mediaType },
+        });
+        console.log("keywords saved", kwRes.data);
+      } catch {
+        // opcjonalne
+      }
+    } catch {
+      // błąd zapisu oceny
+    }
+  };
+
+  const toggleFavorite = async () => {
+    const newVal = !userTitleState.favorite;
+    setUserTitleState(prev => ({ ...prev, favorite: newVal }));
+    try {
+      await api.patch(`/api/user-title`, {
+        tmdbId: Number(tmdbId),
+        titlePL: details.title || details.name || "",
+        titleOriginal: details.original_title || details.original_name || "",
+        year: Number(details.release_date?.slice(0, 4) || details.first_air_date?.slice(0, 4) || 0),
+        posterUrl: details.poster_path ? `https://image.tmdb.org/t/p/w500${details.poster_path}` : null,
+        genres: JSON.stringify((details.genres || []).map((g: any) => g.id)),
+        favorite: newVal,
+      });
+    } catch {
+      setUserTitleState(prev => ({ ...prev, favorite: !newVal }));
+    }
+  };
+
+  const toggleMovieWatched = async () => {
+    const newVal = !userTitleState.watched;
+    setUserTitleState(prev => ({ ...prev, watched: newVal }));
+    // Pokaż modal tylko przy pierwszym zaznaczeniu
+    if (newVal && !userTitleState.rating) {
+      setShowRatingModal(true);
+    }
+    try {
+      await api.patch(`/api/user-title`, {
+        tmdbId: Number(tmdbId),
+        titlePL: details.title || details.name || "",
+        titleOriginal: details.original_title || details.original_name || "",
+        year: Number(details.release_date?.slice(0, 4) || 0),
+        posterUrl: details.poster_path ? `https://image.tmdb.org/t/p/w500${details.poster_path}` : null,
+        genres: JSON.stringify((details.genres || []).map((g: any) => g.id)),
+        watched: newVal,
+      });
+    } catch {
+      setUserTitleState(prev => ({ ...prev, watched: !newVal }));
+    }
+  };
+
+  const isEpisodeWatched = (seasonNum: number, episodeNum: number) =>
+    watchedEpisodes.some(e => e.seasonNumber === seasonNum && e.episodeNumber === episodeNum);
+
+  const isSeasonWatched = (season: any) =>
+    season.episodes.length > 0 &&
+    season.episodes.every((ep: any) => isEpisodeWatched(season.seasonNumber, ep.episodeNumber));
+
+  const toggleEpisode = async (season: any, episode: any) => {
+    const nowWatched = !isEpisodeWatched(season.seasonNumber, episode.episodeNumber);
+    if (nowWatched) {
+      setWatchedEpisodes(prev => [...prev, {
+        seasonNumber: season.seasonNumber,
+        episodeNumber: episode.episodeNumber,
+        durationMinutes: episode.runtime,
+      }]);
+    } else {
+      setWatchedEpisodes(prev => prev.filter(
+        e => !(e.seasonNumber === season.seasonNumber && e.episodeNumber === episode.episodeNumber)
+      ));
+    }
+    try {
+      await api.post(`/api/user-episode`, {
+        tmdbSeriesId: Number(tmdbId),
+        seasonNumber: season.seasonNumber,
+        episodeNumber: episode.episodeNumber,
+        durationMinutes: episode.runtime || null,
+        watched: nowWatched,
+      });
+    } catch {
+      // rollback
+      if (nowWatched) {
+        setWatchedEpisodes(prev => prev.filter(
+          e => !(e.seasonNumber === season.seasonNumber && e.episodeNumber === episode.episodeNumber)
+        ));
+      } else {
+        setWatchedEpisodes(prev => [...prev, {
+          seasonNumber: season.seasonNumber,
+          episodeNumber: episode.episodeNumber,
+          durationMinutes: episode.runtime,
+        }]);
+      }
+    }
+
+    // Sprawdź czy wszystkie odcinki wszystkich sezonów są zaznaczone
+    if (nowWatched) {
+      const totalEpisodes = seasons.reduce((sum, s) => sum + s.episodes.length, 0);
+      const newWatchedCount = watchedEpisodes.filter(
+        e => !(e.seasonNumber === season.seasonNumber && e.episodeNumber === episode.episodeNumber)
+      ).length + 1;
+      if (totalEpisodes > 0 && newWatchedCount >= totalEpisodes && !userTitleState.rating) {
+        setShowRatingModal(true);
+      }
+    }
+  };
+
+  const toggleSeason = async (season: any) => {
+    const allWatched = isSeasonWatched(season);
+    const newWatched = !allWatched;
+    if (newWatched) {
+      const toAdd = season.episodes
+        .filter((ep: any) => !isEpisodeWatched(season.seasonNumber, ep.episodeNumber))
+        .map((ep: any) => ({
+          seasonNumber: season.seasonNumber,
+          episodeNumber: ep.episodeNumber,
+          durationMinutes: ep.runtime,
+        }));
+      setWatchedEpisodes(prev => [...prev, ...toAdd]);
+    } else {
+      setWatchedEpisodes(prev => prev.filter(e => e.seasonNumber !== season.seasonNumber));
+    }
+    try {
+      await Promise.all(
+        season.episodes.map((ep: any) =>
+          api.post(`/api/user-episode`, {
+            tmdbSeriesId: Number(tmdbId),
+            seasonNumber: season.seasonNumber,
+            episodeNumber: ep.episodeNumber,
+            durationMinutes: ep.runtime || null,
+            watched: newWatched,
+          })
+        )
+      );
+    } catch {
+      const ut = await api.get(`/api/user-title`, { params: { tmdbId } });
+      setWatchedEpisodes(ut.data.episodes || []);
+    }
+  };
+  const formatWatchedTime = () => {
+    if (isMovie) {
+      if (!userTitleState.watched) return null;
+      const mins = details.runtime;
+      if (!mins) return "Obejrzane";
+      const h = Math.floor(mins / 60);
+      const m = mins % 60;
+      return h > 0 ? `Obejrzano · ${h}h ${m}min` : `Obejrzano · ${m}min`;
+    } else {
+      const count = watchedEpisodes.length;
+      if (count === 0) return null;
+      const totalMins = watchedEpisodes.reduce((sum, e) => sum + (e.durationMinutes || 0), 0);
+      const h = Math.floor(totalMins / 60);
+      const m = totalMins % 60;
+      const timeStr = totalMins > 0
+        ? (h > 0 ? ` · ${h}h ${m}min` : ` · ${m}min`)
+        : "";
+      return `Obejrzano: ${count} ${count === 1 ? "odcinek" : count < 5 ? "odcinki" : "odcinków"}${timeStr}`;
+    }
+  };
+
+  const watchedSummary = formatWatchedTime();
+
+  const toggleExpanded = (seasonNum: number) => {
+    setExpandedSeasons(prev =>
+      prev.includes(seasonNum) ? prev.filter(n => n !== seasonNum) : [...prev, seasonNum]
+    );
+  };
 
 
   return (
@@ -127,6 +343,26 @@ export default function TitleScreen() {
           >
             <Text style={{ color: "#fff", fontSize: 18 }}>←</Text>
           </Pressable>
+
+          <Pressable
+            onPress={toggleFavorite}
+            style={{
+              position: "absolute",
+              top: insets.top + 10,
+              right: 16,
+              width: 36, height: 36,
+              borderRadius: 18,
+              backgroundColor: "rgba(0,0,0,0.5)",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <MaterialIcons
+              name={userTitleState.favorite ? "favorite" : "favorite-border"}
+              size={20}
+              color={userTitleState.favorite ? "#ef4444" : "#fff"}
+            />
+          </Pressable>
         </View>
 
         <View style={{ padding: 20, gap: 16 }}>
@@ -152,6 +388,38 @@ export default function TitleScreen() {
               ) : null}
             </View>
           </View>
+          {/* Checkbox "Obejrzane" — tylko dla filmów */}
+          {isMovie && (
+            <TouchableOpacity
+              onPress={toggleMovieWatched}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 10,
+                backgroundColor: userTitleState.watched ? "#000" : "#fff",
+                borderRadius: 12,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                shadowColor: "#000",
+                shadowOpacity: 0.07,
+                shadowRadius: 4,
+                elevation: 2,
+              }}
+            >
+              <MaterialIcons
+                name={userTitleState.watched ? "check-box" : "check-box-outline-blank"}
+                size={22}
+                color={userTitleState.watched ? "#fff" : "#000"}
+              />
+              <Text style={{
+                fontSize: 14,
+                fontWeight: "700",
+                color: userTitleState.watched ? "#fff" : "#000",
+              }}>
+                {userTitleState.watched ? "Obejrzane ✓" : "Oznacz jako obejrzane"}
+              </Text>
+            </TouchableOpacity>
+          )}
 
           {/* Oceny */}
           {(ratings?.imdbRating || ratings?.rtScore || details.vote_average > 0) && (
@@ -403,9 +671,160 @@ export default function TitleScreen() {
               </View>
             );
           })()}
+          {/* Sekcja sezonów — tylko dla seriali */}
+          {!isMovie && (
+            <View style={{ gap: 8 }}>
+              <Text style={{ fontSize: 16, fontWeight: "800", color: "#000" }}>
+                Odcinki
+              </Text>
+              {seasonsLoading ? (
+                <ActivityIndicator size="small" color="#000" />
+              ) : (
+                seasons.map((season) => (
+                  <View key={season.seasonNumber} style={{
+                    backgroundColor: "#fff",
+                    borderRadius: 14,
+                    overflow: "hidden",
+                    shadowColor: "#000",
+                    shadowOpacity: 0.06,
+                    shadowRadius: 4,
+                    elevation: 2,
+                  }}>
+                    <TouchableOpacity
+                      onPress={() => toggleExpanded(season.seasonNumber)}
+                      style={{ flexDirection: "row", alignItems: "center", padding: 14, gap: 10 }}
+                    >
+                      <TouchableOpacity
+                        onPress={(e) => { e.stopPropagation(); toggleSeason(season); }}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      >
+                        <MaterialIcons
+                          name={isSeasonWatched(season) ? "check-box" : "check-box-outline-blank"}
+                          size={22}
+                          color="#000"
+                        />
+                      </TouchableOpacity>
+                      <Text style={{ flex: 1, fontSize: 15, fontWeight: "700", color: "#000" }}>
+                        {season.name || `Sezon ${season.seasonNumber}`}
+                      </Text>
+                      <Text style={{ fontSize: 12, color: "#999" }}>
+                        {season.episodes.filter((ep: any) =>
+                          isEpisodeWatched(season.seasonNumber, ep.episodeNumber)
+                        ).length}/{season.episodes.length}
+                      </Text>
+                      <MaterialIcons
+                        name={expandedSeasons.includes(season.seasonNumber) ? "expand-less" : "expand-more"}
+                        size={22}
+                        color="#999"
+                      />
+                    </TouchableOpacity>
+
+                    {expandedSeasons.includes(season.seasonNumber) && (
+                      <View style={{ borderTopWidth: 1, borderTopColor: "#f0f0f0" }}>
+                        {season.episodes.map((episode: any) => (
+                          <TouchableOpacity
+                            key={episode.episodeNumber}
+                            onPress={() => toggleEpisode(season, episode)}
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              paddingVertical: 10,
+                              paddingHorizontal: 14,
+                              gap: 10,
+                              borderBottomWidth: 1,
+                              borderBottomColor: "#f9f9f9",
+                            }}
+                          >
+                            <MaterialIcons
+                              name={isEpisodeWatched(season.seasonNumber, episode.episodeNumber)
+                                ? "check-box"
+                                : "check-box-outline-blank"}
+                              size={20}
+                              color={isEpisodeWatched(season.seasonNumber, episode.episodeNumber)
+                                ? "#000"
+                                : "#bbb"}
+                            />
+                            <View style={{ flex: 1 }}>
+                              <Text
+                                style={{ fontSize: 13, fontWeight: "600", color: "#000" }}
+                                numberOfLines={1}
+                              >
+                                {episode.episodeNumber}. {episode.name}
+                              </Text>
+                              {episode.runtime ? (
+                                <Text style={{ fontSize: 11, color: "#999", marginTop: 1 }}>
+                                  {episode.runtime} min
+                                </Text>
+                              ) : null}
+                            </View>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                ))
+              )}
+            </View>
+          )}
 
         </View>
       </ScrollView>
+      {/* Modal oceny */}
+      {showRatingModal && (
+        <View style={{
+          position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: "rgba(0,0,0,0.5)",
+          justifyContent: "center", alignItems: "center",
+          zIndex: 999,
+        }}>
+          <View style={{
+            backgroundColor: "#fff", borderRadius: 20,
+            padding: 28, marginHorizontal: 30, width: "85%",
+            alignItems: "center", gap: 16,
+          }}>
+            <Text style={{ fontSize: 18, fontWeight: "900", color: "#000", textAlign: "center" }}>
+              Jak oceniasz ten tytuł?
+            </Text>
+            <Text style={{ fontSize: 13, color: "#999", textAlign: "center" }}>
+              Twoja ocena pomoże nam polecić Ci lepsze tytuły
+            </Text>
+
+            {/* Gwiazdki */}
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Pressable key={star} onPress={() => setSelectedRating(star)}>
+                  <Text style={{ fontSize: 36 }}>
+                    {star <= selectedRating ? "⭐" : "☆"}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            {/* Przyciski */}
+            <View style={{ flexDirection: "row", gap: 10, width: "100%" }}>
+              <Pressable
+                onPress={() => setShowRatingModal(false)}
+                style={{
+                  flex: 1, paddingVertical: 12, borderRadius: 10,
+                  backgroundColor: "#f0f0f0", alignItems: "center",
+                }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: "700", color: "#666" }}>Pomiń</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => selectedRating > 0 && submitRating(selectedRating)}
+                style={{
+                  flex: 1, paddingVertical: 12, borderRadius: 10,
+                  backgroundColor: selectedRating > 0 ? "#000" : "#ccc",
+                  alignItems: "center",
+                }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: "700", color: "#fff" }}>Zapisz</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
