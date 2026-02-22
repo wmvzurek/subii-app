@@ -72,9 +72,22 @@ export const subscriptionsApi = {
   // ← DODAJ TĘ FUNKCJĘ
   async getActiveProviderCodes(): Promise<string[]> {
     const res = await api.get("/api/subscriptions");
+    const now = new Date();
     const active = (res.data.subscriptions || [])
-      .filter((s: any) => s.status === 'active')
-      .map((s: any) => s.providerCode);
+      .filter((s: any) => {
+        // Aktywna subskrypcja
+        if (s.status === 'active') return true;
+        // W trakcie zmiany planu — user nadal ma dostęp
+        if (s.status === 'pending_change') return true;
+        // Anulowana ale jeszcze nie wygasła
+        if (s.status === 'pending_cancellation') {
+          const expiresAt = s.activeUntil ? new Date(s.activeUntil) : null;
+          return expiresAt ? expiresAt > now : true;
+        }
+        return false;
+      })
+      .map((s: any) => s.providerCode as string)
+      .filter((code: string, idx: number, arr: string[]) => arr.indexOf(code) === idx);
     return active;
   },
 

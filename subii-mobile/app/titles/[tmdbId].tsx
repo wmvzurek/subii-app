@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { api, subscriptionsApi } from "../../src/lib/api";
+import { getProviderLogo, getProviderName } from "../../src/lib/provider-logos";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const OFFER_TYPE_LABELS: Record<string, string> = {
@@ -88,19 +89,6 @@ export default function TitleScreen() {
 
   const genres = (details.genres || []).map((g: any) => g.name).join(", ");
 
-  const PROVIDER_CODE_MAP: Record<string, string> = {
-  "netflix": "netflix",
-  "disney plus": "disney_plus",
-  "disney+": "disney_plus",
-  "hbo max": "hbo_max",
-  "max": "hbo_max",
-  "prime video": "prime_video",
-  "amazon prime video": "prime_video",
-  "amazon video": "prime_video",
-  "apple tv+": "apple_tv",
-  "apple tv": "apple_tv",
-  "apple tv store": "apple_tv",
-};
 
   return (
     <View style={{ flex: 1, backgroundColor: "#f5f5f5" }}>
@@ -220,134 +208,141 @@ export default function TitleScreen() {
           ) : null}
 
           {/* Gdzie obejrzeć */}
-          <View>
-            <Text style={{ fontSize: 16, fontWeight: "800", color: "#000", marginBottom: 10 }}>
-              Gdzie obejrzeć
-            </Text>
+<View>
+  <Text style={{ fontSize: 16, fontWeight: "800", color: "#000", marginBottom: 10 }}>
+    Gdzie obejrzeć
+  </Text>
 
-            {availability.length === 0 ? (
-              <View style={{ backgroundColor: "#fff", borderRadius: 14, padding: 20, alignItems: "center" }}>
-                <Text style={{ fontSize: 14, color: "#999" }}>
-                  Brak danych o dostępności w Polsce
+  {availability.length === 0 ? (
+    <View style={{ backgroundColor: "#fff", borderRadius: 14, padding: 20, alignItems: "center" }}>
+      <Text style={{ fontSize: 14, color: "#999" }}>
+        Brak danych o dostępności w Polsce
+      </Text>
+    </View>
+  ) : (
+    <View style={{ gap: 10 }}>
+      {availability.map((s: any, idx: number) => {
+        const providerCode = s.providerCode;
+        const logo = providerCode ? getProviderLogo(providerCode) : null;
+        const isOwned = activeProviders.includes(providerCode);
+        const canSubscribe = !isOwned && !!providerCode;
+
+        const typeLabel: Record<string, string> = {
+          subscription: "W abonamencie",
+          rent:         "Do wypożyczenia",
+          buy:          "Do kupienia",
+          free:         "Bezpłatnie",
+        };
+
+        const cheapestPlan = s.cheapestPlan;
+
+        return (
+          <Pressable
+            key={idx}
+            onPress={() => {
+              if (canSubscribe && providerCode) {
+                router.push(`/subscriptions-select-plan?provider=${providerCode}` as any);
+              }
+            }}
+            style={({ pressed }) => ({
+              backgroundColor: "#fff",
+              borderRadius: 14,
+              padding: 14,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 12,
+              shadowColor: "#000",
+              shadowOpacity: 0.05,
+              shadowRadius: 4,
+              elevation: 2,
+              borderWidth: isOwned ? 1.5 : canSubscribe ? 1 : 0,
+              borderColor: isOwned
+                ? "rgba(134,239,172,0.6)"
+                : canSubscribe
+                ? "#e0e0e0"
+                : "transparent",
+              opacity: pressed ? 0.85 : 1,
+            })}
+          >
+            {/* Logo platformy — bez nazwy tekstowej */}
+            <View style={{
+              width: 52,
+              height: 52,
+              borderRadius: 12,
+              backgroundColor: "#f5f5f5",
+              justifyContent: "center",
+              alignItems: "center",
+              overflow: "hidden",
+            }}>
+              {logo ? (
+                <Image
+                  source={logo}
+                  style={{ width: 44, height: 44, resizeMode: "contain" }}
+                />
+              ) : (
+                <Text style={{ fontSize: 22 }}>🎬</Text>
+              )}
+            </View>
+
+            {/* Środek — typ + plan + cena */}
+            <View style={{ flex: 1, gap: 3 }}>
+              <Text style={{ fontSize: 13, color: "#999", fontWeight: "500" }}>
+                {typeLabel[s.type] || s.type}
+              </Text>
+
+              {s.type === "subscription" && cheapestPlan ? (
+                <>
+                  <Text style={{ fontSize: 15, fontWeight: "700", color: "#000" }}>
+                    {cheapestPlan.planName}
+                  </Text>
+                  <Text style={{ fontSize: 13, color: "#555" }}>
+                    {cheapestPlan.pricePLN % 1 === 0
+                      ? `${cheapestPlan.pricePLN} zł/mies.`
+                      : `${cheapestPlan.pricePLN.toFixed(2)} zł/mies.`}
+                  </Text>
+                </>
+              ) : s.type === "rent" || s.type === "buy" ? (
+                <Text style={{ fontSize: 15, fontWeight: "700", color: "#000" }}>
+                  {getProviderName(providerCode)}
                 </Text>
-              </View>
-            ) : (
-              <View style={{ gap: 10 }}>
-                {availability.map((s: any, idx: number) => {
-                  const nameMap: Record<string, string> = {
-                    netflix: "Netflix",
-                    disney_plus: "Disney+",
-                    prime_video: "Prime Video",
-                    hbo_max: "Max",
-                    apple_tv: "Apple TV+",
-                  };
-console.log("ACTIVE PROVIDERS:", activeProviders);
-console.log("LOOKUP:", s.name?.toLowerCase(), "=>", PROVIDER_CODE_MAP[s.name?.toLowerCase() ?? ""]);
-                  const isOwned = activeProviders.some(code => {
-  const sourceName = s.name?.toLowerCase() ?? "";
-  return PROVIDER_CODE_MAP[sourceName] === code;
-});
+              ) : null}
+            </View>
 
-                  const providerCode = PROVIDER_CODE_MAP[s.name?.toLowerCase() ?? ""];
-                    console.log("NAME:", s.name, "TYPE:", s.type, "CODE:", providerCode, "OWNED:", isOwned);
-                  const canSubscribe = !isOwned && !!providerCode;
-
-                  return (
-                    <Pressable
-                      key={idx}
-                      onPress={() => {
-                        if (canSubscribe && providerCode) {
-                          router.push(`/subscriptions-select-plan?provider=${providerCode}` as any);
-                        }
-                      }}
-                      style={({ pressed }) => ({
-                        backgroundColor: "#fff",
-                        borderRadius: 14,
-                        padding: 14,
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 12,
-                        shadowColor: "#000",
-                        shadowOpacity: 0.05,
-                        shadowRadius: 4,
-                        elevation: 2,
-                        borderWidth: isOwned ? 1.5 : canSubscribe ? 1 : 0,
-                        borderColor: isOwned
-                          ? "rgba(134,239,172,0.6)"
-                          : canSubscribe ? "#ddd" : "transparent",
-                        opacity: pressed && canSubscribe ? 0.7 : 1,
-                      })}
-                    >
-                      {s.logo_url ? (
-                        <Image
-                          source={{ uri: s.logo_url }}
-                          style={{ width: 44, height: 44, borderRadius: 10 }}
-                        />
-                      ) : (
-                        <View style={{
-                          width: 44, height: 44, borderRadius: 10,
-                          backgroundColor: "#f0f0f0",
-                          justifyContent: "center", alignItems: "center",
-                        }}>
-                          <Text style={{ fontSize: 20 }}>📺</Text>
-                        </View>
-                      )}
-
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 15, fontWeight: "800", color: "#000" }}>
-                          {s.name}
-                        </Text>
-                        <Text style={{ fontSize: 12, color: "#666", marginTop: 2 }}>
-                          {OFFER_TYPE_LABELS[s.type] || s.type}
-                        </Text>
-                      </View>
-
-                      <View style={{ alignItems: "flex-end", gap: 4 }}>
-                        {s.type === "subscription" ? (
-                          <View style={{
-                            paddingHorizontal: 8, paddingVertical: 4,
-                            backgroundColor: "rgba(134,239,172,0.2)",
-                            borderRadius: 8, borderWidth: 1,
-                            borderColor: "rgba(134,239,172,0.4)",
-                          }}>
-                            <Text style={{ fontSize: 11, color: "#16a34a", fontWeight: "700" }}>
-                              ABONAMENT
-                            </Text>
-                          </View>
-                        ) : s.price ? (
-                          <Text style={{ fontSize: 14, fontWeight: "700", color: "#000" }}>
-                            {parseFloat(s.price).toFixed(2)} zł
-                          </Text>
-                        ) : null}
-                        {isOwned && (
-                          <View style={{
-                            paddingHorizontal: 8, paddingVertical: 3,
-                            backgroundColor: "rgba(134,239,172,0.15)",
-                            borderRadius: 6,
-                          }}>
-                            <Text style={{ fontSize: 10, color: "#16a34a", fontWeight: "700" }}>
-                              ✓ MASZ DOSTĘP
-                            </Text>
-                          </View>
-                        )}
-                        {canSubscribe && (
-                          <View style={{
-                            paddingHorizontal: 8, paddingVertical: 3,
-                            backgroundColor: "rgba(0,0,0,0.06)",
-                            borderRadius: 6,
-                          }}>
-                            <Text style={{ fontSize: 10, color: "#000", fontWeight: "700" }}>
-                              + WYKUP DOSTĘP →
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            )}
-          </View>
+            {/* Prawy badge — masz dostęp / wykup */}
+            <View>
+              {isOwned ? (
+                <View style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 4,
+                  backgroundColor: "rgba(134,239,172,0.15)",
+                  paddingHorizontal: 10,
+                  paddingVertical: 5,
+                  borderRadius: 20,
+                }}>
+                  <Text style={{ fontSize: 12, color: "#16a34a", fontWeight: "700" }}>
+                    ✓ Masz dostęp
+                  </Text>
+                </View>
+              ) : canSubscribe ? (
+                <View style={{
+                  backgroundColor: "#000",
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 20,
+                }}>
+                  <Text style={{ fontSize: 12, color: "#fff", fontWeight: "700" }}>
+                    Wykup dostęp
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          </Pressable>
+        );
+      })}
+    </View>
+  )}
+</View>
 
           {/* Obsada */}
           {details.credits?.cast?.length > 0 && (

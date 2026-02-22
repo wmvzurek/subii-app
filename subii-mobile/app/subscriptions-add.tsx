@@ -110,8 +110,15 @@ export default function SubscriptionsAdd() {
 
   const getProviderName = (code: string): string => {
     const names: Record<string, string> = {
-      netflix: "Netflix", disney_plus: "Disney+",
-      prime_video: "Prime Video", hbo_max: "Max", apple_tv: "Apple TV+",
+      netflix:       "Netflix",
+    hbo_max:       "HBO Max",
+    disney_plus:   "Disney+",
+    canal_plus:    "Canal+",
+    prime_video:   "Prime Video",
+    apple_tv:      "Apple TV+",
+    skyshowtime:   "SkyShowtime",
+    polsat_box_go: "Polsat Box Go",
+    player:        "Player",
     };
     return names[code] || code;
   };

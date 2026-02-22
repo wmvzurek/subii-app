@@ -8,11 +8,15 @@ async function main() {
 
   // 1) PROVIDERS
   const providers = [
-  { code: "netflix", name: "Netflix", website: "https://netflix.com", logoUrl: "/providers/netflix.png" },
-  { code: "disney_plus", name: "Disney+", website: "https://disneyplus.com", logoUrl: "/providers/disney_plus.png" },
-  { code: "prime_video", name: "Prime Video", website: "https://primevideo.com", logoUrl: "/providers/prime_video.png" },
-  { code: "hbo_max", name: "HBO Max", website: "https://max.com", logoUrl: "/providers/hbo_max.png" },
-  { code: "apple_tv", name: "Apple TV+", website: "https://tv.apple.com", logoUrl: "/providers/apple_tv.png" },
+  { code: "netflix",        name: "Netflix",        website: "https://netflix.com",          logoUrl: "/providers/netflix.png" },
+  { code: "hbo_max",        name: "HBO Max",         website: "https://hbomax.com/pl/pl",     logoUrl: "/providers/hbo_max.png" },
+  { code: "disney_plus",    name: "Disney+",         website: "https://disneyplus.com",       logoUrl: "/providers/disney_plus.png" },
+  { code: "canal_plus",     name: "Canal+",          website: "https://pl.canalplus.com",     logoUrl: "/providers/canal_plus.png" },
+  { code: "prime_video",    name: "Prime Video",     website: "https://primevideo.com",       logoUrl: "/providers/prime_video.png" },
+  { code: "apple_tv",       name: "Apple TV+",       website: "https://tv.apple.com",         logoUrl: "/providers/apple_tv.png" },
+  { code: "skyshowtime",    name: "SkyShowtime",     website: "https://skyshowtime.com",      logoUrl: "/providers/skyshowtime.png" },
+  { code: "polsat_box_go",  name: "Polsat Box Go",   website: "https://polsatboxgo.pl",       logoUrl: "/providers/polsat_box_go.png" },
+  { code: "player",         name: "Player",          website: "https://player.pl",            logoUrl: "/providers/player.png" },
 ];
 
   for (const provider of providers) {
@@ -27,28 +31,54 @@ async function main() {
   // 2) PLANS
   // Zaktualizowane dane planów streamingowych - Polska, luty 2026
 const plans = [
-  // NETFLIX (3 plany)
-  { providerCode: "netflix", planName: "Basic", pricePLN: 33, cycle: "monthly", screens: 1, uhd: false, ads: false },
-  { providerCode: "netflix", planName: "Standard", pricePLN: 49, cycle: "monthly", screens: 2, uhd: false, ads: false },
-  { providerCode: "netflix", planName: "Premium", pricePLN: 67, cycle: "monthly", screens: 4, uhd: true, ads: false },
+  // ─── NETFLIX ───────────────────────────────────────────────
+  { providerCode: "netflix", planName: "Podstawowy",  pricePLN: 33,    cycle: "monthly", screens: 1, uhd: false, ads: false },
+  { providerCode: "netflix", planName: "Standard",    pricePLN: 49,    cycle: "monthly", screens: 2, uhd: false, ads: false },
+  { providerCode: "netflix", planName: "Premium",     pricePLN: 67,    cycle: "monthly", screens: 4, uhd: true,  ads: false },
 
-  // DISNEY+ (2 plany podstawowe)
-  { providerCode: "disney_plus", planName: "Standard", pricePLN: 34.99, cycle: "monthly", screens: 2, uhd: false, ads: false },
-  { providerCode: "disney_plus", planName: "Premium", pricePLN: 59.99, cycle: "monthly", screens: 4, uhd: true, ads: false },
+  // ─── HBO MAX ────────────────────────────────────────────────
+  { providerCode: "hbo_max", planName: "Podstawowy",  pricePLN: 29.99, cycle: "monthly", screens: 2, uhd: false, ads: true  },
+  { providerCode: "hbo_max", planName: "Standard",    pricePLN: 39.99, cycle: "monthly", screens: 2, uhd: false, ads: false },
+  { providerCode: "hbo_max", planName: "Premium",     pricePLN: 49.99, cycle: "monthly", screens: 4, uhd: true,  ads: false },
+  { providerCode: "hbo_max", planName: "Podstawowy roczny", pricePLN: 24.92, cycle: "yearly", screens: 2, uhd: false, ads: true  },
+  { providerCode: "hbo_max", planName: "Standard roczny",   pricePLN: 33.25, cycle: "yearly", screens: 2, uhd: false, ads: false },
+  { providerCode: "hbo_max", planName: "Premium roczny",    pricePLN: 41.58, cycle: "yearly", screens: 4, uhd: true,  ads: false },
 
-  // PRIME VIDEO / AMAZON PRIME (2 warianty)
-  { providerCode: "prime_video", planName: "Prime Video miesięczny", pricePLN: 15.50, cycle: "monthly", screens: 3, uhd: true, ads: false },
-  { providerCode: "prime_video", planName: "Prime Video roczny", pricePLN: 69, cycle: "yearly", screens: 3, uhd: true, ads: false },
+  // ─── DISNEY+ ────────────────────────────────────────────────
+  { providerCode: "disney_plus", planName: "Standard",         pricePLN: 34.99, cycle: "monthly", screens: 2, uhd: false, ads: false },
+  { providerCode: "disney_plus", planName: "Premium",          pricePLN: 59.99, cycle: "monthly", screens: 4, uhd: true,  ads: false },
+  { providerCode: "disney_plus", planName: "Standard roczny",  pricePLN: 29.16, cycle: "yearly",  screens: 2, uhd: false, ads: false },
+  { providerCode: "disney_plus", planName: "Premium roczny",   pricePLN: 49.99, cycle: "yearly",  screens: 4, uhd: true,  ads: false },
 
-  // HBO MAX (3 plany)
-  { providerCode: "hbo_max", planName: "Basic (z reklamami)", pricePLN: 29.99, cycle: "monthly", screens: 2, uhd: false, ads: true },
-  { providerCode: "hbo_max", planName: "Standard", pricePLN: 39.99, cycle: "monthly", screens: 2, uhd: false, ads: false },
-  { providerCode: "hbo_max", planName: "Premium", pricePLN: 49.99, cycle: "monthly", screens: 4, uhd: true, ads: false },
+  // ─── CANAL+ ─────────────────────────────────────────────────
+  { providerCode: "canal_plus", planName: "Seriale i Filmy",         pricePLN: 29,    cycle: "monthly", screens: 2, uhd: false, ads: false },
+  { providerCode: "canal_plus", planName: "Super Sport",             pricePLN: 69,    cycle: "monthly", screens: 2, uhd: false, ads: false },
+  { providerCode: "canal_plus", planName: "Seriale i Filmy roczny",  pricePLN: 25,    cycle: "yearly",  screens: 2, uhd: false, ads: false },
+  { providerCode: "canal_plus", planName: "Super Sport roczny",      pricePLN: 65,    cycle: "yearly",  screens: 2, uhd: false, ads: false },
 
-  // APPLE TV+ (1 główny plan)
-  { providerCode: "apple_tv", planName: "Apple TV+ miesięczny", pricePLN: 34.99, cycle: "monthly", screens: 6, uhd: true, ads: false },
-  // Apple TV+ nie ma oficjalnej standardowej oferty „rocznej” osobno – zwykle dostępne są promocje lub pakiety Apple One
+  // ─── PRIME VIDEO ────────────────────────────────────────────
+  { providerCode: "prime_video", planName: "Miesięczny", pricePLN: 15.50, cycle: "monthly", screens: 3, uhd: true, ads: false },
+  { providerCode: "prime_video", planName: "Roczny",     pricePLN: 5.75,  cycle: "yearly",  screens: 3, uhd: true, ads: false },
 
+  // ─── APPLE TV+ ──────────────────────────────────────────────
+  { providerCode: "apple_tv", planName: "Apple TV+", pricePLN: 34.99, cycle: "monthly", screens: 6, uhd: true, ads: false },
+
+  // ─── SKYSHOWTIME ────────────────────────────────────────────
+  { providerCode: "skyshowtime", planName: "Standard z reklamami", pricePLN: 24.99, cycle: "monthly", screens: 3, uhd: false, ads: true  },
+  { providerCode: "skyshowtime", planName: "Standard",             pricePLN: 34.99, cycle: "monthly", screens: 3, uhd: false, ads: false },
+  { providerCode: "skyshowtime", planName: "Premium",              pricePLN: 49.99, cycle: "monthly", screens: 3, uhd: true,  ads: false },
+  { providerCode: "skyshowtime", planName: "Standard roczny",      pricePLN: 23.33, cycle: "yearly",  screens: 3, uhd: false, ads: false },
+  { providerCode: "skyshowtime", planName: "Premium roczny",       pricePLN: 33.25, cycle: "yearly",  screens: 3, uhd: true,  ads: false },
+
+  // ─── POLSAT BOX GO ──────────────────────────────────────────
+  { providerCode: "polsat_box_go", planName: "Start",          pricePLN: 5,  cycle: "monthly", screens: 1, uhd: false, ads: true  },
+  { providerCode: "polsat_box_go", planName: "Polsat Lovers",  pricePLN: 20, cycle: "monthly", screens: 3, uhd: false, ads: false },
+  { providerCode: "polsat_box_go", planName: "Premium",        pricePLN: 30, cycle: "monthly", screens: 3, uhd: false, ads: false },
+  { providerCode: "polsat_box_go", planName: "Premium Sport",  pricePLN: 50, cycle: "monthly", screens: 3, uhd: false, ads: false },
+
+  // ─── PLAYER ─────────────────────────────────────────────────
+  { providerCode: "player", planName: "Bez reklam",     pricePLN: 25,    cycle: "monthly", screens: 1, uhd: false, ads: false },
+  { providerCode: "player", planName: "Bez reklam rok", pricePLN: 18.75, cycle: "yearly",  screens: 1, uhd: false, ads: false },
 ];
 
   for (const plan of plans) {

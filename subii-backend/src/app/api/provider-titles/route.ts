@@ -3,11 +3,15 @@ import axios from "axios";
 
 // Mapowanie providerów na TMDB watch provider ID (Polska)
 const PROVIDER_TMDB_IDS: Record<string, number> = {
-  netflix: 8,
-  disney_plus: 337,
-  prime_video: 119,
-  hbo_max: 1899,
-  apple_tv: 350,
+  netflix:       8,
+  hbo_max:       1899,
+  disney_plus:   337,
+  canal_plus:    103,
+  prime_video:   119,
+  apple_tv:      350,
+  skyshowtime:   1773,
+  polsat_box_go: 169,
+  player:        339,
 };
 
 export async function GET(req: NextRequest) {

@@ -15,6 +15,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 export default function SubscriptionsSelectPlan() {
   const router = useRouter();
   const { provider } = useLocalSearchParams<{ provider: string }>();
+  const providerCode = String(provider || "").trim().toLowerCase();
+
+// zawsze zwraca ładną nazwę, nawet jeśli ktoś poda providerCode z bazy/API
+const prettyProvider = (code?: string) =>
+  getProviderName(String(code || "").trim().toLowerCase());
 
   const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,6 +33,7 @@ export default function SubscriptionsSelectPlan() {
   const [renewalDay, setRenewalDay] = useState<number | null>(null);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showReactivateConfirm, setShowReactivateConfirm] = useState(false);
+  const [activeTab, setActiveTab] = useState<"monthly" | "yearly">("monthly");
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
@@ -62,7 +68,7 @@ export default function SubscriptionsSelectPlan() {
     if (!ref.current) return;
 
     const filtered = (plansRes?.plans || []).filter(
-      (p: any) => p?.providerCode === provider
+      (p: any) => String(p?.providerCode || "").trim().toLowerCase() === providerCode
     );
     setPlans(filtered);
 
@@ -70,8 +76,11 @@ export default function SubscriptionsSelectPlan() {
     setHasAnySubscription(allSubs.length > 0);
 
     const userSub = allSubs.find(
-  (s: any) => s?.providerCode === provider &&
-  (s?.status === "active" || s?.status === "pending_change" || s?.status === "pending_cancellation")
+  (s: any) =>
+    String(s?.providerCode || "").trim().toLowerCase() === providerCode &&
+    (s?.status === "active" ||
+      s?.status === "pending_change" ||
+      s?.status === "pending_cancellation")
 );
     setCurrentUserPlan(userSub || null);
   } catch {
@@ -83,13 +92,20 @@ export default function SubscriptionsSelectPlan() {
 
   // ── Helpers ──
 
-  const getProviderName = (code: string): string => {
-    const names: Record<string, string> = {
-      netflix: "Netflix", disney_plus: "Disney+",
-      prime_video: "Prime Video", hbo_max: "HBO Max", apple_tv: "Apple TV+",
-    };
-    return names[code] || code;
+const getProviderName = (code: string) => {
+  const names: Record<string, string> = {
+    netflix:       "Netflix",
+    hbo_max:       "HBO Max",
+    disney_plus:   "Disney+",
+    canal_plus:    "Canal+",
+    prime_video:   "Prime Video",
+    apple_tv:      "Apple TV+",
+    skyshowtime:   "SkyShowtime",
+    polsat_box_go: "Polsat Box Go",
+    player:        "Player",
   };
+  return names[code] || code;
+};
 
   /**
    * Zwraca datę płatności zbiorczej która obejmuje daną datę odnowienia.
@@ -179,8 +195,15 @@ const getRenewalDateStr = (renewalDate?: string): string => {
       return;
     }
 
+    // Bieżący aktywny plan
     if (plan.id === currentUserPlan.planId && !currentUserPlan.pendingPlanId) {
       Alert.alert("Brak zmian", "Ten plan jest już aktywny.");
+      return;
+    }
+
+    // Plan w trakcie zmiany — traktuj jak aktywny
+    if (plan.id === currentUserPlan.pendingPlanId) {
+      Alert.alert("Brak zmian", "Ten plan jest już zaplanowany jako następny.");
       return;
     }
 
@@ -198,7 +221,7 @@ const getRenewalDateStr = (renewalDate?: string): string => {
       });
       Alert.alert(
         "Subskrypcja aktywowana",
-        `Od teraz korzystasz z ${getProviderName(provider)}.`
+        `Od teraz korzystasz z ${providerName}.`
       );
       router.back();
     } catch (e: any) {
@@ -216,7 +239,7 @@ const getRenewalDateStr = (renewalDate?: string): string => {
       });
       Alert.alert(
         "Subskrypcja aktywowana",
-        `Od teraz korzystasz z ${getProviderName(provider)}.\nOpłata zostanie doliczona do najbliższej płatności.`
+        `Od teraz korzystasz z ${providerName}.\nOpłata zostanie doliczona do najbliższej płatności.`
       );
       router.back();
     } catch (e: any) {
@@ -290,9 +313,13 @@ const getRenewalDateStr = (renewalDate?: string): string => {
     );
   }
 
-  const logo = getProviderLogo(provider);
-  const providerName = getProviderName(provider);
-  const description = getProviderDescription(provider);
+  const logo = getProviderLogo(providerCode);
+  const monthlyPlans = plans.filter((p: any) => p.cycle === "monthly");
+const yearlyPlans = plans.filter((p: any) => p.cycle === "yearly");
+const visiblePlans = activeTab === "monthly" ? monthlyPlans : yearlyPlans;
+const hasYearlyPlans = yearlyPlans.length > 0;
+const providerName = prettyProvider(providerCode);
+const description = getProviderDescription(providerCode);
   const { diff: upgradeDiff, daysLeft } = getUpgradeCalc();
 
   return (
@@ -314,7 +341,7 @@ const getRenewalDateStr = (renewalDate?: string): string => {
             <View style={{ flex: 1 }}>
               <Text style={{ fontSize: 24, fontWeight: "800" }}>{providerName}</Text>
               <Text style={{ fontSize: 14, color: "#666", marginTop: 2 }}>
-                {currentUserPlan ? "Zmień plan" : "Wybierz plan"} ({plans.length} dostępnych)
+                {currentUserPlan ? "Zmień plan" : "Wybierz plan"} ({visiblePlans.length} dostępnych)
               </Text>
             </View>
             <Pressable
@@ -330,8 +357,70 @@ const getRenewalDateStr = (renewalDate?: string): string => {
         </View>
 
         {/* Lista planów */}
-        <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
-          {plans.map((plan) => {
+<ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
+
+  {/* Zakładki miesięczne/roczne */}
+  {hasYearlyPlans && (
+    <View style={{
+      flexDirection: "row",
+      backgroundColor: "#f0f0f0",
+      borderRadius: 12,
+      padding: 4,
+      marginBottom: 4,
+    }}>
+      <Pressable
+        onPress={() => setActiveTab("monthly")}
+        style={{
+          flex: 1,
+          paddingVertical: 10,
+          borderRadius: 10,
+          alignItems: "center",
+          backgroundColor: activeTab === "monthly" ? "#fff" : "transparent",
+          shadowColor: activeTab === "monthly" ? "#000" : "transparent",
+          shadowOpacity: activeTab === "monthly" ? 0.08 : 0,
+          shadowRadius: 4,
+          elevation: activeTab === "monthly" ? 2 : 0,
+        }}
+      >
+        <Text style={{
+          fontSize: 14,
+          fontWeight: activeTab === "monthly" ? "800" : "500",
+          color: activeTab === "monthly" ? "#000" : "#888",
+        }}>
+          Miesięczne
+        </Text>
+      </Pressable>
+
+      <Pressable
+        onPress={() => setActiveTab("yearly")}
+        style={{
+          flex: 1,
+          paddingVertical: 10,
+          borderRadius: 10,
+          alignItems: "center",
+          backgroundColor: activeTab === "yearly" ? "#fff" : "transparent",
+          shadowColor: activeTab === "yearly" ? "#000" : "transparent",
+          shadowOpacity: activeTab === "yearly" ? 0.08 : 0,
+          shadowRadius: 4,
+          elevation: activeTab === "yearly" ? 2 : 0,
+        }}
+      >
+        <Text style={{
+          fontSize: 14,
+          fontWeight: activeTab === "yearly" ? "800" : "500",
+          color: activeTab === "yearly" ? "#000" : "#888",
+        }}>
+          Roczne
+        </Text>
+        {activeTab !== "yearly" && (
+          <Text style={{ fontSize: 10, color: "#16a34a", fontWeight: "700", marginTop: 1 }}>
+            Oszczędzasz!
+          </Text>
+        )}
+      </Pressable>
+    </View>
+  )}
+          {visiblePlans.map((plan) => {
             const planId = plan?.id;
             const price = Number(plan?.pricePLN ?? 0);
             const screens = Number(plan?.screens ?? 0);
@@ -339,7 +428,8 @@ const getRenewalDateStr = (renewalDate?: string): string => {
             const ads = Boolean(plan?.ads);
             const cycle = plan?.cycle === "yearly" ? "yearly" : "monthly";
             const isPendingCancellation = currentUserPlan?.status === "pending_cancellation";
-const isCurrentPlan = currentUserPlan?.planId === planId && !isPendingCancellation;
+const isPendingChange = currentUserPlan?.status === "pending_change";
+const isCurrentPlan = currentUserPlan?.planId === planId && !isPendingCancellation && !isPendingChange;
 const isCancelledPlan = currentUserPlan?.planId === planId && isPendingCancellation;
 const isPendingPlan = currentUserPlan?.pendingPlanId === planId;
             const isSelected = selectedPlan?.id === planId;
@@ -405,7 +495,7 @@ const isPendingPlan = currentUserPlan?.pendingPlanId === planId;
                       </View>
                     )}
                     <Text style={{ fontSize: 18, fontWeight: "700", marginBottom: 8, color: "#000" }}>
-                      {formatPlanName(provider, plan?.planName ?? "")}
+                      {formatPlanName(providerCode, plan?.planName ?? "")}
                     </Text>
                     <Text style={{ fontSize: 24, fontWeight: "800", color: "#000", marginBottom: 12 }}>
                       {price.toFixed(2)} zł
@@ -623,9 +713,9 @@ const newPlanStartStr = getRenewalDateStr(currentUserPlan?.nextRenewalDate);
                       Zmiana planu
                     </Text>
                     <Text style={{ fontSize: 13, color: "#999", marginBottom: 16 }}>
-                      {formatPlanName(provider, oldPlan?.planName ?? "")} ({oldPrice.toFixed(2)} zł)
+                      {formatPlanName(providerCode, oldPlan?.planName ?? "")} ({oldPrice.toFixed(2)} zł)
                       {"  →  "}
-                      {formatPlanName(provider, selectedPlan?.planName ?? "")} ({newPrice.toFixed(2)} zł)
+                      {formatPlanName(providerCode, selectedPlan?.planName ?? "")} ({newPrice.toFixed(2)} zł)
                     </Text>
 
                     {/* Co się zmienia */}
@@ -676,7 +766,7 @@ const newPlanStartStr = getRenewalDateStr(currentUserPlan?.nextRenewalDate);
   <Text style={{ fontWeight: "700" }}>{currentPlanUntilStr}</Text>.{"\n\n"}
   Nowy plan{" "}
   <Text style={{ fontWeight: "700" }}>
-    {formatPlanName(provider, selectedPlan?.planName ?? "")}
+    {formatPlanName(providerCode, selectedPlan?.planName ?? "")}
   </Text>
   {" "}zacznie obowiązywać od{" "}
   <Text style={{ fontWeight: "700" }}>{newPlanStartStr}</Text>.{"\n\n"}
