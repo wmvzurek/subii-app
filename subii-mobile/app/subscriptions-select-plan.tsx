@@ -1,3 +1,5 @@
+//subscriptions-select-plan.tsx
+
 import { useState, useEffect } from "react";
 import {
   View, Text, Pressable, Alert, ActivityIndicator, Image,
@@ -80,7 +82,7 @@ export default function SubscriptionsSelectPlan() {
     const newPrice = plan.pricePLN || 0;
 
     if (plan.id === currentUserPlan.planId && !currentUserPlan.pendingPlanId) {
-      Alert.alert("Info", "To jest Twój obecny plan.");
+      Alert.alert("Brak zmian", "Ten plan jest już aktywny.");
       return;
     }
 
@@ -103,13 +105,13 @@ export default function SubscriptionsSelectPlan() {
         renewalDay,
         paymentOption: "now",
       });
-      Alert.alert(
-        "Gotowe! 🎉",
-        `${getProviderName(provider)} aktywny od dziś.\nOpłata ${selectedPlan.pricePLN.toFixed(2)} zł pobrana z portfela.`
-      );
+       Alert.alert(
+    "Subskrypcja aktywowana",
+    `Od teraz korzystasz z ${getProviderName(provider)}.`
+  );
       router.back();
     } catch (e: any) {
-      Alert.alert("Błąd", e.response?.data?.error || "Nie udało się dodać");
+      Alert.alert("Coś poszło nie tak", e.response?.data?.error || "Nie udało się dodać subskrypcji.");
     }
   };
 
@@ -124,12 +126,12 @@ export default function SubscriptionsSelectPlan() {
         paymentOption: "next_billing",
       });
       Alert.alert(
-        "Gotowe! 🎉",
-        `${getProviderName(provider)} aktywny od dziś.\nZostanie doliczone do płatności ${getNextBillingDateStr()}.`
-      );
+        "Subskrypcja aktywowana",
+        `Od teraz korzystasz z ${getProviderName(provider)}.\nOpłata zostanie doliczona do najbliższej płatności.`
+  );
       router.back();
     } catch (e: any) {
-      Alert.alert("Błąd", e.response?.data?.error || "Nie udało się dodać");
+      Alert.alert("Coś poszło nie tak", e.response?.data?.error || "Nie udało się dodać subskrypcji.");
     }
   };
 
@@ -144,12 +146,12 @@ export default function SubscriptionsSelectPlan() {
       });
       const { credit } = getUpgradeCalc();
       Alert.alert(
-        "Plan zmieniony! 🎉",
-        `Nowy plan aktywny od dziś.\nNadpłata ${credit.toFixed(2)} zł dodana jako credit do portfela.`
+        "Plan został zmieniony",
+        `Nowy plan jest aktywny od razu.`
       );
       router.back();
     } catch (e: any) {
-      Alert.alert("Błąd", e.response?.data?.error || "Nie udało się zmienić");
+      Alert.alert("Coś poszło nie tak", e.response?.data?.error || "Nie udało się zmienić planu.");
     }
   };
 
@@ -163,12 +165,12 @@ export default function SubscriptionsSelectPlan() {
         upgradeOption: "next_billing",
       });
       Alert.alert(
-        "Plan zmieniony! 🎉",
-        `Nowy plan wejdzie w życie ${getNextBillingDateStr()}.`
+        "Plan został zmieniony",
+        `Dostęp do nowego planu masz od razu. Opłata zostanie rozliczona przy najbliższej płatności.`
       );
       router.back();
     } catch (e: any) {
-      Alert.alert("Błąd", e.response?.data?.error || "Nie udało się zmienić");
+      Alert.alert("Coś poszło nie tak", e.response?.data?.error || "Nie udało się zmienić planu.");
     }
   };
 
@@ -182,12 +184,12 @@ export default function SubscriptionsSelectPlan() {
         upgradeOption: "next_billing",
       });
       Alert.alert(
-        "Plan zmieniony! 🎉",
-        `Tańszy plan wejdzie w życie ${getNextBillingDateStr()}.`
+        "Plan został zmieniony",
+        `Obecny plan pozostaje aktywny do końca bieżącego okresu. Nowy plan zacznie obowiązywać od następnego cyklu rozliczeniowego.`
       );
       router.back();
     } catch (e: any) {
-      Alert.alert("Błąd", e.response?.data?.error || "Nie udało się zmienić");
+      Alert.alert("Coś poszło nie tak", e.response?.data?.error || "Nie udało się zmienić planu.");
     }
   };
 
@@ -201,12 +203,12 @@ export default function SubscriptionsSelectPlan() {
       ? new Date(res.activeUntil).toLocaleDateString("pl-PL")
       : "—";
     Alert.alert(
-      "Rezygnacja przyjęta",
-      `Dostęp do ${providerName} masz do ${until}.\nPrzy następnej płatności zbiorczej ta platforma nie zostanie już doliczona.`
+      "Subskrypcja została anulowana",
+      `${providerName} aktywny do ${until}.\nKolejna opłata nie zostanie naliczona.`
     );
     router.back();
   } catch (e: any) {
-    Alert.alert("Błąd", e.response?.data?.error || "Nie udało się zrezygnować");
+    Alert.alert("Coś poszło nie tak", e.response?.data?.error || "Nie udało się anulować subskrypcji.");
   }
 };
 
@@ -214,7 +216,7 @@ export default function SubscriptionsSelectPlan() {
   const getProviderName = (code: string): string => {
     const names: Record<string, string> = {
       netflix: "Netflix", disney_plus: "Disney+",
-      prime_video: "Prime Video", hbo_max: "Max", apple_tv: "Apple TV+",
+      prime_video: "Prime Video", hbo_max: "HBO Max", apple_tv: "Apple TV+",
     };
     return names[code] || code;
   };
@@ -353,7 +355,7 @@ export default function SubscriptionsSelectPlan() {
                       }}>
                         <MaterialIcons name="check-circle" size={14} color="#16a34a" />
                         <Text style={{ color: "#16a34a", fontSize: 11, fontWeight: "700" }}>
-                          Twój aktualny plan
+                          Bieżący plan
                         </Text>
                       </View>
                     )}
@@ -366,7 +368,7 @@ export default function SubscriptionsSelectPlan() {
                       }}>
                         <MaterialIcons name="schedule" size={14} color="#2563eb" />
                         <Text style={{ color: "#2563eb", fontSize: 11, fontWeight: "700" }}>
-                          Oczekujący plan
+                          W trakcie zmiany
                         </Text>
                       </View>
                     )}
@@ -423,18 +425,22 @@ export default function SubscriptionsSelectPlan() {
           {/* Przycisk rezygnacji – tylko gdy jest aktywny plan */}
 {currentUserPlan && currentUserPlan.status !== "pending_cancellation" && (
   <Pressable
-    onPress={() => setShowCancelConfirm(true)}
-    style={{
-      marginTop: 8, padding: 16,
-      backgroundColor: "#fff",
-      borderRadius: 14, borderWidth: 1.5,
-      borderColor: "#fca5a5",
-    }}
-  >
-    <Text style={{ color: "#dc2626", textAlign: "center", fontWeight: "700", fontSize: 15 }}>
-      🚫 Zrezygnuj z {providerName}
-    </Text>
-  </Pressable>
+              onPress={() => setShowCancelConfirm(true)}
+              style={{
+                paddingVertical: 16,
+                paddingHorizontal: 16,
+                backgroundColor: "#fff",
+                borderRadius: 14,
+                borderWidth: 1.5,
+                borderColor: "#fca5a5",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Text style={{ color: "#dc2626", fontWeight: "800", fontSize: 15 }}>
+                Anuluj subskrypcję
+              </Text>
+            </Pressable>
 )}
 
 {currentUserPlan?.status === "pending_cancellation" && (
@@ -469,7 +475,7 @@ export default function SubscriptionsSelectPlan() {
               borderTopRightRadius: 24, padding: 24
             }}>
               <Text style={{ fontSize: 20, fontWeight: "800", marginBottom: 4 }}>
-                Jak chcesz zapłacić?
+                Wybierz formę płatności
               </Text>
               <Text style={{ fontSize: 13, color: "#999", marginBottom: 20 }}>
                 {providerName} · {selectedPlan?.pricePLN?.toFixed(2)} zł/mies
@@ -484,15 +490,17 @@ export default function SubscriptionsSelectPlan() {
                 }}
               >
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                  <Text style={{ fontSize: 18 }}>💳</Text>
-                  <Text style={{ color: "#fff", fontWeight: "800", fontSize: 16 }}>Zapłać teraz</Text>
-                </View>
+  <MaterialIcons name="bolt" size={18} color="#fff" />
+  <Text style={{ color: "#fff", fontWeight: "800", fontSize: 16 }}>Zapłać teraz</Text>
+</View>
                 <Text style={{ color: "rgba(255,255,255,0.75)", fontSize: 13, lineHeight: 20 }}>
-                  • {todayStr} płacisz <Text style={{ color: "#fff", fontWeight: "700" }}>{selectedPlan?.pricePLN?.toFixed(2)} zł</Text>{"\n"}
-                  • Usługa aktywna natychmiast{"\n"}
-                  • {getNextBillingDateStr()} – {providerName} <Text style={{ color: "#fff", fontWeight: "700" }}>nie jest</Text> doliczany{"\n"}
-                  • Od kolejnego cyklu wraca do normalnego rozliczenia
-                </Text>
+  Nowy plan zostanie aktywowany natychmiast. Dokonujesz jednorazowej opłaty w wysokości{" "}
+  <Text style={{ color: "#fff", fontWeight: "700" }}>
+    {selectedPlan?.pricePLN?.toFixed(2)} zł
+  </Text>.
+  Najbliższa płatność w Subii ({getNextBillingDateStr()}) nie obejmie pakietu tego pakietu.
+  Rozliczenie tej usługi rozpocznie się od kolejnego okresu.
+</Text>
               </Pressable>
 
               {/* Opcja B */}
@@ -505,21 +513,18 @@ export default function SubscriptionsSelectPlan() {
                 }}
               >
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                  <Text style={{ fontSize: 18 }}>📅</Text>
-                  <Text style={{ color: "#000", fontWeight: "800", fontSize: 16 }}>
-                    Dolicz do następnej płatności
-                  </Text>
-                </View>
+  <MaterialIcons name="event" size={18} color="#111" />
+  <Text style={{ color: "#000", fontWeight: "800", fontSize: 16 }}>
+    Zapłać później
+  </Text>
+</View>
                 <Text style={{ color: "#555", fontSize: 13, lineHeight: 20 }}>
-                  • Usługa aktywna od dziś, Subii finansuje pierwszy miesiąc{"\n"}
-                  • {getNextBillingDateStr()} płacisz za <Text style={{ fontWeight: "700" }}>dwa okresy</Text>:{"\n"}
-                  {"  "}{todayStr}–{getNextRenewalDateStr()}: <Text style={{ fontWeight: "700" }}>{selectedPlan?.pricePLN?.toFixed(2)} zł</Text>{"\n"}
-                  {"  "}{getNextRenewalDateStr()}–{getSecondRenewalDateStr()}: <Text style={{ fontWeight: "700" }}>{selectedPlan?.pricePLN?.toFixed(2)} zł</Text>{"\n"}
-                  • Łącznie: <Text style={{ fontWeight: "700" }}>
-                    {selectedPlan ? (selectedPlan.pricePLN * 2).toFixed(2) : "—"} zł
-                  </Text>{"\n"}
-                  • Potem normalny cykl miesięczny
-                </Text>
+  Dostęp do nowych funkcji otrzymasz natychmiast. Rozliczenie pakietu {providerName}
+  zostanie doliczone do najbliższej płatności w Subii ({getNextBillingDateStr()})
+  i obejmie dwa okresy rozliczeniowe.
+  {"\n"}
+  Każda kolejna płatność będzie już naliczana w standardowej wysokości za jeden miesiąc.
+</Text>
               </Pressable>
 
               <Pressable
@@ -533,75 +538,93 @@ export default function SubscriptionsSelectPlan() {
         </Modal>
 
         {/* ── MODAL: Opcje upgrade (tańszy→droższy) ── */}
-        <Modal
-          visible={showUpgradeOptions}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setShowUpgradeOptions(false)}
-        >
-          <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
-            <View style={{
-              backgroundColor: "#fff", borderTopLeftRadius: 24,
-              borderTopRightRadius: 24, padding: 24
-            }}>
-              <Text style={{ fontSize: 20, fontWeight: "800", marginBottom: 4 }}>
-                Kiedy zmienić plan?
-              </Text>
-              <Text style={{ fontSize: 13, color: "#999", marginBottom: 20 }}>
-                {currentUserPlan?.plan?.planName} ({(currentUserPlan?.priceOverridePLN || currentUserPlan?.plan?.pricePLN || 0).toFixed(2)} zł)
-                {" → "}
-                {selectedPlan?.planName} ({selectedPlan?.pricePLN?.toFixed(2)} zł)
-              </Text>
+        {/* ── MODAL: Upgrade (tańszy→droższy) ── */}
+<Modal
+  visible={showUpgradeOptions}
+  transparent
+  animationType="slide"
+  onRequestClose={() => setShowUpgradeOptions(false)}
+>
+  <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
+    <View
+      style={{
+        backgroundColor: "#fff",
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        padding: 24,
+      }}
+    >
+      {/* Nagłówek: przejście z planu na plan */}
+      <Text style={{ fontSize: 20, fontWeight: "800", marginBottom: 6 }}>
+        Zmiana planu
+      </Text>
 
-              {/* Opcja A – zmień teraz */}
-              <Pressable
-                onPress={handleUpgradeNow}
-                style={{ padding: 18, backgroundColor: "#000", borderRadius: 14, marginBottom: 12 }}
-              >
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                  <Text style={{ fontSize: 18 }}>💳</Text>
-                  <Text style={{ color: "#fff", fontWeight: "800", fontSize: 16 }}>Zmień teraz</Text>
-                </View>
-                <Text style={{ color: "rgba(255,255,255,0.75)", fontSize: 13, lineHeight: 20 }}>
-                  • Nowy plan aktywny natychmiast{"\n"}
-                  • Platforma naliczy ~<Text style={{ color: "#fff", fontWeight: "700" }}>{upgradeDiff.toFixed(2)} zł</Text> dopłaty za pozostałe {daysLeft} dni{"\n"}
-                  • Nadpłata ~<Text style={{ color: "#fff", fontWeight: "700" }}>{upgradeCredit.toFixed(2)} zł</Text> trafia jako <Text style={{ color: "#fff", fontWeight: "700" }}>credit</Text> na portfel{"\n"}
-                  • Następna płatność {getNextBillingDateStr()} zostanie pomniejszona o credit
-                </Text>
-              </Pressable>
+      <Text style={{ fontSize: 13, color: "#999", marginBottom: 16 }}>
+        {currentUserPlan?.plan?.planName} ({(currentUserPlan?.priceOverridePLN || currentUserPlan?.plan?.pricePLN || 0).toFixed(2)} zł)
+        {"  →  "}
+        {selectedPlan?.planName} ({selectedPlan?.pricePLN?.toFixed(2)} zł)
+      </Text>
 
-              {/* Opcja B – od następnej płatności */}
-              <Pressable
-                onPress={handleUpgradeNextBilling}
-                style={{
-                  padding: 18, backgroundColor: "#f9f9f9",
-                  borderRadius: 14, borderWidth: 1.5,
-                  borderColor: "#e0e0e0", marginBottom: 16
-                }}
-              >
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                  <Text style={{ fontSize: 18 }}>📅</Text>
-                  <Text style={{ color: "#000", fontWeight: "800", fontSize: 16 }}>
-                    Od następnej płatności
-                  </Text>
-                </View>
-                <Text style={{ color: "#555", fontSize: 13, lineHeight: 20 }}>
-                  • Obecny plan aktywny do {getNextBillingDateStr()}{"\n"}
-                  • Subii pokrywa ewentualną dopłatę za upgrade{"\n"}
-                  • {getNextBillingDateStr()} płacisz nową cenę{" "}
-                  <Text style={{ fontWeight: "700" }}>{selectedPlan?.pricePLN?.toFixed(2)} zł</Text> + wyrównanie
-                </Text>
-              </Pressable>
+      {/* Opis (bez punktów) */}
+      <View
+        style={{
+          padding: 16,
+          backgroundColor: "#f9f9f9",
+          borderRadius: 14,
+          borderWidth: 1.5,
+          borderColor: "#e0e0e0",
+          marginBottom: 16,
+        }}
+      >
 
-              <Pressable
-                onPress={() => { setShowUpgradeOptions(false); setSelectedPlan(null); }}
-                style={{ padding: 14, backgroundColor: "#f0f0f0", borderRadius: 12, alignItems: "center" }}
-              >
-                <Text style={{ fontWeight: "600" }}>Anuluj</Text>
-              </Pressable>
-            </View>
-          </View>
-        </Modal>
+        <Text style={{ color: "#555", fontSize: 13, lineHeight: 20 }}>
+          Po zmianie planu korzystasz z nowej wersji natychmiast. Najbliższa płatność w Subii
+          ({getNextBillingDateStr()}) będzie w wysokości{" "}
+          <Text style={{ fontWeight: "700" }}>{selectedPlan?.pricePLN?.toFixed(2)} zł</Text>{" "}
+          oraz zostanie powiększona o proporcjonalny koszt podwyższenia planu za pozostałe{" "}
+          <Text style={{ fontWeight: "700" }}>{daysLeft}</Text> dni (ok.{" "}
+          <Text style={{ fontWeight: "700" }}>{upgradeDiff.toFixed(2)} zł</Text>).
+          Każda kolejna płatność będzie już naliczana według ceny nowego planu.
+        </Text>
+      </View>
+
+      {/* CTA */}
+      <Pressable
+        onPress={handleUpgradeNow}
+        style={{
+          padding: 18,
+          backgroundColor: "#000",
+          borderRadius: 14,
+          marginBottom: 12,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 8,
+        }}
+      >
+        <MaterialIcons name="sync" size={18} color="#fff" />
+        <Text style={{ color: "#fff", textAlign: "center", fontWeight: "800", fontSize: 16 }}>
+          Zmień plan
+        </Text>
+      </Pressable>
+
+      <Pressable
+        onPress={() => {
+          setShowUpgradeOptions(false);
+          setSelectedPlan(null);
+        }}
+        style={{
+          padding: 14,
+          backgroundColor: "#f0f0f0",
+          borderRadius: 12,
+          alignItems: "center",
+        }}
+      >
+        <Text style={{ fontWeight: "600" }}>Anuluj</Text>
+      </Pressable>
+    </View>
+  </View>
+</Modal>
 
         {/* ── MODAL: Info o downgrade (droższy→tańszy) ── */}
         <Modal
@@ -616,7 +639,7 @@ export default function SubscriptionsSelectPlan() {
               borderTopRightRadius: 24, padding: 24
             }}>
               <Text style={{ fontSize: 20, fontWeight: "800", marginBottom: 4 }}>
-                Zmiana na tańszy plan
+                Zmiana planu
               </Text>
               <Text style={{ fontSize: 13, color: "#999", marginBottom: 20 }}>
                 {currentUserPlan?.plan?.planName} ({(currentUserPlan?.priceOverridePLN || currentUserPlan?.plan?.pricePLN || 0).toFixed(2)} zł)
@@ -629,12 +652,16 @@ export default function SubscriptionsSelectPlan() {
                 marginBottom: 20, borderWidth: 1, borderColor: "#bae6fd"
               }}>
                 <Text style={{ fontSize: 14, color: "#0369a1", lineHeight: 22 }}>
-                  ℹ️ Obecny plan pozostaje aktywny do końca opłaconego okresu.{"\n\n"}
-                  Nowy tańszy plan wejdzie w życie{" "}
-                  <Text style={{ fontWeight: "700" }}>{getNextBillingDateStr()}</Text> – w dniu Twojej najbliższej płatności zbiorczej.{"\n\n"}
-                  Od tego dnia będziesz płacić{" "}
-                  <Text style={{ fontWeight: "700" }}>{selectedPlan?.pricePLN?.toFixed(2)} zł/mies</Text> za {providerName}.
-                </Text>
+  Obecny plan obowiązuje do{" "}
+  <Text style={{ fontWeight: "700" }}>
+    {getNextBillingDateStr()}
+  </Text>.
+  {"\n\n"}
+  Od kolejnego okresu rozliczeniowego opłata w Subii będzie naliczana według nowej ceny{" "}
+  <Text style={{ fontWeight: "700" }}>
+    {selectedPlan?.pricePLN?.toFixed(2)} zł/mies
+  </Text>.
+</Text>
               </View>
 
               <Pressable

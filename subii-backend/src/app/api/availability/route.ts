@@ -104,9 +104,9 @@ console.log("[availability] Real title for JustWatch:", realTitle);
     if (!Array.isArray(providers)) continue;
     for (const p of providers as TMDBProvider[]) {
       const exists = sources.find(
-        (s) => s.name === p.provider_name && s.type === typeLabels[type]
-      );
-      if (exists) continue;
+  (s) => s.name === p.provider_name
+);
+if (exists) continue;
 
       sources.push({
         name: p.provider_name,

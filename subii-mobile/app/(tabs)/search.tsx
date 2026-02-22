@@ -164,7 +164,13 @@ export default function Search() {
           renderItem={({ item }) => (
             <Pressable
               onPress={() => {
-                if (category === "person") return;
+                if (category === "person") {
+                  router.push({
+                    pathname: "/person/[personId]",
+                    params: { personId: String(item.id) }
+                  } as any);
+                  return;
+                }
                 router.push({
                   pathname: "/titles/[tmdbId]",
                   params: { tmdbId: String(item.id) }
