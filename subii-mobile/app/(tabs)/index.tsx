@@ -22,29 +22,6 @@ import { Ionicons } from "@expo/vector-icons";
  * - yearly → zwiększa rok od daty utworzenia aż wyliczona data będzie w przyszłości
  * - monthly → wyznacza najbliższy renewalDay w bieżącym lub kolejnym miesiącu
  */
-function getNextRenewalDate(
-  createdAt: string,
-  renewalDay: number,
-  cycle: string = "monthly"
-): Date {
-  const created = new Date(createdAt);
-  const today = new Date();
-
-  // Dla subskrypcji rocznej – przesuwamy rok do momentu,
-  // aż data odnowienia przekroczy aktualną datę
-  if (cycle === "yearly") {
-    const next = new Date(created);
-    while (next <= today) {
-      next.setFullYear(next.getFullYear() + 1);
-    }
-    return next;
-  }
-
-  // Dla subskrypcji miesięcznej – wyznaczamy najbliższy renewalDay
-  const candidate = new Date(today.getFullYear(), today.getMonth(), renewalDay);
-  if (candidate <= today) candidate.setMonth(candidate.getMonth() + 1);
-  return candidate;
-}
 
 export default function Home() {
   const router = useRouter();
@@ -323,12 +300,9 @@ export default function Home() {
               : "AKTYWNA";
 
             const cycle = item.plan?.cycle || "monthly";
-            const nextRenewal = getNextRenewalDate(
-              item.createdAt,
-              item.renewalDay,
-              cycle
-            );
-            const nextRenewalStr = nextRenewal.toLocaleDateString("pl-PL");
+const nextRenewalStr = item.nextRenewalDate
+  ? new Date(item.nextRenewalDate).toLocaleDateString("pl-PL")
+  : "—";
             const price = item.priceOverridePLN || item.plan?.pricePLN || 0;
 
             /**

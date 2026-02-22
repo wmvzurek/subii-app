@@ -60,3 +60,6 @@ next-env.d.ts
 
 # PRISMA
 src/generated/prisma
+
+# database
+**/*.db

@@ -43,24 +43,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // Sprawdź saldo portfela
-    const wallet = await prisma.wallet.findUnique({ where: { userId } });
-    const balance = wallet?.balance || 0;
-
-    if (balance < preview.totalToPay) {
-      return NextResponse.json(
-        {
-          error: "Niewystarczające środki w portfelu",
-          required: preview.totalToPay,
-          available: balance,
-        },
-        { status: 400 }
-      );
-    }
-
     // Wykonaj transakcję
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Utwórz lub zaktualizuj BillingCycle
       const billingCycle = await tx.billingCycle.upsert({
         where: {
           userId_period: {
@@ -70,18 +54,17 @@ export async function POST(req: Request) {
         },
         update: {
           status: "paid",
-          totalPLN: preview.totalBeforeCredit,
+          totalPLN: preview.totalToPay,
         },
         create: {
           userId,
           period: preview.period,
           billingDate: preview.billingDate,
-          totalPLN: preview.totalBeforeCredit,
+          totalPLN: preview.totalToPay,
           status: "paid",
         },
       });
 
-      // 2. Utwórz BillingCycleItems
       for (const item of preview.items) {
         await tx.billingCycleItem.create({
           data: {
@@ -92,20 +75,11 @@ export async function POST(req: Request) {
             pricePLN: item.pricePLN,
             periodFrom: item.periodFrom,
             periodTo: item.periodTo,
-            creditApplied: preview.creditUsed > 0 ? preview.creditUsed / preview.items.length : 0,
+            creditApplied: 0,
           },
         });
       }
 
-      // 3. Pobierz z portfela
-      await tx.wallet.update({
-        where: { userId },
-        data: {
-          balance: balance - preview.totalToPay,
-        },
-      });
-
-      // 4. ← TUTAJ zerujemy pendingChargePLN po rozliczeniu
       await tx.subscription.updateMany({
         where: {
           userId,
@@ -124,7 +98,6 @@ export async function POST(req: Request) {
       billingCycleId: result.id,
       period: preview.period,
       totalPaid: preview.totalToPay,
-      creditUsed: preview.creditUsed,
     });
   } catch (error) {
     console.error("[POST /api/billing/pay] error:", error);

@@ -27,7 +27,6 @@ model User {
   userTitles    UserTitle[]
   payments      Payment[]
   watchEvents   WatchEvent[]
-  wallet        Wallet?
   billingCycles BillingCycle[]
 
   @@map("users")
@@ -151,19 +150,6 @@ model UserTitle {
   @@map("user_titles")
 }
 
-// ============================================
-// PŁATNOŚCI (SYMULACJA)
-// ============================================
-model Wallet {
-  id        Int      @id @default(autoincrement())
-  userId    Int      @unique
-  balance   Float    @default(0)
-  updatedAt DateTime @default(now()) @updatedAt
-  
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("wallets")
-}
 
 model Payment {
   id        String        @id @default(cuid())

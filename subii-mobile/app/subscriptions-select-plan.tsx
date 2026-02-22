@@ -101,10 +101,9 @@ export default function SubscriptionsSelectPlan() {
 
     try {
       await subscriptionsApi.create({
-        planId: selectedPlan.id,
-        renewalDay,
-        paymentOption: "now",
-      });
+  planId: selectedPlan.id,
+  paymentOption: "now",
+});
        Alert.alert(
     "Subskrypcja aktywowana",
     `Od teraz korzystasz z ${getProviderName(provider)}.`
@@ -121,10 +120,9 @@ export default function SubscriptionsSelectPlan() {
 
     try {
       await subscriptionsApi.create({
-        planId: selectedPlan.id,
-        renewalDay,
-        paymentOption: "next_billing",
-      });
+  planId: selectedPlan.id,
+  paymentOption: "next_billing",
+});
       Alert.alert(
         "Subskrypcja aktywowana",
         `Od teraz korzystasz z ${getProviderName(provider)}.\nOpłata zostanie doliczona do najbliższej płatności.`
@@ -251,10 +249,10 @@ export default function SubscriptionsSelectPlan() {
     if (!selectedPlan || !currentUserPlan) return { diff: 0, credit: 0, daysLeft: 0 };
     const oldPrice = currentUserPlan.priceOverridePLN || currentUserPlan.plan?.pricePLN || 0;
     const newPrice = selectedPlan.pricePLN || 0;
-    const renewalD = currentUserPlan.renewalDay || new Date().getDate();
     const today = new Date();
-    const nextRenewal = new Date(today.getFullYear(), today.getMonth() + (today.getDate() < renewalD ? 0 : 1), renewalD);
-    if (nextRenewal <= today) nextRenewal.setMonth(nextRenewal.getMonth() + 1);
+    const nextRenewal = currentUserPlan.nextRenewalDate
+      ? new Date(currentUserPlan.nextRenewalDate)
+      : new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
     const daysLeft = Math.max(1, Math.round((nextRenewal.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
     const diff = Math.round(((newPrice - oldPrice) / 30) * daysLeft * 100) / 100;
     const credit = Math.round((newPrice - Math.max(0, diff)) * 100) / 100;

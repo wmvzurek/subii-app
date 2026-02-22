@@ -11,8 +11,7 @@ export type BillingPreviewItem = {
   renewalDay: number;
   periodFrom: Date;
   periodTo: Date;
-  creditApplied: number;
-  pendingCharge: number;  // ← DODAJ TO
+  pendingCharge: number;
   toPay: number;
 };
 
@@ -21,10 +20,7 @@ export type BillingPreview = {
   billingDate: Date;
   period: string;
   items: BillingPreviewItem[];
-  totalBeforeCredit: number;
-  creditUsed: number;
   totalToPay: number;
-  walletBalance: number;
 };
 
 /**
@@ -39,14 +35,14 @@ export function getBillingWindow(billingDay: number, referenceDate: Date = new D
   let windowStart: Date;
   let windowEnd: Date;
   
-  if (now <= currentMonthBilling) {
-    // Billing jeszcze nie był w tym miesiącu
+    if (now <= currentMonthBilling) {
     windowStart = currentMonthBilling;
-    windowEnd = new Date(now.getFullYear(), now.getMonth() + 1, billingDay);
+    windowEnd = new Date(now.getFullYear(), now.getMonth() + 1, billingDay - 1);
+    windowEnd.setHours(23, 59, 59, 999);
   } else {
-    // Billing już był – liczymy następny
     windowStart = new Date(now.getFullYear(), now.getMonth() + 1, billingDay);
-    windowEnd = new Date(now.getFullYear(), now.getMonth() + 2, billingDay);
+    windowEnd = new Date(now.getFullYear(), now.getMonth() + 2, billingDay - 1);
+    windowEnd.setHours(23, 59, 59, 999);
   }
   
   return { windowStart, windowEnd };
@@ -84,7 +80,6 @@ export function getRenewalInWindow(
 export async function calculateBillingPreview(userId: number): Promise<BillingPreview | null> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    include: { wallet: true }
   });
   
   if (!user || !user.billingDay) return null;
@@ -99,46 +94,49 @@ export async function calculateBillingPreview(userId: number): Promise<BillingPr
   const items: BillingPreviewItem[] = [];
   
   for (const sub of subscriptions) {
-    const renewalDate = getRenewalInWindow(sub.renewalDay, windowStart, windowEnd);
-    if (!renewalDate) continue;
+    // Sprawdź czy nextRenewalDate subskrypcji wypada w oknie rozliczeniowym
+    const renewalDate = sub.nextRenewalDate;
+    if (renewalDate < windowStart || renewalDate >= windowEnd) continue;
     
     const price = sub.priceOverridePLN || sub.plan.pricePLN;
     const periodFrom = renewalDate;
-    const periodTo = new Date(renewalDate.getFullYear(), renewalDate.getMonth() + 1, sub.renewalDay);
+    const cycle = sub.plan.cycle;
+    const periodTo = new Date(renewalDate);
+    if (cycle === "yearly") {
+      periodTo.setFullYear(periodTo.getFullYear() + 1);
+    } else {
+      periodTo.setMonth(periodTo.getMonth() + 1);
+    }
     
     const pendingCharge = sub.pendingChargePLN || 0;
 
-items.push({
-  subscriptionId: sub.id,
-  providerCode: sub.providerCode,
-  providerName: sub.provider.name,
-  planName: sub.plan.planName,
-  pricePLN: price,
-  renewalDay: sub.renewalDay,
-  periodFrom,
-  periodTo,
-  creditApplied: 0,
-  pendingCharge,
-  toPay: price + pendingCharge,  // ← cena + dopłata za upgrade
-});
+    items.push({
+      subscriptionId: sub.id,
+      providerCode: sub.providerCode,
+      providerName: sub.provider.name,
+      planName: sub.plan.planName,
+      pricePLN: price,
+      renewalDay: renewalDate.getDate(), // zachowaj dla kompatybilności typu
+      periodFrom,
+      periodTo,
+      pendingCharge,
+      toPay: price + pendingCharge,
+    });
   }
   
-  const walletBalance = user.wallet?.balance || 0;
-  const totalBeforeCredit = items.reduce((s, i) => s + i.pricePLN + i.pendingCharge, 0);
-  const creditUsed = Math.min(walletBalance, totalBeforeCredit);
-  const totalToPay = Math.max(0, totalBeforeCredit - creditUsed);
+  const totalToPay = items.reduce((s, i) => s + i.pricePLN + i.pendingCharge, 0);
   
-  const period = `${windowStart.getFullYear()}-${String(windowStart.getMonth() + 1).padStart(2, '0')}`;
+  const periodStart = `${windowStart.getFullYear()}-${String(windowStart.getMonth() + 1).padStart(2, '0')}-${String(windowStart.getDate()).padStart(2, '0')}`;
+  const periodEnd = `${windowEnd.getFullYear()}-${String(windowEnd.getMonth() + 1).padStart(2, '0')}-${String(windowEnd.getDate()).padStart(2, '0')}`;
+  const period = `${periodStart}_${periodEnd}`;
+
   
   return {
     billingDay: user.billingDay,
     billingDate: windowStart,
     period,
     items,
-    totalBeforeCredit,
-    creditUsed,
     totalToPay,
-    walletBalance,
   };
 }
 
@@ -174,7 +172,7 @@ export function calculateImmediateCost(
 export function calculateUpgradeCost(
   oldPricePLN: number,
   newPricePLN: number,
-  renewalDay: number,
+  nextRenewalDate: Date,
   today: Date = new Date()
 ): {
   diffToPayNow: number;
@@ -182,13 +180,7 @@ export function calculateUpgradeCost(
   daysRemaining: number;
   daysInCycle: number;
 } {
-  // Następny renewal
-  const nextRenewal = new Date(today.getFullYear(), today.getMonth() + (today.getDate() < renewalDay ? 0 : 1), renewalDay);
-  if (nextRenewal <= today) {
-    nextRenewal.setMonth(nextRenewal.getMonth() + 1);
-  }
-  
-  const daysRemaining = Math.max(1, Math.round((nextRenewal.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+  const daysRemaining = Math.max(1, Math.round((nextRenewalDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
   const daysInCycle = 30; // uproszczenie
   
   // Platforma naliczy różnicę za pozostałe dni

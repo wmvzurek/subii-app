@@ -27,10 +27,11 @@ export async function DELETE(
   const user = await prisma.user.findUnique({ where: { id: userId } });
   const today = new Date();
 // activeUntil = następny renewalDay - 1 dzień
-const nextRenewal = new Date(today.getFullYear(), today.getMonth(), subscription.renewalDay);
-if (nextRenewal <= today) nextRenewal.setMonth(nextRenewal.getMonth() + 1);
-const activeUntil = new Date(nextRenewal);
-activeUntil.setDate(activeUntil.getDate() - 1);
+// activeUntil = nextRenewalDate subskrypcji (już mamy tę datę w DB)
+  // activeUntil = nextRenewalDate - 1 dzień, koniec dnia
+  const activeUntil = new Date(subscription.nextRenewalDate);
+  activeUntil.setDate(activeUntil.getDate() - 1);
+  activeUntil.setHours(23, 59, 59, 999);
 
   await prisma.subscription.update({
     where: { id: subscriptionId },
@@ -83,7 +84,7 @@ export async function PATCH(
     const { diffToPayNow } = calculateUpgradeCost(
       oldPrice,
       newPrice,
-      subscription.renewalDay
+      subscription.nextRenewalDate
     );
     if (diffToPayNow > 0) {
       pendingChargePLN = diffToPayNow;

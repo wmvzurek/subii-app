@@ -49,7 +49,7 @@ export default function TabLayout() {
         name="wallet"
         options={{
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="account-balance-wallet" size={30} color={color} />
+            <MaterialIcons name="receipt-long" size={30} color={color} />
           ),
         }}
       />

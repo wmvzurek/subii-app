@@ -13,6 +13,7 @@ export async function GET(req: Request) {
   // Najpierw wykonaj dezaktywacje które już wygasły
   // Najpierw wykonaj dezaktywacje które już wygasły
 // Dezaktywacje które już wygasły
+// 1. Dezaktywuj subskrypcje które już wygasły
 await prisma.subscription.updateMany({
   where: {
     userId,
@@ -22,36 +23,19 @@ await prisma.subscription.updateMany({
   data: { status: "cancelled" }
 });
 
-// Przełącz pending_change na nowy plan jeśli renewalDay już minął
+// 2. Przełącz pending_change na nowy plan jeśli nextRenewalDate już minęła
 const pendingChangeSubs = await prisma.subscription.findMany({
   where: {
     userId,
     status: "pending_change",
-    pendingPlanId: { not: null }
+    pendingPlanId: { not: null },
+    nextRenewalDate: { lte: today }
   },
   include: { pendingPlan: true }
 });
 
 for (const sub of pendingChangeSubs) {
-  // Oblicz datę ostatniego renewalu
-  const lastRenewal = new Date(
-    today.getFullYear(),
-    today.getMonth(),
-    sub.renewalDay
-  );
-  if (lastRenewal > today) {
-    // renewalDay jeszcze nie minął w tym miesiącu – cofnij o miesiąc
-    lastRenewal.setMonth(lastRenewal.getMonth() - 1);
-  }
-
-  // Jeśli dziś >= renewalDay tego miesiąca – czas przełączyć plan
-  const thisMonthRenewal = new Date(
-    today.getFullYear(),
-    today.getMonth(),
-    sub.renewalDay
-  );
-
-  if (today >= thisMonthRenewal && sub.pendingPlanId) {
+  if (sub.pendingPlanId) {
     await prisma.subscription.update({
       where: { id: sub.id },
       data: {
@@ -64,18 +48,45 @@ for (const sub of pendingChangeSubs) {
   }
 }
 
-  const subscriptions = await prisma.subscription.findMany({
-    where: {
-      userId,
-      status: { in: ["active", "pending_change", "pending_cancellation"] }
-    },
-    include: {
-      plan: true,
-      provider: true,
-      pendingPlan: true,
-    },
-    orderBy: { renewalDay: "asc" },
+// 3. Przesuń nextRenewalDate do przodu dla tych które minęły
+const expiredRenewalSubs = await prisma.subscription.findMany({
+  where: {
+    userId,
+    status: { in: ["active", "pending_change", "pending_cancellation"] },
+    nextRenewalDate: { lte: today }
+  },
+  include: { plan: true }
+});
+
+for (const sub of expiredRenewalSubs) {
+  const next = new Date(sub.nextRenewalDate);
+  const cycle = sub.plan.cycle;
+  // Przesuwaj dopóki data jest w przeszłości
+  while (next <= today) {
+    if (cycle === "yearly") {
+      next.setFullYear(next.getFullYear() + 1);
+    } else {
+      next.setMonth(next.getMonth() + 1);
+    }
+  }
+  await prisma.subscription.update({
+    where: { id: sub.id },
+    data: { nextRenewalDate: next }
   });
+}
+
+const subscriptions = await prisma.subscription.findMany({
+  where: {
+    userId,
+    status: { in: ["active", "pending_change", "pending_cancellation"] }
+  },
+  include: {
+    plan: true,
+    provider: true,
+    pendingPlan: true,
+  },
+  orderBy: { nextRenewalDate: "asc" },
+});
 
   return NextResponse.json({ subscriptions });
 }
@@ -85,18 +96,11 @@ export async function POST(req: Request) {
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const { planId, renewalDay, paymentOption, priceOverridePLN } = body;
+  const { planId, paymentOption, priceOverridePLN } = body;
 
-  if (!planId || !renewalDay) {
+  if (!planId) {
     return NextResponse.json(
-      { error: "planId i renewalDay są wymagane" },
-      { status: 400 }
-    );
-  }
-
-  if (renewalDay < 1 || renewalDay > 28) {
-    return NextResponse.json(
-      { error: "Dzień odnowienia musi być między 1 a 28" },
+      { error: "planId jest wymagane" },
       { status: 400 }
     );
   }
@@ -106,7 +110,6 @@ export async function POST(req: Request) {
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    include: { wallet: true }
   });
   if (!user) return NextResponse.json({ error: "User nie znaleziony" }, { status: 404 });
 
@@ -126,12 +129,22 @@ export async function POST(req: Request) {
   }
 
   // Utwórz subskrypcję
+  // Oblicz nextRenewalDate: dziś + 1 miesiąc (lub rok dla rocznych)
+  const now = new Date();
+  const nextRenewalDate = new Date(now);
+  if (plan.cycle === "yearly") {
+    nextRenewalDate.setFullYear(nextRenewalDate.getFullYear() + 1);
+  } else {
+    nextRenewalDate.setMonth(nextRenewalDate.getMonth() + 1);
+  }
+
+  // Utwórz subskrypcję
   const subscription = await prisma.subscription.create({
     data: {
       userId,
       providerCode: plan.providerCode,
       planId,
-      renewalDay,
+      nextRenewalDate,
       priceOverridePLN: priceOverridePLN || null,
       status: "active",
     },
@@ -139,18 +152,7 @@ export async function POST(req: Request) {
   });
 
   // Jeśli paymentOption === "now" – pobierz pełną cenę z portfela
-  if (paymentOption === "now") {
-    const price = priceOverridePLN || plan.pricePLN;
-    const wallet = user.wallet;
-
-    if (wallet) {
-      const newBalance = wallet.balance - price;
-      await prisma.wallet.update({
-        where: { userId },
-        data: { balance: newBalance }
-      });
-    }
-  }
+    // Płatność zostanie pobrana automatycznie w dniu rozliczeniowym
   // Jeśli "next_billing" – nic nie pobieramy teraz, Subii finansuje
 
   return NextResponse.json(subscription);

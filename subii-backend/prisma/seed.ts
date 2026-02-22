@@ -91,16 +91,7 @@ const plans = [
   });
   console.log("✅ Demo user created/updated");
 
-  // 4) WALLET
-  await prisma.wallet.upsert({
-    where: { userId: user.id },
-    update: {},
-    create: {
-      userId: user.id,
-      balance: 0,
-    },
-  });
-  console.log("✅ Wallet created for Anna");
+
 
   // 5) DEMO SUBSCRIPTIONS
   const netflixPlan = await prisma.plan.findFirst({ 

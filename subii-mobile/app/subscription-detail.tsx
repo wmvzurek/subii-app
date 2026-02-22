@@ -354,12 +354,9 @@ const price = isPendingChange && subscription.pendingPlan
 
 
   // daty do UI (odnowienie i zintegrowana płatność)
-  const nextRenewal = getNextRenewalDate(
-    subscription.createdAt,
-    subscription.renewalDay,
-    cycle
-  );
-  const nextRenewalStr = nextRenewal.toLocaleDateString("pl-PL");
+  const nextRenewalStr = subscription.nextRenewalDate
+    ? new Date(subscription.nextRenewalDate).toLocaleDateString("pl-PL")
+    : "—";
   const nextBillingStr = getNextBillingDateFromDay(user?.billingDay);
 
   // Data wygaśnięcia dostępu (dla komunikatów) - jeśli backend ustawi activeUntil, użyj tego,

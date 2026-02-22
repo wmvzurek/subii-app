@@ -80,7 +80,6 @@ export const subscriptionsApi = {
 
  async create(data: {
   planId: number;
-  renewalDay: number;
   paymentOption: "now" | "next_billing";
   priceOverridePLN?: number;
 }) {
@@ -99,17 +98,6 @@ export const subscriptionsApi = {
   }
 };
 
-export const paymentsApi = {
-  async payAll() {
-    const res = await api.post("/api/payments");
-    return res.data;
-  },
-
-  async getHistory() {
-    const res = await api.get("/api/payments");
-    return res.data;
-  }
-};
 
 export const reportsApi = {
   async get(period: string) {
