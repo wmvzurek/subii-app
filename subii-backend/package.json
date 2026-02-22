@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "server": "tsx server.ts",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -15,8 +16,10 @@
     "bcrypt": "^6.0.0",
     "jsonwebtoken": "^9.0.3",
     "next": "16.0.1",
+    "node-cron": "^4.2.1",
     "nodemailer": "^8.0.1",
     "prisma": "^6.19.0",
+    "puppeteer": "^24.37.5",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "zod": "^4.1.12"
@@ -25,6 +28,7 @@
     "@types/bcrypt": "^6.0.0",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20.19.33",
+    "@types/node-cron": "^3.0.11",
     "@types/nodemailer": "^7.0.9",
     "@types/react": "^19",
     "@types/react-dom": "^19",

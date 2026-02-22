@@ -87,3 +87,65 @@ export async function sendVerificationEmail(
     return false;
   }
 }
+
+export async function sendReportEmail(
+  email: string,
+  firstName: string,
+  period: string,
+  periodFrom: Date,
+  periodTo: Date,
+  pdfBase64: string
+) {
+  const formatDate = (d: Date) =>
+    d.toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" });
+
+  try {
+    await transporter.sendMail({
+      from: process.env.SMTP_FROM || '"Subii" <appsubii@gmail.com>',
+      to: email,
+      subject: `Subii · Raport miesięczny ${period}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: #000; color: #fff; padding: 24px; text-align: center; border-radius: 8px 8px 0 0; }
+            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+            .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>Subii · Raport miesięczny</h1>
+            </div>
+            <div class="content">
+              <h2>Cześć ${firstName}! 👋</h2>
+              <p>W załączniku znajdziesz swój miesięczny raport za okres:</p>
+              <p><strong>${formatDate(periodFrom)} – ${formatDate(periodTo)}</strong></p>
+              <p>Raport zawiera podsumowanie Twoich subskrypcji oraz obejrzanych tytułów w tym okresie.</p>
+            </div>
+            <div class="footer">
+              <p>To automatyczna wiadomość - nie odpowiadaj na nią.</p>
+              <p>&copy; 2025 Subii. Wszystkie prawa zastrzeżone.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+      attachments: [
+        {
+          filename: `subii-raport-${period}.pdf`,
+          content: Buffer.from(pdfBase64, "base64"),
+          contentType: "application/pdf",
+        },
+      ],
+    });
+    return true;
+  } catch (error) {
+    console.error("❌ [EMAIL] Błąd wysyłania raportu:", error);
+    return false;
+  }
+}

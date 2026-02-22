@@ -28,6 +28,7 @@ model User {
   payments      Payment[]
   watchEvents   WatchEvent[]
   billingCycles BillingCycle[]
+  paymentReports PaymentReport[]
   userEpisodes  UserEpisode[]
 
   @@map("users")
@@ -228,6 +229,22 @@ model BillingCycleItem {
   @@map("billing_cycle_items")
 }
 
+model PaymentReport {
+  id         String   @id @default(cuid())
+  userId     Int
+  period     String   // "2026-03"
+  periodFrom DateTime
+  periodTo   DateTime
+  pdfBase64  String   // PDF zakodowany w base64
+  sentAt     DateTime? // kiedy wysłano mailem, null = jeszcze nie wysłano
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, period])
+  @@map("payment_reports")
+}
+
 // ============================================
 // OBEJRZANE ODCINKI (SERIALE)
 // ============================================
@@ -239,6 +256,7 @@ model UserEpisode {
   episodeNumber   Int
   durationMinutes Int?     // runtime odcinka w minutach (z TMDB)
   watchedAt       DateTime @default(now())
+  seriesTitle   String?
 
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 

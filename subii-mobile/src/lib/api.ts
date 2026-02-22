@@ -69,6 +69,8 @@ export const subscriptionsApi = {
     return res.data;
   },
 
+
+
   // ← DODAJ TĘ FUNKCJĘ
   async getActiveProviderCodes(): Promise<string[]> {
     const res = await api.get("/api/subscriptions");
@@ -113,10 +115,10 @@ export const subscriptionsApi = {
 
 
 export const reportsApi = {
-  async get(period: string) {
-    const res = await api.get(`/api/report?period=${period}`);
-    return res.data;
-  }
+  generate: () => api.post("/api/reports/generate"),
+  generateAndSend: () => api.post("/api/reports/generate", { sendEmail: true }),
+  getAll: () => api.get("/api/reports"),
+  getById: (id: string) => api.get(`/api/reports/${id}`),
 };
 
 export const plansApi = {
