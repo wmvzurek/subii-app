@@ -27,6 +27,18 @@ api.interceptors.response.use(
   }
 );
 
+export const billingApi = {
+  async getPreview() {
+    const res = await api.get("/api/billing/preview");
+    return res.data;
+  },
+
+  async pay() {
+    const res = await api.post("/api/billing/pay");
+    return res.data;
+  }
+};
+
 export const authApi = {
   async register(data: {
     email: string;

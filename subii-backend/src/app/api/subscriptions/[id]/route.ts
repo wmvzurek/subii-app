@@ -25,10 +25,12 @@ export async function DELETE(
 
   // Oblicz activeUntil – do końca bieżącego okresu (następny billing day)
   const user = await prisma.user.findUnique({ where: { id: userId } });
-  const billingDay = user?.billingDay || 1;
   const today = new Date();
-  const activeUntil = new Date(today.getFullYear(), today.getMonth(), billingDay);
-  if (activeUntil <= today) activeUntil.setMonth(activeUntil.getMonth() + 1);
+// activeUntil = następny renewalDay - 1 dzień
+const nextRenewal = new Date(today.getFullYear(), today.getMonth(), subscription.renewalDay);
+if (nextRenewal <= today) nextRenewal.setMonth(nextRenewal.getMonth() + 1);
+const activeUntil = new Date(nextRenewal);
+activeUntil.setDate(activeUntil.getDate() - 1);
 
   await prisma.subscription.update({
     where: { id: subscriptionId },
@@ -71,49 +73,37 @@ export async function PATCH(
     if (!newPlan) return NextResponse.json({ error: "Plan nie znaleziony" }, { status: 404 });
 
     if (body.upgradeOption === "now") {
-      // Zmień od razu
-      const oldPrice = subscription.priceOverridePLN || subscription.plan.pricePLN;
-      const newPrice = newPlan.pricePLN;
+  const oldPrice = subscription.priceOverridePLN || subscription.plan.pricePLN;
+  const newPrice = newPlan.pricePLN;
 
-      const updated = await prisma.subscription.update({
-        where: { id: subscriptionId },
-        data: {
-          planId: body.planId,
-          providerCode: newPlan.providerCode,
-          pendingPlanId: null,
-          status: "active",
-        },
-        include: { plan: true, provider: true },
-      });
+  // Oblicz proporcjonalną dopłatę za dni od dziś do następnego odnowienia
+  let pendingChargePLN: number | null = null;
 
-      // Jeśli upgrade – dodaj credit
-      if (newPrice > oldPrice) {
-        const { creditAfterUpgrade } = calculateUpgradeCost(oldPrice, newPrice, subscription.renewalDay);
-        if (creditAfterUpgrade > 0) {
-          const wallet = await prisma.wallet.findUnique({ where: { userId } });
-          if (wallet) {
-            await prisma.wallet.update({
-              where: { userId },
-              data: { balance: wallet.balance + creditAfterUpgrade }
-            });
-          }
-        }
-      }
-
-      return NextResponse.json(updated);
-    } else {
-      // Zmień przy następnej płatności – ustaw pending_change
-      const updated = await prisma.subscription.update({
-        where: { id: subscriptionId },
-        data: {
-          pendingPlanId: body.planId,
-          status: "pending_change",
-        },
-        include: { plan: true, provider: true },
-      });
-
-      return NextResponse.json(updated);
+  if (newPrice > oldPrice) {
+    const { diffToPayNow } = calculateUpgradeCost(
+      oldPrice,
+      newPrice,
+      subscription.renewalDay
+    );
+    if (diffToPayNow > 0) {
+      pendingChargePLN = diffToPayNow;
     }
+  }
+
+  const updated = await prisma.subscription.update({
+    where: { id: subscriptionId },
+    data: {
+      planId: body.planId,
+      providerCode: newPlan.providerCode,
+      pendingPlanId: null,
+      pendingChargePLN,   // ← zapisujemy dopłatę
+      status: "active",
+    },
+    include: { plan: true, provider: true },
+  });
+
+  return NextResponse.json(updated);
+}
   }
 
   // Inne aktualizacje

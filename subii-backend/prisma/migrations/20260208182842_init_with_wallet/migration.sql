@@ -1,3 +1,5 @@
+--20260208182842_init_with_wallet
+
 -- CreateTable
 CREATE TABLE "users" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,

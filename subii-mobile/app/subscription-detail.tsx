@@ -344,11 +344,14 @@ export default function SubscriptionDetail() {
   const logo = getProviderLogo(subscription.providerCode);
   const providerName = getProviderName(subscription.providerCode);
   const cycle = subscription.plan?.cycle || "monthly";
-  const price = subscription.priceOverridePLN || subscription.plan?.pricePLN || 0;
-
-  // statusy UI
   const isPendingChange = subscription.status === "pending_change";
-  const isPendingCancellation = subscription.status === "pending_cancellation";
+const isPendingCancellation = subscription.status === "pending_cancellation";
+
+const price = isPendingChange && subscription.pendingPlan
+  ? subscription.pendingPlan.pricePLN
+  : subscription.priceOverridePLN || subscription.plan?.pricePLN || 0;
+
+
 
   // daty do UI (odnowienie i zintegrowana płatność)
   const nextRenewal = getNextRenewalDate(

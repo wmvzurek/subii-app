@@ -12,6 +12,7 @@ export type BillingPreviewItem = {
   periodFrom: Date;
   periodTo: Date;
   creditApplied: number;
+  pendingCharge: number;  // ← DODAJ TO
   toPay: number;
 };
 
@@ -105,22 +106,25 @@ export async function calculateBillingPreview(userId: number): Promise<BillingPr
     const periodFrom = renewalDate;
     const periodTo = new Date(renewalDate.getFullYear(), renewalDate.getMonth() + 1, sub.renewalDay);
     
-    items.push({
-      subscriptionId: sub.id,
-      providerCode: sub.providerCode,
-      providerName: sub.provider.name,
-      planName: sub.plan.planName,
-      pricePLN: price,
-      renewalDay: sub.renewalDay,
-      periodFrom,
-      periodTo,
-      creditApplied: 0, // credit rozliczany przy faktycznej płatności
-      toPay: price,
-    });
+    const pendingCharge = sub.pendingChargePLN || 0;
+
+items.push({
+  subscriptionId: sub.id,
+  providerCode: sub.providerCode,
+  providerName: sub.provider.name,
+  planName: sub.plan.planName,
+  pricePLN: price,
+  renewalDay: sub.renewalDay,
+  periodFrom,
+  periodTo,
+  creditApplied: 0,
+  pendingCharge,
+  toPay: price + pendingCharge,  // ← cena + dopłata za upgrade
+});
   }
   
   const walletBalance = user.wallet?.balance || 0;
-  const totalBeforeCredit = items.reduce((s, i) => s + i.pricePLN, 0);
+  const totalBeforeCredit = items.reduce((s, i) => s + i.pricePLN + i.pendingCharge, 0);
   const creditUsed = Math.min(walletBalance, totalBeforeCredit);
   const totalToPay = Math.max(0, totalBeforeCredit - creditUsed);
   

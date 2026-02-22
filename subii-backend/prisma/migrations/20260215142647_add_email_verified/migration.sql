@@ -1,3 +1,5 @@
+--20260215142647_add_email_verified
+
 -- RedefineTables
 PRAGMA defer_foreign_keys=ON;
 PRAGMA foreign_keys=OFF;

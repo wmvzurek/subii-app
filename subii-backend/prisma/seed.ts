@@ -117,12 +117,15 @@ const plans = [
     });
 
     if (!existingNetflix) {
-      await prisma.subscription.create({
+      const netflixRenewal = new Date();
+netflixRenewal.setMonth(netflixRenewal.getMonth() + 1);
+
+await prisma.subscription.create({
   data: {
     userId: user.id,
     providerCode: "netflix",
     planId: netflixPlan.id,
-    renewalDay: 17,
+    nextRenewalDate: netflixRenewal,
     status: "active",
   },
 });
@@ -138,12 +141,15 @@ const plans = [
     });
 
     if (!existingDisney) {
-      await prisma.subscription.create({
+      const disneyRenewal = new Date();
+disneyRenewal.setMonth(disneyRenewal.getMonth() + 1);
+
+await prisma.subscription.create({
   data: {
     userId: user.id,
     providerCode: "disney_plus",
     planId: disneyPlan.id,
-    renewalDay: 27,
+    nextRenewalDate: disneyRenewal,
     status: "active",
   },
 });

@@ -11,14 +11,58 @@ export async function GET(req: Request) {
   const today = new Date();
 
   // Najpierw wykonaj dezaktywacje które już wygasły
-  await prisma.subscription.updateMany({
-    where: {
-      userId,
-      status: "pending_cancellation",
-      activeUntil: { lte: today }
-    },
-    data: { status: "cancelled" }
-  });
+  // Najpierw wykonaj dezaktywacje które już wygasły
+// Dezaktywacje które już wygasły
+await prisma.subscription.updateMany({
+  where: {
+    userId,
+    status: "pending_cancellation",
+    activeUntil: { lte: today }
+  },
+  data: { status: "cancelled" }
+});
+
+// Przełącz pending_change na nowy plan jeśli renewalDay już minął
+const pendingChangeSubs = await prisma.subscription.findMany({
+  where: {
+    userId,
+    status: "pending_change",
+    pendingPlanId: { not: null }
+  },
+  include: { pendingPlan: true }
+});
+
+for (const sub of pendingChangeSubs) {
+  // Oblicz datę ostatniego renewalu
+  const lastRenewal = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    sub.renewalDay
+  );
+  if (lastRenewal > today) {
+    // renewalDay jeszcze nie minął w tym miesiącu – cofnij o miesiąc
+    lastRenewal.setMonth(lastRenewal.getMonth() - 1);
+  }
+
+  // Jeśli dziś >= renewalDay tego miesiąca – czas przełączyć plan
+  const thisMonthRenewal = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    sub.renewalDay
+  );
+
+  if (today >= thisMonthRenewal && sub.pendingPlanId) {
+    await prisma.subscription.update({
+      where: { id: sub.id },
+      data: {
+        planId: sub.pendingPlanId,
+        providerCode: sub.pendingPlan!.providerCode,
+        pendingPlanId: null,
+        status: "active",
+      }
+    });
+  }
+}
 
   const subscriptions = await prisma.subscription.findMany({
     where: {

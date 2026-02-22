@@ -78,10 +78,11 @@ model Subscription {
   planId           Int
   pendingPlanId    Int?      // nowy plan czekający na wejście w życie
   priceOverridePLN Float?
-  renewalDay       Int
+  nextRenewalDate DateTime  // najbliższa data odnowienia (miesięczne i roczne)
   status           String    @default("active")
   // active | cancelled | pending_change | pending_cancellation
   activeUntil      DateTime? // data do kiedy działa przy pending_cancellation
+  pendingChargePLN Float?    // dopłata proporcjonalna za upgrade, doliczana do najbliższego billingu
   cancelledAt      DateTime?
   createdAt        DateTime  @default(now())
 
