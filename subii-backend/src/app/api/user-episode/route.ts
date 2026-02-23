@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const { tmdbSeriesId, seasonNumber, episodeNumber, durationMinutes, watched } = body;
+  const { tmdbSeriesId, seasonNumber, episodeNumber, durationMinutes, watched, seriesTitle } = body;
 
   if (!tmdbSeriesId || seasonNumber === undefined || episodeNumber === undefined) {
     return NextResponse.json({ error: "Brakuje wymaganych pól" }, { status: 400 });
@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
         seasonNumber,
         episodeNumber,
         durationMinutes: durationMinutes ?? null,
+        seriesTitle: seriesTitle ?? null,
       },
     });
   } else {

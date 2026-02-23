@@ -222,6 +222,7 @@ export default function TitleScreen() {
         episodeNumber: episode.episodeNumber,
         durationMinutes: episode.runtime || null,
         watched: nowWatched,
+        seriesTitle: details?.name || details?.title || null,
       });
     } catch {
       // rollback
@@ -274,6 +275,7 @@ export default function TitleScreen() {
             episodeNumber: ep.episodeNumber,
             durationMinutes: ep.runtime || null,
             watched: newWatched,
+            seriesTitle: details?.name || details?.title || null,
           })
         )
       );
