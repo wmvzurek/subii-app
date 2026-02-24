@@ -328,12 +328,7 @@ export default function PaymentModal({
   // ── Render główny ──
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={{ flex: 1 }}
-        >
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
+      <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
         <View style={{ backgroundColor: "#fff", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, gap: 16 }}>
 
           {/* Nagłówek */}
@@ -529,7 +524,7 @@ export default function PaymentModal({
               )}
             </View>
             {selectedMethod === "new_card" && (
-              <View style={{ gap: 10, paddingBottom: 220 }}>
+              <View style={{ gap: 10 }}>
                 <CardField
                   postalCodeEnabled={false}
                   placeholders={{ number: "1234 5678 9012 3456" }}
@@ -573,8 +568,6 @@ export default function PaymentModal({
 
         </View>
       </View>
-          </TouchableWithoutFeedback>
-        </KeyboardAvoidingView>
-      </Modal>
+    </Modal>
   );
 }

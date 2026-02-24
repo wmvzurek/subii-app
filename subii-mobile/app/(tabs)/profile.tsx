@@ -475,7 +475,7 @@ export default function Profile() {
               )}
 
               {showCardForm && (
-                <View style={{ gap: 12, marginTop: 8, paddingBottom: 260 }}>
+                <View style={{ gap: 12, marginTop: 8 }}>
                   <CardField
                     postalCodeEnabled={false}
                     placeholders={{ number: "1234 5678 9012 3456" }}
