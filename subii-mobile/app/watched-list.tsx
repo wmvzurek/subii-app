@@ -25,15 +25,21 @@ export default function WatchedList() {
 
   const [allItems, setAllItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const [search, setSearch] = useState("");
 
   useEffect(() => {
     loadData();
   }, []);
 
-  const loadData = async () => {
+  const loadData = async (pageNum = 1, append = false) => {
     try {
-      const res = await api.get("/api/user-watched");
+      if (pageNum === 1) setLoading(true);
+      else setLoadingMore(true);
+
+      const res = await api.get(`/api/user-watched?page=${pageNum}`);
       const data = res.data;
       const list = isMovies ? data.movies : data.series;
 
@@ -45,11 +51,20 @@ export default function WatchedList() {
         return true;
       });
 
-      setAllItems(filtered);
+      setAllItems(prev => append ? [...prev, ...filtered] : filtered);
+      setHasMore(data.pagination?.hasMore ?? false);
+      setPage(pageNum);
     } catch {
-      setAllItems([]);
+      if (!append) setAllItems([]);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const loadMore = () => {
+    if (!loadingMore && hasMore && search.length === 0) {
+      loadData(page + 1, true);
     }
   };
 
@@ -115,6 +130,9 @@ export default function WatchedList() {
         </View>
       ) : (
         <FlatList
+        onEndReached={loadMore}
+  onEndReachedThreshold={0.3}
+  ListFooterComponent={loadingMore ? <ActivityIndicator color="#000" style={{ padding: 20 }} /> : null}
           data={filtered}
           keyExtractor={item => String(item.tmdbId)}
           contentContainerStyle={{ padding: 20, gap: 12 }}

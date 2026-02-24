@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
+import { prisma } from "@/lib/prisma";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -25,7 +26,7 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 }
 
 export function generateToken(payload: JWTPayload): string {
-  const expiresIn = payload.type === 'verification' || payload.type === 'password_reset' ? '24h' : '7d';
+const expiresIn = payload.type === 'verification' || payload.type === 'password_reset' ? '24h' : '30d';
   return jwt.sign(payload, SECRET, { expiresIn });
 }
 
@@ -51,8 +52,8 @@ export async function getUserFromRequest(req: Request): Promise<number | null> {
   }
 
   // Sprawdź czy tokenVersion zgadza się z bazą
-  const { PrismaClient } = await import("@prisma/client");
-  const prisma = new PrismaClient();
+  const { prisma } = await import("@/lib/prisma");
+  
   const user = await prisma.user.findUnique({ 
     where: { id: payload.userId },
     select: { tokenVersion: true }

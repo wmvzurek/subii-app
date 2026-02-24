@@ -35,7 +35,8 @@ userEpisodes  UserEpisode[]
   cardBrand             String?
   cardLast4             String?
   cardExpMonth          Int?
-  cardExpYear           Int?
+  
+  pushToken             String?   // Expo push token
 
   @@map("users")
 }

@@ -3,7 +3,7 @@ import { PrismaClient } from "@prisma/client";
 import { generateToken } from "@/lib/auth";
 import { sendPasswordResetEmail } from "@/lib/email";
 
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 // Rate limiting: max 3 próby na 1 godzinę per IP
 const resetAttempts = new Map<string, { count: number; firstAttempt: number }>();

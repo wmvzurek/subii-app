@@ -3,7 +3,7 @@ import { PrismaClient } from "@prisma/client";
 import { getUserFromRequest } from "@/lib/auth";
 import { calculateUpgradeCost } from "@/lib/billing";
 
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 export async function DELETE(
   req: NextRequest,

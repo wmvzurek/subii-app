@@ -3,7 +3,7 @@ import { PrismaClient } from "@prisma/client";
 import { generateAndSaveReport } from "./report";
 import { sendReportEmail } from "./email";
 
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 export function startCronJobs() {
   // Odpala się codziennie o 00:00

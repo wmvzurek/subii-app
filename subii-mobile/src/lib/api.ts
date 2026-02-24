@@ -23,13 +23,29 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      // Nie wylogowuj przy próbie logowania — to normalny błąd złego hasła
       const isLoginRequest = error.config?.url?.includes("/api/auth/login");
       const isRegisterRequest = error.config?.url?.includes("/api/auth/register");
-      
+
       if (!isLoginRequest && !isRegisterRequest) {
+        // Sprawdź czy token w ogóle istnieje — jeśli tak, to wygasł
+        const token = await storage.getToken();
         await storage.clearAuth();
-        router.replace("/login" as any);
+
+        if (token) {
+          // Token istniał ale wygasł / został unieważniony — poinformuj użytkownika
+          router.replace("/login" as any);
+          // Małe opóźnienie żeby router zdążył zmienić ekran
+          setTimeout(() => {
+            const { Alert } = require("react-native");
+            Alert.alert(
+              "Sesja wygasła",
+              "Twoja sesja wygasła. Zaloguj się ponownie.",
+              [{ text: "OK" }]
+            );
+          }, 300);
+        } else {
+          router.replace("/login" as any);
+        }
       }
     }
     return Promise.reject(error);

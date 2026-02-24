@@ -4,7 +4,7 @@ import { getUserFromRequest } from "@/lib/auth";
 import { generateAndSaveReport } from "@/lib/report";
 import { sendReportEmail } from "@/lib/email";
 
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 // POST /api/reports/generate
 // Body: { sendEmail?: boolean }

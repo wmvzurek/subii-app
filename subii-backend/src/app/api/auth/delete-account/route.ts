@@ -3,7 +3,7 @@ import { PrismaClient } from "@prisma/client";
 import { getUserFromRequest, verifyPassword } from "@/lib/auth";
 import Stripe from "stripe";
 
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export async function POST(req: Request) {

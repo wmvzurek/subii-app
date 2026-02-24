@@ -4,7 +4,7 @@ import { getUserFromRequest } from "@/lib/auth";
 import { PrismaClient } from "@prisma/client";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
   const userId = await getUserFromRequest(req);

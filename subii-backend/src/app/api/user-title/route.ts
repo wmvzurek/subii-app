@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { getUserFromRequest } from "@/lib/auth";
 
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 // GET /api/user-title?tmdbId=123
 // Zwraca stan watched, favorite i listę obejrzanych odcinków

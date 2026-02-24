@@ -3,7 +3,7 @@ import { PrismaClient } from "@prisma/client";
 import { getUserFromRequest } from "@/lib/auth";
 import { calculateBillingPreview } from "@/lib/billing";
 
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
   const userId = await getUserFromRequest(req);

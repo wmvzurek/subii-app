@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { verifyPassword, generateToken } from "@/lib/auth";
 
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 // Prosta mapa do rate limitingu w pamięci
 // W produkcji z wieloma instancjami użyj Redis
 const loginAttempts = new Map<string, { count: number; lastAttempt: number }>();

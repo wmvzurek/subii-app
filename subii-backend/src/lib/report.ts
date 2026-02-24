@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import puppeteer from "puppeteer";
 
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 export type ReportPeriod = {
   periodFrom: Date;

@@ -3,22 +3,36 @@ import { PrismaClient } from "@prisma/client";
 import { getUserFromRequest } from "@/lib/auth";
 import axios from "axios";
 
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 export async function GET(req: NextRequest) {
   const userId = await getUserFromRequest(req);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   // Pobierz wszystkie tytuły użytkownika (obejrzane LUB ulubione)
-  const userTitles = await prisma.userTitle.findMany({
-    where: {
-      userId,
-      OR: [{ watched: true }, { favorite: true }],
-    },
-    include: {
-      title: true,
-    },
-  });
+  const { searchParams } = new URL(req.url);
+  const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
+  const limit = 30;
+  const skip = (page - 1) * limit;
+
+  const [userTitles, totalCount] = await Promise.all([
+    prisma.userTitle.findMany({
+      where: {
+        userId,
+        OR: [{ watched: true }, { favorite: true }],
+      },
+      include: { title: true },
+      skip,
+      take: limit,
+      orderBy: { updatedAt: "desc" },
+    }),
+    prisma.userTitle.count({
+      where: {
+        userId,
+        OR: [{ watched: true }, { favorite: true }],
+      },
+    }),
+  ]);
 
   // Pobierz wszystkie obejrzane odcinki użytkownika (z durationMinutes do liczenia czasu)
   const userEpisodes = await prisma.userEpisode.findMany({
@@ -160,5 +174,14 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  return NextResponse.json({ movies, series });
+return NextResponse.json({
+    movies,
+    series,
+    pagination: {
+      page,
+      limit,
+      total: totalCount,
+      hasMore: skip + limit < totalCount,
+    },
+  });
 }

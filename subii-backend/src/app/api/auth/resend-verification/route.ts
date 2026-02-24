@@ -3,7 +3,7 @@ import { PrismaClient } from "@prisma/client";
 import { getUserFromRequest, generateToken } from "@/lib/auth";
 import { sendVerificationEmail } from "@/lib/email";
 
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 // Max 3 próby na godzinę per userId
 const resendAttempts = new Map<number, { count: number; firstAttempt: number }>();

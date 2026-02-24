@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { getUserFromRequest } from "@/lib/auth";
 
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 // POST /api/user-episode
 // Body: { tmdbSeriesId, seasonNumber, episodeNumber, durationMinutes, watched }

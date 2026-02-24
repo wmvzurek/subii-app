@@ -3,7 +3,7 @@ import { PrismaClient } from "@prisma/client";
 import { getUserFromRequest } from "@/lib/auth";
 import axios from "axios";
 
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 export async function GET(req: NextRequest) {
   const userId = getUserFromRequest(req);

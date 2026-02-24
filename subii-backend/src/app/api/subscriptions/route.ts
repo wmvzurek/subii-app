@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { getUserFromRequest } from "@/lib/auth";
 
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 export async function GET(req: Request) {
   const userId = await getUserFromRequest(req);
@@ -97,6 +97,15 @@ export async function POST(req: Request) {
 
   const body = await req.json();
   const { planId, paymentOption, priceOverridePLN } = body;
+  if (priceOverridePLN !== undefined && priceOverridePLN !== null) {
+    const price = Number(priceOverridePLN);
+    if (isNaN(price) || price < 0 || price > 9999) {
+      return NextResponse.json(
+        { error: "Nieprawidłowa cena — musi być liczbą między 0 a 9999" },
+        { status: 400 }
+      );
+    }
+  }
 
   if (!planId) {
     return NextResponse.json(

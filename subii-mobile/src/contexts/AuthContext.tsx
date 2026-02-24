@@ -62,6 +62,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await storage.setToken(token);
     await storage.setUser(user);
     setIsAuthenticated(true);
+    // Zarejestruj push token po zalogowaniu
+    try {
+      const { registerForPushNotifications } = await import("../lib/pushNotifications");
+      await registerForPushNotifications();
+    } catch (e) {
+      console.warn("[push] Nie udało się zarejestrować:", e);
+    }
   };
 
   const logout = async () => {

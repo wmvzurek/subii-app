@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
 import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 // Centralny słownik nazw platform (taki sam jak w mobile)
 const PROVIDER_CODE_MAP: Record<string, string> = {

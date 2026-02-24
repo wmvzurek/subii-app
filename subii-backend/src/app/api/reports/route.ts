@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { getUserFromRequest } from "@/lib/auth";
 
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 // GET /api/reports
 // Zwraca listę raportów użytkownika (bez pdfBase64 — tylko metadane)

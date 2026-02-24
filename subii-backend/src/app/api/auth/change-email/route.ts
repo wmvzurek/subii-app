@@ -3,7 +3,7 @@ import { PrismaClient } from "@prisma/client";
 import { getUserFromRequest, generateToken, verifyPassword } from "@/lib/auth";
 import { sendVerificationEmail } from "@/lib/email";
 
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
   try {
