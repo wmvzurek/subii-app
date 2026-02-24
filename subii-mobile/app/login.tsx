@@ -11,6 +11,7 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
+  ScrollView,
 } from "react-native";
 import { authApi } from "../src/lib/api";
 import { useAuth } from "../src/contexts/AuthContext";
@@ -105,7 +106,11 @@ Alert.alert("Błąd", msg);
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={{ flex: 1, padding: 24, justifyContent: "center", gap: 20, backgroundColor: "#fff" }}>
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, padding: 24, justifyContent: "center", gap: 20, backgroundColor: "#fff" }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           <View style={{ alignItems: "center", marginBottom: 32 }}>
             <Text style={{ fontSize: 36, fontWeight: "900", marginBottom: 8 }}>Subii</Text>
             <Text style={{ fontSize: 16, color: "#666" }}>Zarządzaj swoimi subskrypcjami</Text>
@@ -189,7 +194,7 @@ Alert.alert("Błąd", msg);
               <Text style={{ color: "#000", fontWeight: "700", fontSize: 16 }}>Zarejestruj się</Text>
             </Pressable>
           </View>
-        </View>
+        </ScrollView>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );

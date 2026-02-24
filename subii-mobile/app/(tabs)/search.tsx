@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Keyboard,
   ScrollView,
+  TouchableWithoutFeedback,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { api } from "../../src/lib/api";
@@ -96,6 +97,7 @@ export default function Search() {
   };
 
   return (
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
     <View style={{ flex: 1, backgroundColor: "#f5f5f5" }}>
       {/* Header */}
       <View style={{
@@ -359,5 +361,6 @@ export default function Search() {
         />
       )}
     </View>
+    </TouchableWithoutFeedback>
   );
 }

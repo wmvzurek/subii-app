@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   View, Text, Pressable, Modal, Alert, ActivityIndicator,
   Platform, TextInput, Animated, Easing,
+  KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard,
 } from "react-native";
 import { useStripe, CardField, usePlatformPay, PlatformPay } from "@stripe/stripe-react-native";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
@@ -327,7 +328,12 @@ export default function PaymentModal({
   // ── Render główny ──
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
         <View style={{ backgroundColor: "#fff", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, gap: 16 }}>
 
           {/* Nagłówek */}
@@ -523,7 +529,7 @@ export default function PaymentModal({
               )}
             </View>
             {selectedMethod === "new_card" && (
-              <View style={{ gap: 10 }}>
+              <View style={{ gap: 10, paddingBottom: 220 }}>
                 <CardField
                   postalCodeEnabled={false}
                   placeholders={{ number: "1234 5678 9012 3456" }}
@@ -567,6 +573,8 @@ export default function PaymentModal({
 
         </View>
       </View>
-    </Modal>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
+      </Modal>
   );
 }

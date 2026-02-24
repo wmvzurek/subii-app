@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   View, Text, FlatList, Image, Pressable,
-  ActivityIndicator, TextInput
+  ActivityIndicator, TextInput, Keyboard, TouchableWithoutFeedback,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { api } from "../src/lib/api";
@@ -60,6 +60,7 @@ export default function WatchedList() {
   const title = FILTER_LABELS[filter] ?? "Lista";
 
   return (
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
     <View style={{ flex: 1, backgroundColor: "#f5f5f5" }}>
 
       {/* Header */}
@@ -185,5 +186,6 @@ export default function WatchedList() {
         />
       )}
     </View>
+    </TouchableWithoutFeedback>
   );
 }

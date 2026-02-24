@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import {
   View, Text, Pressable, Alert, ActivityIndicator, ScrollView,
-  RefreshControl, Image, Modal, TextInput
+  RefreshControl, Image, Modal, TextInput,
+  KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard, Platform
 } from "react-native";
 import { useRouter } from "expo-router";
 import { storage } from "../../src/lib/storage";
@@ -297,7 +298,12 @@ export default function Profile() {
 
       {/* MODAL USTAWIEŃ */}
       <Modal visible={showSettingsModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowSettingsModal(false)}>
-        <View style={{ flex: 1, backgroundColor: "#f5f5f5" }}>
+        <KeyboardAvoidingView
+  behavior={Platform.OS === "ios" ? "padding" : "height"}
+  style={{ flex: 1 }}
+>
+<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+<View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)"}}>
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 20, backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#f0f0f0" }}>
             <Text style={{ fontSize: 18, fontWeight: "800" }}>Ustawienia</Text>
             <Pressable onPress={() => setShowSettingsModal(false)}>
@@ -345,13 +351,15 @@ export default function Profile() {
               {showChangeEmail && (
                 <View style={{ gap: 10, marginTop: 8 }}>
                   <TextInput
-                    value={newEmail}
-                    onChangeText={setNewEmail}
-                    placeholder="Nowy adres e-mail"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    style={{ borderWidth: 1, borderColor: "#e0e0e0", borderRadius: 10, padding: 12, fontSize: 15, backgroundColor: "#f9f9f9" }}
-                  />
+  value={newEmail}
+  onChangeText={setNewEmail}
+  placeholder="Nowy adres e-mail"
+  keyboardType="email-address"
+  autoCapitalize="none"
+  returnKeyType="done"
+  onSubmitEditing={Keyboard.dismiss}
+  style={{ borderWidth: 1, borderColor: "#e0e0e0", borderRadius: 10, padding: 12, fontSize: 15, backgroundColor: "#f9f9f9" }}
+/>
                   <Pressable onPress={handleChangeEmail} disabled={savingEmail} style={{ backgroundColor: "#000", padding: 12, borderRadius: 10, alignItems: "center", opacity: savingEmail ? 0.6 : 1 }}>
                     {savingEmail ? <ActivityIndicator color="#fff" size="small" /> : <Text style={{ color: "#fff", fontWeight: "700" }}>Zapisz i wyślij weryfikację</Text>}
                   </Pressable>
@@ -383,12 +391,14 @@ export default function Profile() {
               {showChangePhone && (
                 <View style={{ gap: 10, marginTop: 8 }}>
                   <TextInput
-                    value={newPhone}
-                    onChangeText={setNewPhone}
-                    placeholder="Nowy numer telefonu"
-                    keyboardType="phone-pad"
-                    style={{ borderWidth: 1, borderColor: "#e0e0e0", borderRadius: 10, padding: 12, fontSize: 15, backgroundColor: "#f9f9f9" }}
-                  />
+  value={newPhone}
+  onChangeText={setNewPhone}
+  placeholder="Nowy numer telefonu"
+  keyboardType="phone-pad"
+  returnKeyType="done"
+  onSubmitEditing={Keyboard.dismiss}
+  style={{ borderWidth: 1, borderColor: "#e0e0e0", borderRadius: 10, padding: 12, fontSize: 15, backgroundColor: "#f9f9f9" }}
+/>
                   <Pressable onPress={handleChangePhone} disabled={savingPhone} style={{ backgroundColor: "#000", padding: 12, borderRadius: 10, alignItems: "center", opacity: savingPhone ? 0.6 : 1 }}>
                     {savingPhone ? <ActivityIndicator color="#fff" size="small" /> : <Text style={{ color: "#fff", fontWeight: "700" }}>Zapisz</Text>}
                   </Pressable>
@@ -465,7 +475,7 @@ export default function Profile() {
               )}
 
               {showCardForm && (
-                <View style={{ gap: 12, marginTop: 8 }}>
+                <View style={{ gap: 12, marginTop: 8, paddingBottom: 260 }}>
                   <CardField
                     postalCodeEnabled={false}
                     placeholders={{ number: "1234 5678 9012 3456" }}
@@ -539,6 +549,9 @@ export default function Profile() {
 
           </ScrollView>
         </View>
+</TouchableWithoutFeedback>
+</KeyboardAvoidingView>
+        
       </Modal>
 
       {/* GŁÓWNA TREŚĆ */}
