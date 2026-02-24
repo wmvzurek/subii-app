@@ -9,6 +9,7 @@ import { storage } from "../src/lib/storage";
 import { getProviderLogo } from "../src/lib/provider-logos";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getProviderName } from "../src/lib/providers";
+import { CardField, useStripe } from "@stripe/stripe-react-native";
 
 const BILLING_DAYS = [1, 5, 10, 15, 20, 25, 28];
 
@@ -20,7 +21,11 @@ export default function SubscriptionsAdd() {
   const [showBillingSetup, setShowBillingSetup] = useState(false);
   const [selectedBillingDay, setSelectedBillingDay] = useState<number | null>(null);
   const [savingBillingDay, setSavingBillingDay] = useState(false);
+  const [showCardSetup, setShowCardSetup] = useState(false);
+const [savingCard, setSavingCard] = useState(false);
   const insets = useSafeAreaInsets();
+  const { confirmSetupIntent } = useStripe();
+const [newCardDetails, setNewCardDetails] = useState<any>(null);
 
   useEffect(() => {
     initScreen();
@@ -51,6 +56,14 @@ export default function SubscriptionsAdd() {
           setLoading(false);
           return;
         }
+      }
+
+      // Sprawdź czy user ma zapisaną kartę
+      const cardRes = await api.get("/api/stripe/card");
+      if (!cardRes.data.card) {
+        setShowCardSetup(true);
+        setLoading(false);
+        return;
       }
 
       await loadProviders();
@@ -101,7 +114,7 @@ export default function SubscriptionsAdd() {
       setUser(updatedUser);
 
       setShowBillingSetup(false);
-      await loadProviders();
+      setShowCardSetup(true);  // <-- zamiast loadProviders
     } catch {
       Alert.alert("Błąd", "Nie udało się zapisać dnia rozliczeniowego");
     } finally {
@@ -188,6 +201,96 @@ export default function SubscriptionsAdd() {
             ) : (
               <Text style={{ color: "#fff", textAlign: "center", fontWeight: "700", fontSize: 16 }}>
                 Zatwierdź i wybierz platformę →
+              </Text>
+            )}
+          </Pressable>
+        </ScrollView>
+      </View>
+    );
+  }
+
+  // ── WIDOK: Dodaj kartę ──
+  if (showCardSetup) {
+    return (
+      <View style={{ flex: 1, backgroundColor: "#fff" }}>
+        <View style={{ padding: 20, paddingTop: insets.top + 16 }}>
+          <Pressable onPress={() => router.back()} style={{ marginBottom: 24 }}>
+            <Text style={{ fontSize: 28 }}>←</Text>
+          </Pressable>
+          <Text style={{ fontSize: 28, fontWeight: "900", marginBottom: 8 }}>
+            Dodaj kartę płatniczą
+          </Text>
+          <Text style={{ fontSize: 15, color: "#666", lineHeight: 24, marginBottom: 32 }}>
+            Karta jest wymagana do automatycznych rozliczeń w dniu{" "}
+            <Text style={{ fontWeight: "700", color: "#000" }}>
+              {user?.billingDay}. każdego miesiąca
+            </Text>
+            .
+          </Text>
+        </View>
+
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}>
+          <CardField
+            postalCodeEnabled={false}
+            placeholders={{ number: "1234 5678 9012 3456" }}
+            cardStyle={{
+              backgroundColor: "#fff",
+              textColor: "#000",
+              borderColor: "#e0e0e0",
+              borderWidth: 1,
+              borderRadius: 10,
+              fontSize: 15,
+            }}
+            style={{ width: "100%", height: 52, marginBottom: 12 }}
+            onCardChange={(details) => setNewCardDetails(details)}
+          />
+
+          <Text style={{ fontSize: 11, color: "#999", textAlign: "center", marginBottom: 24 }}>
+            🔒 Dane karty są szyfrowane przez Stripe
+          </Text>
+
+          <Pressable
+            onPress={async () => {
+              if (!newCardDetails?.complete) {
+                Alert.alert("Błąd", "Uzupełnij poprawnie dane karty.");
+                return;
+              }
+              setSavingCard(true);
+              try {
+                const res = await api.post("/api/stripe/setup-intent");
+                const { error, setupIntent } = await confirmSetupIntent(res.data.clientSecret, {
+                  paymentMethodType: "Card",
+                });
+                if (error) {
+                  Alert.alert("Błąd karty", error.message);
+                  return;
+                }
+                if (setupIntent?.paymentMethodId) {
+                  await api.post("/api/stripe/save-payment-method", {
+                    paymentMethodId: setupIntent.paymentMethodId,
+                  });
+                }
+                setShowCardSetup(false);
+                await loadProviders();
+              } catch (e: any) {
+                Alert.alert("Błąd", e.response?.data?.error || "Nie udało się zapisać karty.");
+              } finally {
+                setSavingCard(false);
+              }
+            }}
+            disabled={!newCardDetails?.complete || savingCard}
+            style={{
+              padding: 18,
+              backgroundColor: newCardDetails?.complete ? "#000" : "#ccc",
+              borderRadius: 14,
+              opacity: savingCard ? 0.6 : 1,
+            }}
+          >
+            {savingCard ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={{ color: "#fff", textAlign: "center", fontWeight: "700", fontSize: 16 }}>
+                Zapisz kartę i kontynuuj →
               </Text>
             )}
           </Pressable>
