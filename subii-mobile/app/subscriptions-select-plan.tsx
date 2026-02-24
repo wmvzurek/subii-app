@@ -12,6 +12,8 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { storage } from "../src/lib/storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import PaymentModal from "../src/components/PaymentModal";
+import { getProviderName } from "../src/lib/providers";
+import { getNextBillingDateStr } from "../src/lib/billing";
 
 export default function SubscriptionsSelectPlan() {
   const router = useRouter();
@@ -93,62 +95,12 @@ const prettyProvider = (code?: string) =>
   }
 };
 
-  // ── Helpers ──
-
-const getProviderName = (code: string) => {
-  const names: Record<string, string> = {
-    netflix:       "Netflix",
-    hbo_max:       "HBO Max",
-    disney_plus:   "Disney+",
-    canal_plus:    "Canal+",
-    prime_video:   "Prime Video",
-    apple_tv:      "Apple TV+",
-    skyshowtime:   "SkyShowtime",
-    polsat_box_go: "Polsat Box Go",
-    player:        "Player",
-  };
-  return names[code] || code;
-};
+  // ── Helpers ─
 
   /**
    * Zwraca datę płatności zbiorczej która obejmuje daną datę odnowienia.
    * Bez argumentu – najbliższy billingDay.
    */
-  const getNextBillingDateStr = (renewalDate?: string): string => {
-    const billingDay = user?.billingDay;
-    if (!billingDay) return "—";
-
-    const today = new Date();
-    const renewal = renewalDate ? new Date(renewalDate) : null;
-
-    if (renewal) {
-      let windowStart = new Date(today.getFullYear(), today.getMonth(), billingDay);
-      if (windowStart <= today) {
-        windowStart = new Date(today.getFullYear(), today.getMonth() + 1, billingDay);
-      }
-      for (let i = 0; i < 24; i++) {
-        const windowEnd = new Date(
-          windowStart.getFullYear(),
-          windowStart.getMonth() + 1,
-          billingDay - 1
-        );
-        windowEnd.setHours(23, 59, 59, 999);
-        if (renewal >= windowStart && renewal <= windowEnd) {
-          return windowStart.toLocaleDateString("pl-PL");
-        }
-        windowStart = new Date(
-          windowStart.getFullYear(),
-          windowStart.getMonth() + 1,
-          billingDay
-        );
-      }
-    }
-
-    // Fallback – najbliższy billingDay
-    const candidate = new Date(today.getFullYear(), today.getMonth(), billingDay);
-    if (candidate <= today) candidate.setMonth(candidate.getMonth() + 1);
-    return candidate.toLocaleDateString("pl-PL");
-  };
 
   /**
    * Zwraca pierwszy billingDay który wypada PO danej dacie odnowienia.
@@ -647,7 +599,7 @@ const isPendingPlan = currentUserPlan?.pendingPlanId === planId;
                 <Text style={{ color: "#555", fontSize: 13, lineHeight: 20 }}>
                   Dostęp otrzymasz natychmiast. Rozliczenie zostanie doliczone do najbliższej płatności w Subii (
                   <Text style={{ fontWeight: "700", color: "#000" }}>
-                    {getNextBillingDateStr()}
+                    {getNextBillingDateStr(user?.billingDay)}
                   </Text>
                   ) i obejmie dwa okresy rozliczeniowe.{"\n"}
                   Każda kolejna płatność będzie naliczana w standardowej wysokości za jeden miesiąc.
@@ -713,7 +665,7 @@ const isPendingPlan = currentUserPlan?.pendingPlanId === planId;
                     positive: !newAds,
                   });
                 }
-const billingDateStr = getNextBillingDateStr(currentUserPlan?.nextRenewalDate);
+const billingDateStr = getNextBillingDateStr(user?.billingDay, currentUserPlan?.nextRenewalDate);
 const currentPlanUntilStr = getRenewalMinusOne(currentUserPlan?.nextRenewalDate);
 const newPlanStartStr = getRenewalDateStr(currentUserPlan?.nextRenewalDate);
 

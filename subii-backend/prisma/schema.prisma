@@ -24,12 +24,10 @@ model User {
   updatedAt     DateTime       @updatedAt
   
   subscriptions Subscription[]
-  userTitles    UserTitle[]
-  payments      Payment[]
-  watchEvents   WatchEvent[]
-  billingCycles BillingCycle[]
-  paymentReports PaymentReport[]
-  userEpisodes  UserEpisode[]
+userTitles    UserTitle[]
+billingCycles BillingCycle[]
+paymentReports PaymentReport[]
+userEpisodes  UserEpisode[]
 
   stripeCustomerId      String?
   stripePaymentMethodId String?
@@ -162,47 +160,9 @@ model UserTitle {
 }
 
 
-model Payment {
-  id        String        @id @default(cuid())
-  userId    Int
-  period    String        // YYYY-MM
-  amountPLN Float
-  status    String        @default("SIMULATED_PAID")
-  createdAt DateTime      @default(now())
-  
-  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items     PaymentItem[]
-
-  @@map("payments")
-}
-
-model PaymentItem {
-  id           Int     @id @default(autoincrement())
-  paymentId    String
-  providerCode String
-  planName     String
-  pricePLN     Float
-  
-  payment      Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
-
-  @@map("payment_items")
-}
-
 // ============================================
 // HISTORIA OGLĄDANIA
 // ============================================
-model WatchEvent {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  title     String
-  minutes   Int
-  watchedAt DateTime @default(now())
-  period    String   // YYYY-MM
-  
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("watch_events")
-}
 
 model BillingCycle {
   id          String             @id @default(cuid())

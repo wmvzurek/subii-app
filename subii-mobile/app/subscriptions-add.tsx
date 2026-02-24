@@ -8,6 +8,7 @@ import { plansApi, subscriptionsApi, api } from "../src/lib/api";
 import { storage } from "../src/lib/storage";
 import { getProviderLogo } from "../src/lib/provider-logos";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { getProviderName } from "../src/lib/providers";
 
 const BILLING_DAYS = [1, 5, 10, 15, 20, 25, 28];
 
@@ -106,21 +107,6 @@ export default function SubscriptionsAdd() {
     } finally {
       setSavingBillingDay(false);
     }
-  };
-
-  const getProviderName = (code: string): string => {
-    const names: Record<string, string> = {
-      netflix:       "Netflix",
-    hbo_max:       "HBO Max",
-    disney_plus:   "Disney+",
-    canal_plus:    "Canal+",
-    prime_video:   "Prime Video",
-    apple_tv:      "Apple TV+",
-    skyshowtime:   "SkyShowtime",
-    polsat_box_go: "Polsat Box Go",
-    player:        "Player",
-    };
-    return names[code] || code;
   };
 
   // ── WIDOK: Billing Setup ──

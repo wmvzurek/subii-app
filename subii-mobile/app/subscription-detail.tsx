@@ -20,6 +20,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { api, subscriptionsApi } from "../src/lib/api";
 import { getProviderLogo } from "../src/lib/provider-logos";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { getNextBillingDateStr } from "../src/lib/billing";
 
 /**
  * Wylicza datę kolejnego odnowienia subskrypcji:
@@ -31,49 +32,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
  * Zwraca tekstową datę najbliższej "zintegrowanej płatności" użytkownika
  * na podstawie user.billingDay.
  */
-function getNextBillingDateForSubscription(
-  billingDay: number | undefined,
-  nextRenewalDate: string | undefined
-): string {
-  if (!billingDay || !nextRenewalDate) return "—";
-
-  const renewal = new Date(nextRenewalDate);
-  const today = new Date();
-
-  // Szukamy okna billingowego które obejmuje nextRenewalDate
-  // Okno: od billingDay danego miesiąca do billingDay następnego miesiąca - 1 dzień
-  // Iterujemy okna do przodu aż znajdziemy to które zawiera renewal
-
-  // Startujemy od bieżącego okna
-  let windowStart = new Date(today.getFullYear(), today.getMonth(), billingDay);
-  if (windowStart <= today) {
-    windowStart = new Date(today.getFullYear(), today.getMonth() + 1, billingDay);
-  }
-
-  // Szukamy okna które zawiera renewalDate (max 24 miesiące do przodu)
-  for (let i = 0; i < 24; i++) {
-    const windowEnd = new Date(
-      windowStart.getFullYear(),
-      windowStart.getMonth() + 1,
-      billingDay - 1
-    );
-    windowEnd.setHours(23, 59, 59, 999);
-
-    if (renewal >= windowStart && renewal <= windowEnd) {
-      return windowStart.toLocaleDateString("pl-PL");
-    }
-
-    // Następne okno
-    windowStart = new Date(
-      windowStart.getFullYear(),
-      windowStart.getMonth() + 1,
-      billingDay
-    );
-  }
-
-  // Fallback – jeśli nie znaleziono (nie powinno się zdarzyć)
-  return renewal.toLocaleDateString("pl-PL");
-}
 
 /**
  * Mapowanie kodu providera na nazwę do UI.
@@ -382,10 +340,7 @@ const price = isPendingChange && subscription.pendingPlan
   const nextRenewalStr = subscription.nextRenewalDate
     ? new Date(subscription.nextRenewalDate).toLocaleDateString("pl-PL")
     : "—";
-const nextBillingStr = getNextBillingDateForSubscription(
-  user?.billingDay,
-  subscription.nextRenewalDate
-);
+const nextBillingStr = getNextBillingDateStr(user?.billingDay, subscription?.nextRenewalDate);
 
 const pendingPlan = subscription.pendingPlan;
 const oldPrice = subscription.priceOverridePLN || subscription.plan?.pricePLN || 0;
