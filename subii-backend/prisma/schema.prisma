@@ -20,6 +20,7 @@ model User {
   phone         String         // ← ZMIENIONE: usunięto ? (teraz obowiązkowe)
   emailVerified Boolean        @default(false)
   billingDay    Int?    // dzień miesiąca 1-28, null = nieustalony
+  tokenVersion  Int            @default(0)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   

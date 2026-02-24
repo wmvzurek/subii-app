@@ -149,3 +149,64 @@ export async function sendReportEmail(
     return false;
   }
 }
+
+export async function sendPasswordResetEmail(
+  email: string,
+  firstName: string,
+  token: string
+) {
+  const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/open-reset?token=${token}`;
+const webResetUrl = resetUrl;
+
+  try {
+    await transporter.sendMail({
+      from: process.env.SMTP_FROM || '"Subii" <appsubii@gmail.com>',
+      to: email,
+      subject: "Resetowanie hasła w Subii",
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: #000; color: #fff; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+            .button { display: inline-block; padding: 14px 28px; background: #000; color: #fff; text-decoration: none; border-radius: 8px; margin: 20px 0; }
+            .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>Subii</h1>
+            </div>
+            <div class="content">
+              <h2>Cześć ${firstName}! 👋</h2>
+              <p>Otrzymaliśmy prośbę o zresetowanie hasła do Twojego konta.</p>
+              <p>Kliknij poniższy przycisk w aplikacji Subii:</p>
+              <center>
+                <a href="${resetUrl}" class="button">Resetuj hasło</a>
+              </center>
+              <p>Jeśli przycisk nie działa, skopiuj ten link:</p>
+              <p style="background: #fff; padding: 10px; border-radius: 4px; word-break: break-all; font-size: 12px;">
+                ${webResetUrl}
+              </p>
+              <p><strong>Link będzie ważny przez 24 godziny.</strong></p>
+              <p>Jeśli to nie Ty prosiłeś o reset hasła — zignoruj tę wiadomość.</p>
+            </div>
+            <div class="footer">
+              <p>To automatyczna wiadomość - nie odpowiadaj na nią.</p>
+              <p>&copy; 2025 Subii.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+    });
+    return true;
+  } catch (error) {
+    console.error("[sendPasswordResetEmail]", error);
+    return false;
+  }
+}

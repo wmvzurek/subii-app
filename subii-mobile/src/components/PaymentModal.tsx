@@ -53,6 +53,19 @@ export default function PaymentModal({
   }, [visible]);
 
   useEffect(() => {
+    return () => {
+      if (blikInterval.current) {
+        clearInterval(blikInterval.current);
+        blikInterval.current = null;
+      }
+      if (blikTimeout.current) {
+        clearTimeout(blikTimeout.current);
+        blikTimeout.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (blikWaiting) {
       Animated.loop(
         Animated.sequence([

@@ -24,18 +24,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     checkAuth();
   }, []);
 
-  const checkAuth = async () => {
+ const checkAuth = async () => {
     try {
-      // W DEV MODE zawsze wyloguj przy starcie
-      if (__DEV__) {
-        console.log("🔥 DEV MODE - Force logout on app start");
-        await storage.clearAuth();
-        setIsAuthenticated(false);
-        setIsLoading(false);
-        return;
-      }
-
-      // W PRODUCTION sprawdź normalnie
       const token = await storage.getToken();
       const user = await storage.getUser();
       
@@ -61,7 +51,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!isAuthenticated && inAuthGroup) {
       // Nie zalogowany próbuje wejść do chronionej części
       router.replace('/login' as any);
-   } else if (isAuthenticated && !inAuthGroup && !['subscriptions-add', 'subscriptions-select-plan', 'subscriptions-manage', 'subscription-detail', 'titles', 'person', 'change-password', 'terms', 'help', 'watched-list', 'billing-setup'].includes(segments[0] || '')) {
+   if (!isAuthenticated && inAuthGroup) {
+      router.replace('/login' as any);
+   } else if (isAuthenticated && !inAuthGroup && !['subscriptions-add', 'subscriptions-select-plan', 'subscriptions-manage', 'subscription-detail', 'titles', 'person', 'change-password', 'terms', 'help', 'watched-list', 'billing-setup', 'reset-password', 'forgot-password'].includes(segments[0] || ''))
   router.replace('/(tabs)' as any);
 }
   }, [isAuthenticated, segments, isLoading, navigationState?.key]);

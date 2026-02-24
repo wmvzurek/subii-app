@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 // GET /api/reports
 // Zwraca listę raportów użytkownika (bez pdfBase64 — tylko metadane)
 export async function GET(req: Request) {
-  const userId = getUserFromRequest(req);
+  const userId = await getUserFromRequest(req);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {

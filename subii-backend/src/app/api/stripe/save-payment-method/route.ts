@@ -7,10 +7,18 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 const prisma = new PrismaClient();
 
 export async function POST(req: Request) {
-  const userId = getUserFromRequest(req);
+  const userId = await getUserFromRequest(req);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { paymentMethodId } = await req.json();
+
+  // Walidacja paymentMethodId
+  if (!paymentMethodId || typeof paymentMethodId !== "string") {
+    return NextResponse.json({ error: "Brak identyfikatora metody płatności" }, { status: 400 });
+  }
+  if (!paymentMethodId.startsWith("pm_")) {
+    return NextResponse.json({ error: "Nieprawidłowy identyfikator metody płatności" }, { status: 400 });
+  }
 
   // Odłącz starą kartę jeśli istnieje
   const existingUser = await prisma.user.findUnique({ where: { id: userId } });

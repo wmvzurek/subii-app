@@ -4,7 +4,13 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 // UWAGA: W produkcji zabezpiecz to hasłem/tokenem admina!
-export async function POST() {
+export async function POST(req: Request) {
+  // Sprawdzenie klucza admina
+  const adminKey = req.headers.get("x-admin-key");
+  if (!adminKey || adminKey !== process.env.ADMIN_SECRET_KEY) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   try {
     // Aktualne ceny (luty 2025) - zaktualizuj ręcznie gdy się zmienią
     const updatedPlans = [

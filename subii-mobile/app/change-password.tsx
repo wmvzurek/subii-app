@@ -62,6 +62,7 @@ export default function ChangePassword() {
   const insets = useSafeAreaInsets();
 
   const [newPassword, setNewPassword] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showNew, setShowNew] = useState(false);
@@ -90,7 +91,11 @@ export default function ChangePassword() {
     }
     setLoading(true);
     try {
-      await api.post("/api/auth/change-password", { newPassword });
+      if (!currentPassword.trim()) {
+  Alert.alert("Błąd", "Podaj obecne hasło");
+  return;
+}
+await api.post("/api/auth/change-password", { currentPassword, newPassword });
       Alert.alert("Gotowe! 🎉", "Hasło zostało zmienione.", [
         { text: "OK", onPress: () => router.back() }
       ]);
@@ -135,6 +140,21 @@ export default function ChangePassword() {
             <View style={{ backgroundColor: "#fff", borderRadius: 14, padding: 20, gap: 12 }}>
               <Text style={{ fontSize: 14, fontWeight: "700", color: "#000" }}>Nowe hasło</Text>
               <View style={{ flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: "#e0e0e0", borderRadius: 10, backgroundColor: "#f9f9f9" }}>
+                <TextInput
+  placeholder="Obecne hasło"
+  secureTextEntry
+  value={currentPassword}
+  onChangeText={setCurrentPassword}
+  style={{
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 16,
+    marginBottom: 12,
+    backgroundColor: "#fff",
+  }}
+/>
                 <TextInput
                   value={newPassword}
                   onChangeText={setNewPassword}

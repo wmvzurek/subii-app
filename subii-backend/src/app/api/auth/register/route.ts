@@ -18,7 +18,20 @@ export async function POST(req: Request) {
       hasDateOfBirth: !!body.dateOfBirth
     });
     
-    const { email, password, firstName, lastName, phone, dateOfBirth } = body;
+    const { 
+      email: rawEmail, 
+      password, 
+      firstName: rawFirstName, 
+      lastName: rawLastName, 
+      phone: rawPhone, 
+      dateOfBirth 
+    } = body;
+
+    // Normalizacja danych wejściowych
+    const email = rawEmail?.trim().toLowerCase();
+    const firstName = rawFirstName?.trim();
+    const lastName = rawLastName?.trim();
+    const phone = rawPhone?.trim();
 
     if (!email || !password || !firstName || !lastName || !phone || !dateOfBirth) {
       console.log("❌ [REGISTER] Brak wymaganych pól");
@@ -38,13 +51,27 @@ export async function POST(req: Request) {
       );
     }
 
+    // Walidacja długości pól — dodaj to tutaj
+    if (email.length > 255) {
+      return NextResponse.json({ error: "Email jest zbyt długi (max 255 znaków)" }, { status: 400 });
+    }
+    if (firstName.length < 2 || firstName.length > 50) {
+      return NextResponse.json({ error: "Imię musi mieć od 2 do 50 znaków" }, { status: 400 });
+    }
+    if (lastName.length < 2 || lastName.length > 50) {
+      return NextResponse.json({ error: "Nazwisko musi mieć od 2 do 50 znaków" }, { status: 400 });
+    }
+
      // Walidacja telefonu
-    const phoneRegex = /^[0-9]{9}$/;
-    if (!phoneRegex.test(phone.replace(/\s/g, ''))) {
-      return NextResponse.json(
-        { error: "Numer telefonu musi mieć 9 cyfr" },
-        { status: 400 }
-      );
+    const cleanedPhone = phone.replace(/[\s\-\+]/g, "");
+    if (!/^[0-9]{9}$/.test(cleanedPhone)) {
+      return NextResponse.json({ error: "Numer telefonu musi mieć 9 cyfr" }, { status: 400 });
+    }
+    if (!/^[4-9]/.test(cleanedPhone)) {
+      return NextResponse.json({ error: "Podaj prawidłowy polski numer telefonu" }, { status: 400 });
+    }
+    if (/^(.)\1{8}$/.test(cleanedPhone)) {
+      return NextResponse.json({ error: "Podaj prawidłowy numer telefonu" }, { status: 400 });
     }
 
     // Walidacja hasła
@@ -121,7 +148,7 @@ export async function POST(req: Request) {
         firstName,
         lastName,
         dateOfBirth: new Date(dateOfBirth),
-        phone,
+         phone: cleanedPhone,
         emailVerified: false,
       },
     });

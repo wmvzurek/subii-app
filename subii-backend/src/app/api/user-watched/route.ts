@@ -6,7 +6,7 @@ import axios from "axios";
 const prisma = new PrismaClient();
 
 export async function GET(req: NextRequest) {
-  const userId = getUserFromRequest(req);
+  const userId = await getUserFromRequest(req);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   // Pobierz wszystkie tytuły użytkownika (obejrzane LUB ulubione)

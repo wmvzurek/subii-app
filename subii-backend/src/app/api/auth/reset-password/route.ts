@@ -1,34 +1,24 @@
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
-import { getUserFromRequest, hashPassword, verifyPassword } from "@/lib/auth";
-
+import { verifyToken, hashPassword } from "@/lib/auth";
 
 const prisma = new PrismaClient();
 
 export async function POST(req: Request) {
   try {
-    const userId = await getUserFromRequest(req);
-    if (!userId) {
-      return NextResponse.json({ error: "Nieautoryzowany" }, { status: 401 });
+    const { token, newPassword } = await req.json();
+
+    if (!token || !newPassword) {
+      return NextResponse.json({ error: "Brak tokenu lub nowego hasła" }, { status: 400 });
     }
 
-    const { currentPassword, newPassword } = await req.json();
-
-    if (!currentPassword || !newPassword) {
-      return NextResponse.json({ error: "Podaj obecne i nowe hasło" }, { status: 400 });
+    // Weryfikuj token
+    const payload = verifyToken(token);
+    if (!payload || payload.type !== "password_reset") {
+      return NextResponse.json({ error: "Link jest nieprawidłowy lub wygasł" }, { status: 400 });
     }
 
-    // Pobierz usera żeby sprawdzić stare hasło
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user) {
-      return NextResponse.json({ error: "Użytkownik nie istnieje" }, { status: 404 });
-    }
-
-    const isCurrentPasswordValid = await verifyPassword(currentPassword, user.passwordHash);
-    if (!isCurrentPasswordValid) {
-      return NextResponse.json({ error: "Obecne hasło jest nieprawidłowe" }, { status: 400 });
-    }
-
+    // Walidacja hasła
     if (newPassword.length < 8) {
       return NextResponse.json({ error: "Hasło musi mieć min. 8 znaków" }, { status: 400 });
     }
@@ -45,19 +35,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Hasło musi zawierać znak specjalny" }, { status: 400 });
     }
 
-    const hashed = await hashPassword(newPassword);
+    const user = await prisma.user.findUnique({ where: { id: payload.userId } });
+    if (!user) {
+      return NextResponse.json({ error: "Użytkownik nie istnieje" }, { status: 404 });
+    }
 
+    const passwordHash = await hashPassword(newPassword);
     await prisma.user.update({
-      where: { id: userId },
+      where: { id: payload.userId },
       data: { 
-        passwordHash: hashed,
+        passwordHash,
         tokenVersion: { increment: 1 }, // unieważnij wszystkie stare tokeny
       },
     });
 
-    return NextResponse.json({ message: "Hasło zostało zmienione" });
+    return NextResponse.json({ message: "Hasło zostało zmienione. Możesz się teraz zalogować." });
   } catch (error) {
-    console.error("[change-password]", error);
+    console.error("[reset-password]", error);
     return NextResponse.json({ error: "Błąd serwera" }, { status: 500 });
   }
 }

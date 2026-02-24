@@ -8,7 +8,7 @@ const prisma = new PrismaClient();
 // Body: { tmdbSeriesId, seasonNumber, episodeNumber, durationMinutes, watched }
 // watched: true = zaznacz, false = odznacz
 export async function POST(req: NextRequest) {
-  const userId = getUserFromRequest(req);
+  const userId = await getUserFromRequest(req);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
@@ -16,6 +16,24 @@ export async function POST(req: NextRequest) {
 
   if (!tmdbSeriesId || seasonNumber === undefined || episodeNumber === undefined) {
     return NextResponse.json({ error: "Brakuje wymaganych pól" }, { status: 400 });
+  }
+
+  if (isNaN(Number(tmdbSeriesId)) || Number(tmdbSeriesId) <= 0) {
+    return NextResponse.json({ error: "Nieprawidłowe tmdbSeriesId" }, { status: 400 });
+  }
+
+  if (isNaN(Number(seasonNumber)) || Number(seasonNumber) < 0) {
+    return NextResponse.json({ error: "Nieprawidłowy numer sezonu" }, { status: 400 });
+  }
+
+  if (isNaN(Number(episodeNumber)) || Number(episodeNumber) < 1) {
+    return NextResponse.json({ error: "Nieprawidłowy numer odcinka" }, { status: 400 });
+  }
+
+  if (durationMinutes !== undefined && durationMinutes !== null) {
+    if (isNaN(Number(durationMinutes)) || Number(durationMinutes) < 0 || Number(durationMinutes) > 600) {
+      return NextResponse.json({ error: "Nieprawidłowy czas trwania odcinka (0-600 minut)" }, { status: 400 });
+    }
   }
 
   if (watched) {

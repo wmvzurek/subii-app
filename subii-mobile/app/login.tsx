@@ -186,6 +186,16 @@ Alert.alert("Błąd", msg);
                 </Text>
               )}
             </Pressable>
+
+            <Pressable
+  onPress={() => router.push("/forgot-password" as any)}
+  style={{ alignItems: "center", marginTop: 16 }}
+>
+  <Text style={{ fontSize: 14, color: "#666" }}>
+    Nie pamiętasz hasła?{" "}
+    <Text style={{ color: "#000", fontWeight: "700" }}>Resetuj</Text>
+  </Text>
+</Pressable>
           </View>
 
           <View style={{ marginTop: 24, alignItems: "center" }}>

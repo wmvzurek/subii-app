@@ -1,20 +1,11 @@
 import { Stack } from "expo-router";
 import { StripeProvider } from "@stripe/stripe-react-native";
 import { AuthProvider } from "../src/contexts/AuthContext";
-import { useEffect } from "react";
-import { storage } from "../src/lib/storage";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 
 export default function RootLayout() {
-  useEffect(() => {
-    if (__DEV__) {
-      console.log("🔥 DEV MODE - Clearing auth storage");
-      storage.clearAuth().then(() => {
-        console.log("✅ Auth cleared - will show login screen");
-      });
-    }
-  }, []);
+  
 
   return (
   <StripeProvider
@@ -112,6 +103,22 @@ export default function RootLayout() {
 />
 <Stack.Screen
   name="help"
+  options={{
+    headerShown: false,
+    presentation: "card",
+    animation: "slide_from_right",
+  }}
+/>
+<Stack.Screen
+  name="forgot-password"
+  options={{
+    headerShown: false,
+    presentation: "card",
+    animation: "slide_from_right",
+  }}
+/>
+<Stack.Screen
+  name="reset-password"
   options={{
     headerShown: false,
     presentation: "card",

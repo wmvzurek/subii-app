@@ -1,21 +1,25 @@
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
-import { getUserFromRequest, generateToken } from "@/lib/auth";
+import { getUserFromRequest, generateToken, verifyPassword } from "@/lib/auth";
 import { sendVerificationEmail } from "@/lib/email";
 
 const prisma = new PrismaClient();
 
 export async function POST(req: Request) {
   try {
-    const userId = getUserFromRequest(req);
+    const userId = await getUserFromRequest(req);
     if (!userId) {
       return NextResponse.json({ error: "Nieautoryzowany" }, { status: 401 });
     }
 
-    const { newEmail } = await req.json();
+    const { newEmail, currentPassword } = await req.json();
 
     if (!newEmail) {
       return NextResponse.json({ error: "Podaj nowy adres e-mail" }, { status: 400 });
+    }
+
+    if (!currentPassword) {
+      return NextResponse.json({ error: "Podaj obecne hasło aby zmienić email" }, { status: 400 });
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -23,7 +27,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Nieprawidłowy format adresu e-mail" }, { status: 400 });
     }
 
-    const existing = await prisma.user.findUnique({ where: { email: newEmail } });
+    // Sprawdź obecne hasło
+    const currentUser = await prisma.user.findUnique({ where: { id: userId } });
+    if (!currentUser) {
+      return NextResponse.json({ error: "Użytkownik nie istnieje" }, { status: 404 });
+    }
+
+    const isPasswordValid = await verifyPassword(currentPassword, currentUser.passwordHash);
+    if (!isPasswordValid) {
+      return NextResponse.json({ error: "Nieprawidłowe hasło" }, { status: 400 });
+    }
+
+    // Normalizacja emaila
+    const normalizedEmail = newEmail.toLowerCase().trim();
+
+    const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (existing) {
       return NextResponse.json({ error: "Ten adres e-mail jest już zajęty" }, { status: 400 });
     }
@@ -31,14 +49,14 @@ export async function POST(req: Request) {
     await prisma.user.update({
       where: { id: userId },
       data: {
-        email: newEmail,
+        email: normalizedEmail,
         emailVerified: false,
       },
     });
 
-    const token = generateToken({ userId, email: newEmail, type: "verification" });
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    await sendVerificationEmail(newEmail, user?.firstName || "", token);
+    const token = generateToken({ userId, email: normalizedEmail, type: "verification" });
+    const userForEmail = await prisma.user.findUnique({ where: { id: userId } });
+    await sendVerificationEmail(normalizedEmail, userForEmail?.firstName || "", token);
 
     return NextResponse.json({ message: "Email zaktualizowany, sprawdź skrzynkę" });
   } catch (error) {

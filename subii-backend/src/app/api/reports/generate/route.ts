@@ -9,7 +9,7 @@ const prisma = new PrismaClient();
 // POST /api/reports/generate
 // Body: { sendEmail?: boolean }
 export async function POST(req: Request) {
-  const userId = getUserFromRequest(req);
+  const userId = await getUserFromRequest(req);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json().catch(() => ({}));

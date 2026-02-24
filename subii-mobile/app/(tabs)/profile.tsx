@@ -56,6 +56,7 @@ export default function Profile() {
   const [showChangeEmail, setShowChangeEmail] = useState(false);
   const [showChangePhone, setShowChangePhone] = useState(false);
   const [newEmail, setNewEmail] = useState("");
+  const [emailPassword, setEmailPassword] = useState("");
   const [newPhone, setNewPhone] = useState("");
   const [savingEmail, setSavingEmail] = useState(false);
   const [savingPhone, setSavingPhone] = useState(false);
@@ -66,6 +67,10 @@ export default function Profile() {
   const [savingCard, setSavingCard] = useState(false);
   const [savedCard, setSavedCard] = useState<{ brand: string; last4: string; expMonth: number; expYear: number } | null>(null);
   const { confirmSetupIntent } = useStripe();
+
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+const [deletePassword, setDeletePassword] = useState("");
+const [deletingAccount, setDeletingAccount] = useState(false);
 
   useEffect(() => {
     loadUser();
@@ -126,6 +131,23 @@ export default function Profile() {
     );
   };
 
+  const handleDeleteAccount = async () => {
+  if (!deletePassword.trim()) {
+    Alert.alert("Błąd", "Podaj hasło aby potwierdzić usunięcie konta");
+    return;
+  }
+  setDeletingAccount(true);
+  try {
+    await api.post("/api/auth/delete-account", { password: deletePassword });
+    setShowDeleteAccount(false);
+    await logout();
+  } catch (e: any) {
+    Alert.alert("Błąd", e.response?.data?.error || "Nie udało się usunąć konta");
+  } finally {
+    setDeletingAccount(false);
+  }
+};
+
   const handlePickImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
@@ -147,9 +169,25 @@ export default function Profile() {
     if (!newEmail.trim()) return;
     setSavingEmail(true);
     try {
-      await api.post("/api/auth/change-email", { newEmail: newEmail.trim() });
+      if (!emailPassword.trim()) {
+  Alert.alert("Błąd", "Podaj swoje hasło aby zmienić email");
+  return;
+}
+
+// Walidacja formatu emaila po stronie klienta
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+if (!emailRegex.test(newEmail.trim())) {
+  Alert.alert("Błąd", "Podaj prawidłowy adres email");
+  return;
+}
+
+await api.post("/api/auth/change-email", { 
+  newEmail: newEmail.trim().toLowerCase(), 
+  currentPassword: emailPassword 
+});
       Alert.alert("Gotowe!", "Wysłaliśmy link weryfikacyjny na nowy adres e-mail.");
       setShowChangeEmail(false);
+      setEmailPassword("");
       setNewEmail("");
     } catch (e: any) {
       Alert.alert("Błąd", e.response?.data?.error || "Nie udało się zmienić emaila");
@@ -349,7 +387,23 @@ export default function Profile() {
                 </Pressable>
               </View>
               {showChangeEmail && (
+                
                 <View style={{ gap: 10, marginTop: 8 }}>
+                  <TextInput
+  placeholder="Twoje obecne hasło"
+  secureTextEntry
+  value={emailPassword}
+  onChangeText={setEmailPassword}
+  style={{
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 15,
+    marginBottom: 12,
+    backgroundColor: "#fff",
+  }}
+/>
                   <TextInput
   value={newEmail}
   onChangeText={setNewEmail}
@@ -529,6 +583,19 @@ export default function Profile() {
               <Text style={{ color: "#dc2626", fontWeight: "800", fontSize: 15 }}>Wyloguj się</Text>
             </Pressable>
 
+            <Pressable
+  onPress={() => setShowDeleteAccount(true)}
+  style={{
+    padding: 16,
+    alignItems: "center",
+    marginTop: 8,
+  }}
+>
+  <Text style={{ fontSize: 14, color: "#dc2626", fontWeight: "600" }}>
+    Usuń konto
+  </Text>
+</Pressable>
+
             {/* Regulamin */}
             <Pressable
               onPress={() => { setShowSettingsModal(false); setTimeout(() => router.push("/terms" as any), 300); }}
@@ -674,4 +741,81 @@ export default function Profile() {
       </ScrollView>
     </View>
   );
+  {/* MODAL: Usunięcie konta */}
+<Modal
+  visible={showDeleteAccount}
+  transparent
+  animationType="slide"
+  onRequestClose={() => setShowDeleteAccount(false)}
+>
+  <KeyboardAvoidingView
+    style={{ flex: 1 }}
+    behavior={Platform.OS === "ios" ? "padding" : "height"}
+  >
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
+        <View style={{ backgroundColor: "#fff", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 }}>
+          
+          <Text style={{ fontSize: 20, fontWeight: "800", color: "#dc2626", marginBottom: 8 }}>
+            Usuń konto
+          </Text>
+
+          <Text style={{ fontSize: 14, color: "#666", lineHeight: 22, marginBottom: 20 }}>
+            Ta operacja jest nieodwracalna. Wszystkie Twoje dane zostaną trwale usunięte — subskrypcje, historia oglądania, oceny i dane płatności.
+          </Text>
+
+          <View style={{ backgroundColor: "#fff5f5", borderRadius: 12, padding: 14, marginBottom: 20, borderWidth: 1, borderColor: "#fca5a5" }}>
+            <Text style={{ fontSize: 13, color: "#dc2626", lineHeight: 20 }}>
+              ⚠️ Potwierdź hasłem że chcesz usunąć swoje konto w Subii.
+            </Text>
+          </View>
+
+          <Text style={{ fontSize: 13, color: "#999", fontWeight: "600", marginBottom: 8 }}>
+            TWOJE HASŁO
+          </Text>
+          <TextInput
+            value={deletePassword}
+            onChangeText={setDeletePassword}
+            placeholder="Wpisz hasło"
+            secureTextEntry
+            style={{
+              borderWidth: 1.5,
+              borderColor: "#e0e0e0",
+              borderRadius: 12,
+              padding: 14,
+              fontSize: 16,
+              marginBottom: 20,
+              backgroundColor: "#fafafa",
+            }}
+          />
+
+          <Pressable
+            onPress={handleDeleteAccount}
+            disabled={deletingAccount}
+            style={{
+              padding: 16,
+              backgroundColor: deletingAccount ? "#ccc" : "#dc2626",
+              borderRadius: 14,
+              alignItems: "center",
+              marginBottom: 12,
+            }}
+          >
+            {deletingAccount
+              ? <ActivityIndicator color="#fff" />
+              : <Text style={{ color: "#fff", fontWeight: "800", fontSize: 16 }}>Usuń konto na zawsze</Text>
+            }
+          </Pressable>
+
+          <Pressable
+            onPress={() => { setShowDeleteAccount(false); setDeletePassword(""); }}
+            style={{ padding: 14, backgroundColor: "#f0f0f0", borderRadius: 12, alignItems: "center" }}
+          >
+            <Text style={{ fontWeight: "700", color: "#333" }}>Anuluj</Text>
+          </Pressable>
+
+        </View>
+      </View>
+    </TouchableWithoutFeedback>
+  </KeyboardAvoidingView>
+</Modal>
 }

@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 // GET /api/user-title?tmdbId=123
 // Zwraca stan watched, favorite i listę obejrzanych odcinków
 export async function GET(req: NextRequest) {
-  const userId = getUserFromRequest(req);
+  const userId = await getUserFromRequest(req);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
@@ -37,13 +37,27 @@ export async function GET(req: NextRequest) {
 // PATCH /api/user-title
 // Body: { tmdbId, mediaType, titlePL, titleOriginal, year, posterUrl, genres, watched?, favorite? }
 export async function PATCH(req: NextRequest) {
-  const userId = getUserFromRequest(req);
+  const userId = await getUserFromRequest(req);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
   const { tmdbId, mediaType, titlePL, titleOriginal, year, posterUrl, genres, watched, favorite } = body;
 
   if (!tmdbId) return NextResponse.json({ error: "tmdbId required" }, { status: 400 });
+
+  // Walidacja tmdbId
+  const parsedTmdbId = Number(tmdbId);
+  if (isNaN(parsedTmdbId) || parsedTmdbId <= 0) {
+    return NextResponse.json({ error: "Nieprawidłowe tmdbId" }, { status: 400 });
+  }
+
+  // Walidacja ratingu
+  if (body.rating !== undefined && body.rating !== null) {
+    const rating = Number(body.rating);
+    if (isNaN(rating) || rating < 1 || rating > 10) {
+      return NextResponse.json({ error: "Ocena musi być liczbą między 1 a 10" }, { status: 400 });
+    }
+  }
 
   // Upewnij się że tytuł istnieje w bazie (upsert)
   // PO:
@@ -63,9 +77,10 @@ const title = await prisma.title.upsert({
   },
 });
 
-  const data: Record<string, boolean | Date> = { updatedAt: new Date() };
+  const data: Record<string, boolean | number | Date> = { updatedAt: new Date() };
   if (watched !== undefined) data.watched = watched;
   if (favorite !== undefined) data.favorite = favorite;
+  if (body.rating !== undefined && body.rating !== null) data.rating = Number(body.rating);
 
   const userTitle = await prisma.userTitle.upsert({
     where: { userId_titleId: { userId, titleId: title.id } },

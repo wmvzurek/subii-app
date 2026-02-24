@@ -5,7 +5,7 @@ import { getUserFromRequest } from "@/lib/auth";
 const prisma = new PrismaClient();
 
 export async function POST(req: Request) {
-  const userId = getUserFromRequest(req);
+  const userId = await getUserFromRequest(req);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { billingDay } = await req.json();
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
 }
 
 export async function GET(req: Request) {
-  const userId = getUserFromRequest(req);
+  const userId = await getUserFromRequest(req);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const user = await prisma.user.findUnique({

@@ -6,7 +6,7 @@ import { sendVerificationEmail } from "@/lib/email";
 const prisma = new PrismaClient();
 
 export async function POST(req: Request) {
-  const userId = getUserFromRequest(req);
+  const userId = await getUserFromRequest(req);
 
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

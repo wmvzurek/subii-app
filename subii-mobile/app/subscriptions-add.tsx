@@ -67,7 +67,8 @@ const [newCardDetails, setNewCardDetails] = useState<any>(null);
       }
 
       await loadProviders();
-    } catch {
+    } catch (e: any) {
+      console.error("[initScreen] błąd:", e);
       await loadProviders();
     }
   };
