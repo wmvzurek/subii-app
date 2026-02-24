@@ -33,9 +33,16 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [
+   "plugins": [
       "expo-router",
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.subii.app",
+          "enableGooglePay": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

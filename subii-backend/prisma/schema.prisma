@@ -31,6 +31,13 @@ model User {
   paymentReports PaymentReport[]
   userEpisodes  UserEpisode[]
 
+  stripeCustomerId      String?
+  stripePaymentMethodId String?
+  cardBrand             String?
+  cardLast4             String?
+  cardExpMonth          Int?
+  cardExpYear           Int?
+
   @@map("users")
 }
 

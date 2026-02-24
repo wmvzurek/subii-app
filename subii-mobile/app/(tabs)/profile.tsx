@@ -9,7 +9,10 @@ import { useAuth } from "../../src/contexts/AuthContext";
 import { api } from "../../src/lib/api";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useStripe, CardField, CardFieldInput } from "@stripe/stripe-react-native";
 import * as ImagePicker from "expo-image-picker";
+
+
 
 export default function Profile() {
   const router = useRouter();
@@ -56,6 +59,13 @@ export default function Profile() {
   const [savingEmail, setSavingEmail] = useState(false);
   const [savingPhone, setSavingPhone] = useState(false);
 
+  // Karta płatnicza
+  const [showCardForm, setShowCardForm] = useState(false);
+  const [cardDetails, setCardDetails] = useState<any>(null);
+  const [savingCard, setSavingCard] = useState(false);
+  const [savedCard, setSavedCard] = useState<{ brand: string; last4: string; expMonth: number; expYear: number } | null>(null);
+  const { confirmSetupIntent } = useStripe();
+
   useEffect(() => {
     loadUser();
   }, []);
@@ -75,6 +85,11 @@ export default function Profile() {
       await refreshUser();
       const freshUser = await storage.getUser();
       setUser(freshUser);
+      // Załaduj dane karty
+      try {
+        const cardRes = await api.get("/api/stripe/card");
+        if (cardRes.data.card) setSavedCard(cardRes.data.card);
+      } catch {}
       try {
         const stats = await api.get("/api/user-stats");
         setWatchStats(stats.data);
@@ -157,6 +172,45 @@ export default function Profile() {
       Alert.alert("Błąd", e.response?.data?.error || "Nie udało się zmienić numeru");
     } finally {
       setSavingPhone(false);
+    }
+  };
+
+  const handleSaveCard = async () => {
+    if (!cardDetails?.complete) {
+      Alert.alert("Błąd", "Uzupełnij wszystkie dane karty");
+      return;
+    }
+    setSavingCard(true);
+    try {
+      // Pobierz SetupIntent z backendu
+      const res = await api.post("/api/stripe/setup-intent");
+      const { clientSecret } = res.data;
+
+      // Potwierdź kartę przez Stripe SDK
+      const { setupIntent, error } = await confirmSetupIntent(clientSecret, {
+        paymentMethodType: "Card",
+      });
+
+      if (error) {
+        Alert.alert("Błąd", error.message);
+        return;
+      }
+
+      // Zapisz paymentMethodId na backendzie
+      await api.post("/api/stripe/save-payment-method", {
+        paymentMethodId: setupIntent!.paymentMethodId,
+      });
+
+      // Odśwież dane karty
+      const cardRes = await api.get("/api/stripe/card");
+      if (cardRes.data.card) setSavedCard(cardRes.data.card);
+
+      setShowCardForm(false);
+      Alert.alert("Gotowe!", "Karta została zapisana pomyślnie.");
+    } catch (e: any) {
+      Alert.alert("Błąd", e.response?.data?.error || "Nie udało się zapisać karty");
+    } finally {
+      setSavingCard(false);
     }
   };
 
@@ -337,6 +391,113 @@ export default function Profile() {
                   />
                   <Pressable onPress={handleChangePhone} disabled={savingPhone} style={{ backgroundColor: "#000", padding: 12, borderRadius: 10, alignItems: "center", opacity: savingPhone ? 0.6 : 1 }}>
                     {savingPhone ? <ActivityIndicator color="#fff" size="small" /> : <Text style={{ color: "#fff", fontWeight: "700" }}>Zapisz</Text>}
+                  </Pressable>
+                </View>
+              )}
+            </View>
+
+            {/* Karta płatnicza */}
+            <View style={{ backgroundColor: "#fff", borderRadius: 14, padding: 20, gap: 10 }}>
+              <Text style={{ fontSize: 12, color: "#999", fontWeight: "600", marginBottom: 4 }}>METODA PŁATNOŚCI</Text>
+
+              {savedCard ? (
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                    <View style={{ backgroundColor: "#f0f0f0", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 }}>
+                      <Text style={{ fontSize: 13, fontWeight: "700", color: "#000", textTransform: "uppercase" }}>
+                        {savedCard.brand}
+                      </Text>
+                    </View>
+                    <View>
+                      <Text style={{ fontSize: 15, fontWeight: "700", color: "#000" }}>
+                        •••• •••• •••• {savedCard.last4}
+                      </Text>
+                      <Text style={{ fontSize: 12, color: "#999", marginTop: 2 }}>
+                        Wygasa {savedCard.expMonth.toString().padStart(2, "0")}/{savedCard.expYear}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={{ flexDirection: "row", gap: 4 }}>
+                    <Pressable onPress={() => setShowCardForm(!showCardForm)} style={{ padding: 8 }}>
+                      <Ionicons name="pencil" size={18} color="#000" />
+                    </Pressable>
+                    <Pressable
+                      onPress={async () => {
+                        try {
+                          await api.post("/api/stripe/card/delete");
+                          setSavedCard(null);
+                          Alert.alert("Gotowe", "Karta została usunięta.");
+                        } catch (e: any) {
+                          const errorCode = e.response?.data?.error;
+                          const message = e.response?.data?.message;
+
+                          if (errorCode === "HAS_ACTIVE_SUBSCRIPTIONS") {
+                            Alert.alert(
+                              "Nie można usunąć karty",
+                              message,
+                              [
+                                { text: "Anuluj", style: "cancel" },
+                                {
+                                  text: "Zmień kartę",
+                                  onPress: () => setShowCardForm(true),
+                                },
+                              ]
+                            );
+                          } else {
+                            Alert.alert("Błąd", "Nie udało się usunąć karty.");
+                          }
+                        }
+                      }}
+                      style={{ padding: 8 }}
+                    >
+                      <Ionicons name="trash-outline" size={18} color="#dc2626" />
+                    </Pressable>
+                  </View>
+                </View>
+              ) : (
+                <Pressable
+                  onPress={() => setShowCardForm(!showCardForm)}
+                  style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
+                >
+                  <Ionicons name="card-outline" size={22} color="#000" />
+                  <Text style={{ fontSize: 15, fontWeight: "700", color: "#000" }}>Dodaj kartę płatniczą</Text>
+                </Pressable>
+              )}
+
+              {showCardForm && (
+                <View style={{ gap: 12, marginTop: 8 }}>
+                  <CardField
+                    postalCodeEnabled={false}
+                    placeholders={{ number: "1234 5678 9012 3456" }}
+                    cardStyle={{
+                      backgroundColor: "#f9f9f9",
+                      textColor: "#000",
+                      borderColor: "#e0e0e0",
+                      borderWidth: 1,
+                      borderRadius: 10,
+                      fontSize: 15,
+                    }}
+                    style={{ width: "100%", height: 52 }}
+                    onCardChange={(details) => setCardDetails(details)}
+                  />
+                  <Text style={{ fontSize: 11, color: "#999", textAlign: "center" }}>
+                    🔒 Dane karty są szyfrowane przez Stripe. Subii nie przechowuje numerów kart.
+                  </Text>
+                  <Pressable
+                    onPress={handleSaveCard}
+                    disabled={savingCard || !cardDetails?.complete}
+                    style={{
+                      backgroundColor: cardDetails?.complete ? "#000" : "#ccc",
+                      padding: 14,
+                      borderRadius: 10,
+                      alignItems: "center",
+                      opacity: savingCard ? 0.6 : 1,
+                    }}
+                  >
+                    {savingCard
+                      ? <ActivityIndicator color="#fff" size="small" />
+                      : <Text style={{ color: "#fff", fontWeight: "700" }}>Zapisz kartę</Text>
+                    }
                   </Pressable>
                 </View>
               )}

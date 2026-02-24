@@ -1,8 +1,10 @@
 import { Stack } from "expo-router";
+import { StripeProvider } from "@stripe/stripe-react-native";
 import { AuthProvider } from "../src/contexts/AuthContext";
 import { useEffect } from "react";
 import { storage } from "../src/lib/storage";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+
 
 export default function RootLayout() {
   useEffect(() => {
@@ -15,6 +17,11 @@ export default function RootLayout() {
   }, []);
 
   return (
+  <StripeProvider
+  publishableKey={process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY!}
+  merchantIdentifier="merchant.com.subii.app"
+  urlScheme="subii"
+>
     <SafeAreaProvider>
       <AuthProvider>
         <Stack screenOptions={{ headerShown: false }}>
@@ -114,5 +121,6 @@ export default function RootLayout() {
         </Stack>
       </AuthProvider>
     </SafeAreaProvider>
+    </StripeProvider>
   );
 }

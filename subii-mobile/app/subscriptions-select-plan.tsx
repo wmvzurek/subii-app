@@ -11,6 +11,7 @@ import { getProviderLogo, formatPlanName, getProviderDescription } from "../src/
 import { MaterialIcons } from "@expo/vector-icons";
 import { storage } from "../src/lib/storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import PaymentModal from "../src/components/PaymentModal";
 
 export default function SubscriptionsSelectPlan() {
   const router = useRouter();
@@ -34,6 +35,8 @@ const prettyProvider = (code?: string) =>
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showReactivateConfirm, setShowReactivateConfirm] = useState(false);
   const [activeTab, setActiveTab] = useState<"monthly" | "yearly">("monthly");
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
@@ -211,21 +214,26 @@ const getRenewalDateStr = (renewalDate?: string): string => {
     setShowChangePlan(true);
   };
 
-  const handleAddNow = async () => {
+  const handleAddNow = () => {
     if (!selectedPlan) return;
     setShowAddOptions(false);
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentSuccess = async () => {
+    setShowPaymentModal(false);
     try {
       await subscriptionsApi.create({
-        planId: selectedPlan.id,
+        planId: selectedPlan!.id,
         paymentOption: "now",
       });
       Alert.alert(
-        "Subskrypcja aktywowana",
-        `Od teraz korzystasz z ${providerName}.`
+        "✅ Płatność potwierdzona",
+        `Subskrypcja ${providerName} została aktywowana.`
       );
       router.back();
     } catch (e: any) {
-      Alert.alert("Coś poszło nie tak", e.response?.data?.error || "Nie udało się dodać subskrypcji.");
+      Alert.alert("Coś poszło nie tak", e.response?.data?.error || "Nie udało się aktywować subskrypcji.");
     }
   };
 
@@ -602,10 +610,7 @@ const isPendingPlan = currentUserPlan?.pendingPlanId === planId;
               {/* Opcja A – zapłać teraz */}
               <Pressable
                 onPress={handleAddNow}
-                style={{
-                  padding: 18, backgroundColor: "#000",
-                  borderRadius: 14, marginBottom: 12
-                }}
+                style={{ padding: 18, backgroundColor: "#000", borderRadius: 14, marginBottom: 12 }}
               >
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
                   <MaterialIcons name="bolt" size={18} color="#fff" />
@@ -618,6 +623,12 @@ const isPendingPlan = currentUserPlan?.pendingPlanId === planId;
                   </Text>.{" "}
                   Rozliczenie tej usługi w Subii rozpocznie się od kolejnego okresu.
                 </Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10 }}>
+                  <MaterialIcons name="lock" size={12} color="rgba(255,255,255,0.6)" />
+                  <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 11 }}>
+                    Płatność obsługiwana przez Stripe · SSL
+                  </Text>
+                </View>
               </Pressable>
 
               {/* Opcja B – zapłać później */}
@@ -961,6 +972,15 @@ const newPlanStartStr = getRenewalDateStr(currentUserPlan?.nextRenewalDate);
     </View>
   </View>
 </Modal>
+
+{/* Modal płatności */}
+        <PaymentModal
+          visible={showPaymentModal}
+          onClose={() => setShowPaymentModal(false)}
+          onSuccess={handlePaymentSuccess}
+          amountPLN={selectedPlan?.pricePLN ?? 0}
+          description={providerName}
+        />
 
 
       </View>
