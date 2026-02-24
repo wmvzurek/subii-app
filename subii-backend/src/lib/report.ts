@@ -1,4 +1,3 @@
-import { PrismaClient } from "@prisma/client";
 import puppeteer from "puppeteer";
 
 import { prisma } from "@/lib/prisma";

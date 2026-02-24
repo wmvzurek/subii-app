@@ -1,5 +1,4 @@
 import cron from "node-cron";
-import { PrismaClient } from "@prisma/client";
 import { generateAndSaveReport } from "./report";
 import { sendReportEmail } from "./email";
 

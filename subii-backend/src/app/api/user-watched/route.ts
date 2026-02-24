@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 import { getUserFromRequest } from "@/lib/auth";
 import axios from "axios";
 

@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 import { getUserFromRequest } from "@/lib/auth";
 import axios from "axios";
 
 import { prisma } from "@/lib/prisma";
 
 export async function GET(req: NextRequest) {
-  const userId = getUserFromRequest(req);
+  const userId = await getUserFromRequest(req);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   // Pobierz tytuły z oceną 3, 4 lub 5
