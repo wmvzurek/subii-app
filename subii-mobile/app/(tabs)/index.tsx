@@ -7,6 +7,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   Image,
+  Alert,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { api } from "../../src/lib/api";
@@ -195,6 +196,22 @@ export default function Home() {
           </Pressable>
         </View>
       </View>
+
+     {/* ================= BANER WERYFIKACJI ================= */}
+      {userWithBilling && !userWithBilling.emailVerified && (
+        <View
+          style={{ backgroundColor: "#fef3c7", paddingVertical: 12, paddingHorizontal: 20, flexDirection: "row", alignItems: "center", gap: 10, borderBottomWidth: 1, borderBottomColor: "#fde68a" }}
+        >
+          <Ionicons name="warning-outline" size={18} color="#d97706" />
+          <Text style={{ flex: 1, fontSize: 13, fontWeight: "600", color: "#92400e" }}>
+            Zweryfikuj adres email, aby móc dodawać subskrypcje
+          </Text>
+        </View>
+      )}
+
+      {/* ================= TREŚĆ ================= */}
+
+      {/* ================= TREŚĆ ================= */}
 
       {/* ================= TREŚĆ ================= */}
       {subscriptions.length === 0 ? (

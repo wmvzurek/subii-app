@@ -74,7 +74,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const freshUser = await authApi.me();
       await storage.setUser(freshUser);
-      console.log("✅ User refreshed in AuthContext:", freshUser);
     } catch (error) {
       console.error("❌ Error refreshing user:", error);
     }
