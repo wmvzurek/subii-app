@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback,useEffect } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import { useRouter } from "expo-router";
 import { api } from "../src/lib/api";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { storage } from "../src/lib/storage";
 
 export default function ChangePassword() {
   const scrollRef = useRef<ScrollView>(null);
@@ -58,15 +59,19 @@ export default function ChangePassword() {
       }
     });
   }, []);
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const [newPassword, setNewPassword] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+
+  const currentPasswordRef = useRef<TextInput>(null);
   const newPasswordRef = useRef<TextInput>(null);
   const confirmPasswordRef = useRef<TextInput>(null);
 
@@ -81,6 +86,10 @@ export default function ChangePassword() {
   const passwordsMatch = newPassword === confirmPassword && confirmPassword.length > 0;
 
   const handleSubmit = async () => {
+    if (!currentPassword.trim()) {
+      Alert.alert("Błąd", "Podaj obecne hasło.");
+      return;
+    }
     if (!allChecksPassed) {
       Alert.alert("Słabe hasło", "Hasło nie spełnia wymagań bezpieczeństwa.");
       return;
@@ -91,13 +100,10 @@ export default function ChangePassword() {
     }
     setLoading(true);
     try {
-      if (!currentPassword.trim()) {
-  Alert.alert("Błąd", "Podaj obecne hasło");
-  return;
-}
-await api.post("/api/auth/change-password", { currentPassword, newPassword });
-      Alert.alert("Gotowe! 🎉", "Hasło zostało zmienione.", [
-        { text: "OK", onPress: () => router.back() }
+      await api.post("/api/auth/change-password", { currentPassword, newPassword });
+      await storage.clearAuth();
+      Alert.alert("Gotowe! 🎉", "Hasło zostało zmienione. Zaloguj się ponownie.", [
+        { text: "OK", onPress: () => router.replace("/login" as any) }
       ]);
     } catch (e: any) {
       Alert.alert("Błąd", e.response?.data?.error || "Nie udało się zmienić hasła");
@@ -129,38 +135,43 @@ await api.post("/api/auth/change-password", { currentPassword, newPassword });
           </View>
 
           <ScrollView
-  ref={scrollRef}
-  contentContainerStyle={{ padding: 20, gap: 16 }}
-  keyboardShouldPersistTaps="handled"
-  onScroll={(e) => { scrollYRef.current = e.nativeEvent.contentOffset.y; }}
-  scrollEventThrottle={16}
->
+            ref={scrollRef}
+            contentContainerStyle={{ padding: 20, gap: 16 }}
+            keyboardShouldPersistTaps="handled"
+            onScroll={(e) => { scrollYRef.current = e.nativeEvent.contentOffset.y; }}
+            scrollEventThrottle={16}
+          >
+
+            {/* Obecne hasło */}
+            <View style={{ backgroundColor: "#fff", borderRadius: 14, padding: 20, gap: 12 }}>
+              <Text style={{ fontSize: 14, fontWeight: "700", color: "#000" }}>Obecne hasło</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: "#e0e0e0", borderRadius: 10, backgroundColor: "#f9f9f9" }}>
+                <TextInput
+                  value={currentPassword}
+                  onChangeText={setCurrentPassword}
+                  placeholder="Wpisz obecne hasło"
+                  ref={currentPasswordRef}
+                  onFocus={() => { setTimeout(() => scrollToInput(currentPasswordRef), 100); }}
+                  secureTextEntry={!showCurrent}
+                  autoCapitalize="none"
+                  style={{ flex: 1, padding: 14, fontSize: 15 }}
+                />
+                <Pressable onPress={() => setShowCurrent(!showCurrent)} style={{ padding: 14 }}>
+                  <Ionicons name={showCurrent ? "eye-off" : "eye"} size={20} color="#999" />
+                </Pressable>
+              </View>
+            </View>
 
             {/* Nowe hasło */}
             <View style={{ backgroundColor: "#fff", borderRadius: 14, padding: 20, gap: 12 }}>
               <Text style={{ fontSize: 14, fontWeight: "700", color: "#000" }}>Nowe hasło</Text>
               <View style={{ flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: "#e0e0e0", borderRadius: 10, backgroundColor: "#f9f9f9" }}>
                 <TextInput
-  placeholder="Obecne hasło"
-  secureTextEntry
-  value={currentPassword}
-  onChangeText={setCurrentPassword}
-  style={{
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 12,
-    padding: 14,
-    fontSize: 16,
-    marginBottom: 12,
-    backgroundColor: "#fff",
-  }}
-/>
-                <TextInput
                   value={newPassword}
                   onChangeText={setNewPassword}
                   placeholder="Wpisz nowe hasło"
                   ref={newPasswordRef}
-onFocus={() => { setTimeout(() => scrollToInput(newPasswordRef), 100); }}
+                  onFocus={() => { setTimeout(() => scrollToInput(newPasswordRef), 100); }}
                   secureTextEntry={!showNew}
                   autoCapitalize="none"
                   style={{ flex: 1, padding: 14, fontSize: 15 }}
@@ -189,7 +200,7 @@ onFocus={() => { setTimeout(() => scrollToInput(newPasswordRef), 100); }}
                   onChangeText={setConfirmPassword}
                   placeholder="Powtórz nowe hasło"
                   ref={confirmPasswordRef}
-onFocus={() => { setTimeout(() => scrollToInput(confirmPasswordRef), 100); }}
+                  onFocus={() => { setTimeout(() => scrollToInput(confirmPasswordRef), 100); }}
                   secureTextEntry={!showConfirm}
                   autoCapitalize="none"
                   style={{ flex: 1, padding: 14, fontSize: 15 }}

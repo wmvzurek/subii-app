@@ -6,17 +6,9 @@ import { sendVerificationEmail } from "@/lib/email";
 const prisma = new PrismaClient();
 
 export async function POST(req: Request) {
-  console.log("🔵 [REGISTER] Rozpoczęcie rejestracji");
   
   try {
     const body = await req.json();
-    console.log("🔵 [REGISTER] Otrzymane dane:", { 
-      email: body.email, 
-      firstName: body.firstName,
-      hasPassword: !!body.password,
-      hasPhone: !!body.phone,
-      hasDateOfBirth: !!body.dateOfBirth
-    });
     
     const { 
       email: rawEmail, 
@@ -34,7 +26,6 @@ export async function POST(req: Request) {
     const phone = rawPhone?.trim();
 
     if (!email || !password || !firstName || !lastName || !phone || !dateOfBirth) {
-      console.log("❌ [REGISTER] Brak wymaganych pól");
       return NextResponse.json(
         { error: "Wszystkie pola są wymagane" },
         { status: 400 }

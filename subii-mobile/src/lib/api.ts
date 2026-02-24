@@ -1,6 +1,7 @@
 // src/lib/api.ts
 import axios from "axios";
 import { storage } from "./storage";
+import { router } from "expo-router";
 
 export const BASE_URL = "http://192.168.1.114:3000"; // ZMIEŃ NA SWOJE IP
 
@@ -17,11 +18,19 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      await storage.clearAuth();
+      // Nie wylogowuj przy próbie logowania — to normalny błąd złego hasła
+      const isLoginRequest = error.config?.url?.includes("/api/auth/login");
+      const isRegisterRequest = error.config?.url?.includes("/api/auth/register");
+      
+      if (!isLoginRequest && !isRegisterRequest) {
+        await storage.clearAuth();
+        router.replace("/login" as any);
+      }
     }
     return Promise.reject(error);
   }

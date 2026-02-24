@@ -86,13 +86,9 @@ export default function Login() {
 
     setLoading(true);
     try {
-      console.log("📧 Próba logowania:", form.email, form.password);
 const res = await authApi.login(form.email, form.password);
-console.log("✅ Odpowiedź:", res);
       await login(res.token, res.user);
     } catch (error: any) {
-      console.log("❌ Błąd pełny:", JSON.stringify(error.response?.data));
-console.log("❌ Status:", error.response?.status);
 const msg = error.response?.data?.error || "Błąd logowania";
 Alert.alert("Błąd", msg);
     } finally {

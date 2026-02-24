@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { getUserFromRequest, hashPassword, verifyPassword } from "@/lib/auth";
 
-
 const prisma = new PrismaClient();
 
 export async function POST(req: Request) {
@@ -18,17 +17,24 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Podaj obecne i nowe hasło" }, { status: 400 });
     }
 
-    // Pobierz usera żeby sprawdzić stare hasło
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
       return NextResponse.json({ error: "Użytkownik nie istnieje" }, { status: 404 });
     }
 
-    const isCurrentPasswordValid = await verifyPassword(currentPassword, user.passwordHash);
-    if (!isCurrentPasswordValid) {
+    // Weryfikuj obecne hasło
+    const isCurrentValid = await verifyPassword(currentPassword, user.passwordHash);
+    if (!isCurrentValid) {
       return NextResponse.json({ error: "Obecne hasło jest nieprawidłowe" }, { status: 400 });
     }
 
+    // Sprawdź czy nowe hasło różni się od obecnego
+    const isSamePassword = await verifyPassword(newPassword, user.passwordHash);
+    if (isSamePassword) {
+      return NextResponse.json({ error: "Nowe hasło musi być inne niż obecne" }, { status: 400 });
+    }
+
+    // Walidacja nowego hasła
     if (newPassword.length < 8) {
       return NextResponse.json({ error: "Hasło musi mieć min. 8 znaków" }, { status: 400 });
     }
@@ -49,9 +55,9 @@ export async function POST(req: Request) {
 
     await prisma.user.update({
       where: { id: userId },
-      data: { 
+      data: {
         passwordHash: hashed,
-        tokenVersion: { increment: 1 }, // unieważnij wszystkie stare tokeny
+        tokenVersion: { increment: 1 },
       },
     });
 

@@ -47,7 +47,8 @@ export default function ResetPassword() {
       await api.post("/api/auth/reset-password", { token, newPassword });
       setDone(true);
     } catch (e: any) {
-      Alert.alert("Błąd", e.response?.data?.error || "Nie udało się zmienić hasła. Link mógł wygasnąć.");
+      const msg = e.response?.data?.error || "Nie udało się zmienić hasła. Link mógł wygasnąć.";
+      Alert.alert("Błąd", msg);
     } finally {
       setLoading(false);
     }

@@ -18,14 +18,6 @@ export async function sendVerificationEmail(
   firstName: string,
   token: string
 ) {
-  console.log("📧 [EMAIL] Próba wysłania emaila do:", email);
-  console.log("📧 [EMAIL] SMTP Config:", {
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT,
-    user: process.env.SMTP_USER,
-    hasPass: !!process.env.SMTP_PASS,
-    passLength: process.env.SMTP_PASS?.length
-  });
   
   const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/verify?token=${token}`;
 

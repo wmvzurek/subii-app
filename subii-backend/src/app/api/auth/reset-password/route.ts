@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
-import { verifyToken, hashPassword } from "@/lib/auth";
+import { verifyToken, hashPassword, verifyPassword } from "@/lib/auth";
 
 const prisma = new PrismaClient();
 
@@ -38,6 +38,15 @@ export async function POST(req: Request) {
     const user = await prisma.user.findUnique({ where: { id: payload.userId } });
     if (!user) {
       return NextResponse.json({ error: "Użytkownik nie istnieje" }, { status: 404 });
+    }
+
+    // Sprawdź czy nowe hasło nie jest takie samo jak stare
+    const isSamePassword = await verifyPassword(newPassword, user.passwordHash);
+    if (isSamePassword) {
+      return NextResponse.json(
+        { error: "Nowe hasło musi być inne niż poprzednie" },
+        { status: 400 }
+      );
     }
 
     const passwordHash = await hashPassword(newPassword);
