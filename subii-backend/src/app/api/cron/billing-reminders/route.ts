@@ -37,23 +37,19 @@ export async function GET(req: NextRequest) {
     },
   });
 
-  let sent = 0;
+  const results = await Promise.all(
+    subscriptions
+      .filter(sub => !!sub.user.pushToken)
+      .map(sub => {
+        const price = sub.priceOverridePLN ?? sub.plan.pricePLN;
+        return sendPushNotification({
+          pushToken: sub.user.pushToken!,
+          title: "Zbliża się płatność 💳",
+          body: `Jutro zostanie pobrana opłata za ${sub.provider.name} — ${price.toFixed(2)} zł`,
+          data: { subscriptionId: sub.id },
+        });
+      })
+  );
 
-  for (const sub of subscriptions) {
-    const pushToken = sub.user.pushToken;
-    if (!pushToken) continue;
-
-    const price = sub.priceOverridePLN ?? sub.plan.pricePLN;
-
-    await sendPushNotification({
-      pushToken,
-      title: "Zbliża się płatność 💳",
-      body: `Jutro zostanie pobrana opłata za ${sub.provider.name} — ${price.toFixed(2)} zł`,
-      data: { subscriptionId: sub.id },
-    });
-
-    sent++;
-  }
-
-  return NextResponse.json({ ok: true, sent });
+  return NextResponse.json({ ok: true, sent: results.length });
 }

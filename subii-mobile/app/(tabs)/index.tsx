@@ -51,12 +51,6 @@ export default function Home() {
     loadUserId();
   }, []);
 
-  /**
-   * Po ustawieniu userId pobierane są subskrypcje z API.
-   */
-  useEffect(() => {
-    if (userId) loadSubscriptions();
-  }, [userId]);
 
   /**
    * useFocusEffect wywoływany przy każdym powrocie na ekran.

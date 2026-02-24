@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View, Text, Pressable, Alert, ActivityIndicator, ScrollView,
   RefreshControl, Image, Modal, TextInput,
@@ -13,7 +13,29 @@ import { Ionicons } from "@expo/vector-icons";
 import { useStripe, CardField, CardFieldInput } from "@stripe/stripe-react-native";
 import * as ImagePicker from "expo-image-picker";
 
+// WKLEJ TO PRZED: export default function Profile()
 
+const PosterCard = React.memo(({ item, mediaType, onPress }: {
+  item: any;
+  mediaType: "movie" | "tv";
+  onPress: () => void;
+}) => (
+  <Pressable onPress={onPress} style={{ width: 110 }}>
+    {item.posterUrl ? (
+      <Image source={{ uri: item.posterUrl }} style={{ width: 110, height: 165, borderRadius: 10 }} />
+    ) : (
+      <View style={{ width: 110, height: 165, borderRadius: 10, backgroundColor: "#f0f0f0", justifyContent: "center", alignItems: "center" }}>
+        <Text style={{ fontSize: 32 }}>{mediaType === "movie" ? "🎬" : "📺"}</Text>
+      </View>
+    )}
+    <Text style={{ fontSize: 12, fontWeight: "600", color: "#000", marginTop: 6 }} numberOfLines={2}>
+      {item.titlePL}
+    </Text>
+    {mediaType === "tv" && item.totalEpisodes > 0 && item.status === "in_progress" && (
+      <Text style={{ fontSize: 11, color: "#999", marginTop: 2 }}>{item.watchedEpisodes}/{item.totalEpisodes} odc.</Text>
+    )}
+  </Pressable>
+));
 
 export default function Profile() {
   const router = useRouter();
@@ -254,29 +276,10 @@ await api.post("/api/auth/change-email", {
   };
 
   // Komponent plakatu do poziomych list
-  const PosterCard = ({ item, mediaType }: { item: any; mediaType: "movie" | "tv" }) => (
-    <Pressable
-      onPress={() => router.push({ pathname: "/titles/[tmdbId]", params: { tmdbId: String(item.tmdbId), mediaType } } as any)}
-      style={{ width: 110 }}
-    >
-      {item.posterUrl ? (
-        <Image source={{ uri: item.posterUrl }} style={{ width: 110, height: 165, borderRadius: 10 }} />
-      ) : (
-        <View style={{ width: 110, height: 165, borderRadius: 10, backgroundColor: "#f0f0f0", justifyContent: "center", alignItems: "center" }}>
-          <Text style={{ fontSize: 32 }}>{mediaType === "movie" ? "🎬" : "📺"}</Text>
-        </View>
-      )}
-      <Text style={{ fontSize: 12, fontWeight: "600", color: "#000", marginTop: 6 }} numberOfLines={2}>
-        {item.titlePL}
-      </Text>
-      {mediaType === "tv" && item.totalEpisodes > 0 && item.status === "in_progress" && (
-        <Text style={{ fontSize: 11, color: "#999", marginTop: 2 }}>{item.watchedEpisodes}/{item.totalEpisodes} odc.</Text>
-      )}
-    </Pressable>
-  );
 
   // Komponent sekcji z poziomą listą
-  const HorizontalSection = ({
+// NOWY HorizontalSection wewnątrz Profile() – zamień stary na ten:
+  const HorizontalSection = useCallback(({
     title, items, mediaType, filter, emptyText
   }: {
     title: string;
@@ -300,12 +303,19 @@ await api.post("/api/auth/change-email", {
               <Text style={{ color: "#999", fontSize: 13 }}>{emptyText}</Text>
             </View>
           ) : (
-            items.map(item => <PosterCard key={item.tmdbId} item={item} mediaType={mediaType} />)
+            items.map(item => (
+              <PosterCard
+                key={item.tmdbId}
+                item={item}
+                mediaType={mediaType}
+                onPress={() => router.push({ pathname: "/titles/[tmdbId]", params: { tmdbId: String(item.tmdbId), mediaType } } as any)}
+              />
+            ))
           )}
         </ScrollView>
       ) : <ActivityIndicator color="#000" />}
     </View>
-  );
+  ), [watchedData, router]);
 
   return (
     <View style={{ flex: 1, backgroundColor: "#f5f5f5" }}>

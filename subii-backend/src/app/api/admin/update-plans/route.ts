@@ -23,18 +23,18 @@ export async function POST(req: Request) {
       { providerCode: "apple_tv", planName: "Monthly", pricePLN: 34.99 },
     ];
 
-    for (const plan of updatedPlans) {
-      await prisma.plan.updateMany({
-        where: { 
-          providerCode: plan.providerCode, 
-          planName: plan.planName 
+    await Promise.all(updatedPlans.map(plan =>
+      prisma.plan.updateMany({
+        where: {
+          providerCode: plan.providerCode,
+          planName: plan.planName,
         },
-        data: { 
+        data: {
           pricePLN: plan.pricePLN,
-          lastVerifiedAt: new Date()
+          lastVerifiedAt: new Date(),
         },
-      });
-    }
+      })
+    ));
 
     return NextResponse.json({ 
       message: "Plany zaktualizowane", 

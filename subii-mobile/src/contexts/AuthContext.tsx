@@ -13,6 +13,13 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// WKLEJ TO przed linią: export function AuthProvider(...)
+const AUTHENTICATED_ROUTES = [
+  'subscriptions-add', 'subscriptions-select-plan', 'subscriptions-manage',
+  'subscription-detail', 'titles', 'person', 'change-password', 'terms',
+  'help', 'watched-list', 'billing-setup', 'reset-password', 'forgot-password',
+];
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -53,7 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       router.replace('/login' as any);
    if (!isAuthenticated && inAuthGroup) {
       router.replace('/login' as any);
-   } else if (isAuthenticated && !inAuthGroup && !['subscriptions-add', 'subscriptions-select-plan', 'subscriptions-manage', 'subscription-detail', 'titles', 'person', 'change-password', 'terms', 'help', 'watched-list', 'billing-setup', 'reset-password', 'forgot-password'].includes(segments[0] || ''))
+   } else if (isAuthenticated && !inAuthGroup && !AUTHENTICATED_ROUTES.includes(segments[0] || ''))
   router.replace('/(tabs)' as any);
 }
   }, [isAuthenticated, segments, isLoading, navigationState?.key]);

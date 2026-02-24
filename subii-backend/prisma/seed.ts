@@ -19,13 +19,13 @@ async function main() {
   { code: "player",         name: "Player",          website: "https://player.pl",            logoUrl: "/providers/player.png" },
 ];
 
-  for (const provider of providers) {
-    await prisma.provider.upsert({
+  await Promise.all(providers.map(provider =>
+    prisma.provider.upsert({
       where: { code: provider.code },
       update: provider,
       create: provider,
-    });
-  }
+    })
+  ));
   console.log("✅ Providers seeded");
 
   // 2) PLANS
