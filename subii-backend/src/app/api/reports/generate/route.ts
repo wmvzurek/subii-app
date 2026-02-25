@@ -16,7 +16,7 @@ export async function POST(req: Request) {
 
   try {
     const { pdfBase64, period, periodFrom, periodTo, reportId } =
-      await generateAndSaveReport(userId);
+      await generateAndSaveReport(userId, "manual");
 
     if (sendEmail) {
       const user = await prisma.user.findUnique({ where: { id: userId } });

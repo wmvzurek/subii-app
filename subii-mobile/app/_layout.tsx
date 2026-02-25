@@ -2,6 +2,7 @@ import { Stack } from "expo-router";
 import { StripeProvider } from "@stripe/stripe-react-native";
 import { AuthProvider } from "../src/contexts/AuthContext";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import "../src/lib/pushNotifications";
 
 
 export default function RootLayout() {
@@ -35,14 +36,7 @@ export default function RootLayout() {
               animation: "slide_from_right",
             }}
           />
-          <Stack.Screen
-            name="subscriptions-manage"
-            options={{
-              presentation: "modal",
-              headerShown: true,
-              title: "Zarządzaj subskrypcjami",
-            }}
-          />
+          
           <Stack.Screen
             name="billing-setup"
             options={{

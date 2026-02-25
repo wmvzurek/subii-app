@@ -15,7 +15,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // WKLEJ TO przed linią: export function AuthProvider(...)
 const AUTHENTICATED_ROUTES = [
-  'subscriptions-add', 'subscriptions-select-plan', 'subscriptions-manage',
+  'subscriptions-add', 'subscriptions-select-plan',
   'subscription-detail', 'titles', 'person', 'change-password', 'terms',
   'help', 'watched-list', 'billing-setup', 'reset-password', 'forgot-password',
 ];

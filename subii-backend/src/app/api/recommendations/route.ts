@@ -8,7 +8,6 @@ export async function GET(req: NextRequest) {
   const userId = await getUserFromRequest(req);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // Pobierz tytuły z oceną 3, 4 lub 5
   const ratedTitles = await prisma.userTitle.findMany({
     where: { userId, rating: { gte: 3 } },
     include: { title: true },
@@ -16,7 +15,6 @@ export async function GET(req: NextRequest) {
     take: 5,
   });
 
-  // Pobierz wszystkie obejrzane/ulubione tmdbId żeby nie polecać już znanych
   const seenTitles = await prisma.userTitle.findMany({
     where: { userId },
     select: { title: { select: { tmdbId: true } } },
@@ -62,12 +60,14 @@ export async function GET(req: NextRequest) {
             rating: item.vote_average,
           });
         }
-      } catch {
-        // pomiń jeśli błąd
+      } catch (e) {
+        console.error("[recommendations] błąd TRYB 1 dla tmdbId:", tmdbId, e);
       }
     }
-  } else {
-    // TRYB 2 — brak ocen, pokaż popularne których user nie widział
+  }
+
+  // Jeśli TRYB 1 nie dał wyników (lub brak ocen) — pokaż popularne
+  if (recommended.length === 0) {
     try {
       const [moviesRes, tvRes] = await Promise.all([
         axios.get("https://api.themoviedb.org/3/movie/popular", {
@@ -105,8 +105,8 @@ export async function GET(req: NextRequest) {
           rating: item.vote_average,
         });
       }
-    } catch {
-      // błąd pobierania popularnych
+    } catch (e) {
+      console.error("[recommendations] błąd popularnych:", e);
     }
   }
 

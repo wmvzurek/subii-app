@@ -44,16 +44,23 @@ export default function Search() {
     loadDiscovery();
   }, []);
 
-  const loadDiscovery = async () => {
+const loadDiscovery = async () => {
+    setLoading(true);
     try {
       const [recRes, newRes] = await Promise.all([
         api.get("/api/recommendations"),
         api.get("/api/new-titles"),
       ]);
+      console.log("recommendations:", JSON.stringify(recRes.data));
+      console.log("newTitles:", JSON.stringify(newRes.data));
       setRecommended(recRes.data.recommended || []);
       setNewTitles(newRes.data.newTitles || []);
-    } catch {
-      // opcjonalne
+    } catch (e) {
+      console.error("[loadDiscovery] błąd:", e);
+      setRecommended([]);
+      setNewTitles([]);
+    } finally {
+      setLoading(false);
     }
   };
 

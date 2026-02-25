@@ -1,54 +1,75 @@
 import puppeteer from "puppeteer";
-
 import { prisma } from "@/lib/prisma";
 
 export type ReportPeriod = {
   periodFrom: Date;
   periodTo: Date;
-  period: string; // "2026-03"
+  period: string;
 };
 
 /**
  * Oblicza okno okresu raportu na podstawie billingDay.
- * Np. billingDay=15, dziś=2026-03-15 → od 2026-02-15 do 2026-03-14
+ * Tryb manual: periodFrom → dziś (bieżący niezakończony okres)
+ * Tryb automatic: periodFrom → periodTo (zamknięty okres)
  */
 export function getReportPeriod(billingDay: number, referenceDate: Date = new Date()): ReportPeriod {
   const now = new Date(referenceDate);
-  const currentMonthBilling = new Date(now.getFullYear(), now.getMonth(), billingDay);
 
-  let periodFrom: Date;
-  let periodTo: Date;
-
-  if (now >= currentMonthBilling) {
-    // Jesteśmy po lub w dniu rozliczeniowym — raport za ostatni zakończony okres
-    periodFrom = new Date(now.getFullYear(), now.getMonth() - 1, billingDay);
-    periodTo = new Date(now.getFullYear(), now.getMonth(), billingDay - 1);
-  } else {
-    // Jesteśmy przed dniem rozliczeniowym — raport za poprzedni okres
-    periodFrom = new Date(now.getFullYear(), now.getMonth() - 2, billingDay);
-    periodTo = new Date(now.getFullYear(), now.getMonth() - 1, billingDay - 1);
-  }
+  // Bieżący okres to zawsze: billingDay poprzedniego miesiąca → billingDay-1 bieżącego miesiąca
+  const periodFrom = new Date(now.getFullYear(), now.getMonth() - 1, billingDay);
+  const periodTo = new Date(now.getFullYear(), now.getMonth(), billingDay - 1);
 
   periodTo.setHours(23, 59, 59, 999);
 
-  // period string = miesiąc dnia rozliczeniowego (periodTo)
-  const period = `${periodTo.getFullYear()}-${String(periodTo.getMonth() + 1).padStart(2, "0")}`;
+  const period = `${periodFrom.getFullYear()}-${String(periodFrom.getMonth() + 1).padStart(2, "0")}`;
 
   return { periodFrom, periodTo, period };
 }
 
-/**
- * Pobiera dane do raportu dla danego użytkownika i okresu.
- */
-async function getReportData(userId: number, periodFrom: Date, periodTo: Date) {
-  // 1. Subskrypcje aktywne w tym okresie (na podstawie BillingCycle items)
+// ─────────────────────────────────────────────
+// Typy pomocnicze
+// ─────────────────────────────────────────────
+
+type BillingItemRaw = {
+  providerCode: string;
+  planName: string;
+  pricePLN: number;
+};
+
+type FallbackSubscription = {
+  providerCode: string;
+  planName: string;
+  pricePLN: number;
+};
+
+type WatchedMovieRaw = {
+  title: {
+    titlePL: string;
+    year: number | null;
+  };
+};
+
+// ─────────────────────────────────────────────
+// Pobieranie danych do raportu
+// ─────────────────────────────────────────────
+
+async function getReportData(
+  userId: number,
+  periodFrom: Date,
+  periodTo: Date,
+  mode: "manual" | "automatic"
+) {
+  // Dla trybu manual — dane aż do teraz (bieżący okres)
+  const effectiveTo = mode === "manual" ? new Date() : periodTo;
+
+  // 1. Rozliczone płatności z BillingCycleItem
   const billingItems = await prisma.billingCycleItem.findMany({
     where: {
       billingCycle: {
         userId,
         billingDate: {
           gte: periodFrom,
-          lte: new Date(periodTo.getTime() + 24 * 60 * 60 * 1000),
+          lte: new Date(effectiveTo.getTime() + 24 * 60 * 60 * 1000),
         },
       },
     },
@@ -57,14 +78,37 @@ async function getReportData(userId: number, periodFrom: Date, periodTo: Date) {
     },
   });
 
-  // 2. Obejrzane filmy w tym okresie (UserTitle.updatedAt w oknie, watched=true)
+  // 2. Fallback — jeśli brak rozliczonych płatności, pobierz aktywne subskrypcje
+  let fallbackSubscriptions: FallbackSubscription[] = [];
+
+  if (billingItems.length === 0) {
+    const activeSubs = await prisma.subscription.findMany({
+      where: {
+        userId,
+        status: { in: ["active", "pending_change", "pending_cancellation"] },
+        createdAt: { lte: effectiveTo },
+      },
+      include: {
+        plan: true,
+        provider: true,
+      },
+    });
+
+    fallbackSubscriptions = activeSubs.map((sub) => ({
+      providerCode: sub.provider?.name || sub.providerCode,
+      planName: sub.plan?.planName || "—",
+      pricePLN: sub.priceOverridePLN ?? sub.plan?.pricePLN ?? 0,
+    }));
+  }
+
+  // 3. Obejrzane filmy w okresie
   const watchedMovies = await prisma.userTitle.findMany({
     where: {
       userId,
       watched: true,
       updatedAt: {
         gte: periodFrom,
-        lte: periodTo,
+        lte: effectiveTo,
       },
     },
     include: {
@@ -72,18 +116,17 @@ async function getReportData(userId: number, periodFrom: Date, periodTo: Date) {
     },
   });
 
-  // 3. Obejrzane odcinki seriali w tym okresie (UserEpisode.createdAt w oknie)
+  // 4. Obejrzane odcinki seriali w okresie
   const watchedEpisodes = await prisma.userEpisode.findMany({
     where: {
       userId,
       watchedAt: {
         gte: periodFrom,
-        lte: periodTo,
+        lte: effectiveTo,
       },
     },
   });
 
-  // Grupuj odcinki po serialu
   const seriesMap = new Map<number, { title: string; episodeCount: number }>();
   for (const ep of watchedEpisodes) {
     if (!seriesMap.has(ep.tmdbSeriesId)) {
@@ -97,26 +140,15 @@ async function getReportData(userId: number, periodFrom: Date, periodTo: Date) {
 
   return {
     billingItems,
+    fallbackSubscriptions,
     watchedMovies,
     watchedSeries: Array.from(seriesMap.values()),
   };
 }
 
-/**
- * Generuje HTML raportu.
- */
-type BillingItemRaw = {
-  providerCode: string;
-  planName: string;
-  pricePLN: number;
-};
-
-type WatchedMovieRaw = {
-  title: {
-    titlePL: string;
-    year: number | null;
-  };
-};
+// ─────────────────────────────────────────────
+// Generowanie HTML raportu
+// ─────────────────────────────────────────────
 
 function generateReportHTML(params: {
   firstName: string;
@@ -124,37 +156,87 @@ function generateReportHTML(params: {
   periodFrom: Date;
   periodTo: Date;
   billingItems: BillingItemRaw[];
+  fallbackSubscriptions: FallbackSubscription[];
   watchedMovies: WatchedMovieRaw[];
   watchedSeries: { title: string; episodeCount: number }[];
+  mode: "manual" | "automatic";
 }): string {
-  const { firstName, period, periodFrom, periodTo, billingItems, watchedMovies, watchedSeries } = params;
+  const {
+    firstName,
+    period,
+    periodFrom,
+    periodTo,
+    billingItems,
+    fallbackSubscriptions,
+    watchedMovies,
+    watchedSeries,
+    mode,
+  } = params;
 
   const formatDate = (d: Date) =>
     d.toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" });
 
-  const totalCost = billingItems.reduce((sum, item) => sum + item.pricePLN, 0);
+  // Dla manual pokazujemy okres od periodFrom do dziś
+  const displayTo = mode === "manual" ? new Date() : periodTo;
 
-  const subscriptionsHTML = billingItems.length > 0
-    ? billingItems.map(item => `
+  // Sekcja płatności — preferuj rozliczone, fallback na aktywne subskrypcje
+  const hasBillingItems = billingItems.length > 0;
+  const paymentRows = hasBillingItems ? billingItems : fallbackSubscriptions;
+
+  const totalCost = paymentRows.reduce((sum, item) => sum + item.pricePLN, 0);
+
+  const subscriptionsHTML =
+    paymentRows.length > 0
+      ? paymentRows
+          .map(
+            (item) => `
         <tr>
           <td>${item.providerCode.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())}</td>
           <td>${item.planName}</td>
           <td style="text-align:right;font-weight:700;">${item.pricePLN.toFixed(2)} zł</td>
-        </tr>
-      `).join("")
-    : `<tr><td colspan="3" style="color:#999;text-align:center;">Brak subskrypcji w tym okresie</td></tr>`;
+        </tr>`
+          )
+          .join("")
+      : `<tr><td colspan="3" style="color:#999;text-align:center;">Brak subskrypcji w tym okresie</td></tr>`;
 
-  const moviesHTML = watchedMovies.length > 0
-    ? watchedMovies.map(ut => `
-        <li>${ut.title.titlePL}${ut.title.year ? ` <span style="color:#999">(${ut.title.year})</span>` : ""}</li>
-      `).join("")
-    : `<li style="color:#999;">Brak obejrzanych filmów w tym okresie</li>`;
+  const moviesHTML =
+    watchedMovies.length > 0
+      ? watchedMovies
+          .map(
+            (ut) => `
+        <li>${ut.title.titlePL}${ut.title.year ? ` <span style="color:#999">(${ut.title.year})</span>` : ""}</li>`
+          )
+          .join("")
+      : `<li style="color:#999;">Brak obejrzanych filmów w tym okresie</li>`;
 
-  const seriesHTML = watchedSeries.length > 0
-    ? watchedSeries.map(s => `
-        <li>${s.title} <span style="color:#666;">— ${s.episodeCount} ${s.episodeCount === 1 ? "odcinek" : s.episodeCount < 5 ? "odcinki" : "odcinków"}</span></li>
-      `).join("")
-    : `<li style="color:#999;">Brak obejrzanych seriali w tym okresie</li>`;
+  const seriesHTML =
+    watchedSeries.length > 0
+      ? watchedSeries
+          .map(
+            (s) => `
+        <li>${s.title} <span style="color:#666;">— ${s.episodeCount} ${
+              s.episodeCount === 1
+                ? "odcinek"
+                : s.episodeCount < 5
+                ? "odcinki"
+                : "odcinków"
+            }</span></li>`
+          )
+          .join("")
+      : `<li style="color:#999;">Brak obejrzanych seriali w tym okresie</li>`;
+
+const generatedAt = new Date().toLocaleDateString("pl-PL", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  const reportLabel =
+    mode === "manual"
+      ? `Raport bieżący (dane na dzień ${generatedAt})`
+      : "Raport miesięczny (okres zamknięty)";
 
   return `
     <!DOCTYPE html>
@@ -167,6 +249,7 @@ function generateReportHTML(params: {
         .header { background: #000; color: #fff; padding: 32px 40px; border-radius: 12px; margin-bottom: 32px; }
         .header h1 { font-size: 28px; font-weight: 900; letter-spacing: -0.5px; }
         .header p { font-size: 14px; color: rgba(255,255,255,0.7); margin-top: 6px; }
+        .header .label { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
         .section { margin-bottom: 32px; }
         .section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #999; margin-bottom: 12px; }
         table { width: 100%; border-collapse: collapse; }
@@ -177,20 +260,22 @@ function generateReportHTML(params: {
         ul li { font-size: 14px; padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
         ul li:last-child { border-bottom: none; }
         .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #999; text-align: center; }
-        .badge { display: inline-block; background: #f0f0f0; border-radius: 6px; padding: 4px 10px; font-size: 12px; font-weight: 600; color: #333; }
       </style>
     </head>
     <body>
       <div class="header">
         <h1>Subii · Raport miesięczny</h1>
-        <p>Cześć ${firstName}! Oto podsumowanie Twojego miesiąca.</p>
+        <p>Cześć ${firstName}! Oto podsumowanie Twojego okresu.</p>
         <p style="margin-top:8px;">
-          Okres: <strong>${formatDate(periodFrom)} – ${formatDate(periodTo)}</strong>
+          Okres: <strong>${formatDate(periodFrom)} – ${formatDate(displayTo)}</strong>
         </p>
+        <p class="label">${reportLabel}</p>
       </div>
 
       <div class="section">
-        <div class="section-title">Płatności w tym okresie</div>
+        <div class="section-title">
+          ${hasBillingItems ? "Płatności w tym okresie" : "Aktywne subskrypcje w tym okresie"}
+        </div>
         <table>
           <thead>
             <tr>
@@ -220,18 +305,21 @@ function generateReportHTML(params: {
       </div>
 
       <div class="footer">
-        Raport wygenerowany automatycznie przez Subii · ${new Date().toLocaleDateString("pl-PL")}
+        Raport wygenerowany przez Subii · ${new Date().toLocaleDateString("pl-PL")}
       </div>
     </body>
     </html>
   `;
 }
 
-/**
- * Główna funkcja — generuje PDF i zapisuje do bazy.
- * Zwraca base64 PDF.
- */
-export async function generateAndSaveReport(userId: number): Promise<{
+// ─────────────────────────────────────────────
+// Główna funkcja eksportowana
+// ─────────────────────────────────────────────
+
+export async function generateAndSaveReport(
+  userId: number,
+  mode: "manual" | "automatic" = "manual"
+): Promise<{
   pdfBase64: string;
   period: string;
   periodFrom: Date;
@@ -244,7 +332,8 @@ export async function generateAndSaveReport(userId: number): Promise<{
 
   const { period, periodFrom, periodTo } = getReportPeriod(user.billingDay);
 
-  const { billingItems, watchedMovies, watchedSeries } = await getReportData(userId, periodFrom, periodTo);
+  const { billingItems, fallbackSubscriptions, watchedMovies, watchedSeries } =
+    await getReportData(userId, periodFrom, periodTo, mode);
 
   const html = generateReportHTML({
     firstName: user.firstName,
@@ -252,8 +341,10 @@ export async function generateAndSaveReport(userId: number): Promise<{
     periodFrom,
     periodTo,
     billingItems,
+    fallbackSubscriptions,
     watchedMovies,
     watchedSeries,
+    mode,
   });
 
   // Generuj PDF przez Puppeteer
@@ -272,7 +363,7 @@ export async function generateAndSaveReport(userId: number): Promise<{
 
   const pdfBase64 = Buffer.from(pdfBuffer).toString("base64");
 
-  // Zapisz do bazy (upsert — nadpisz jeśli już istnieje za ten okres)
+  // Upsert — nadpisz jeśli już istnieje za ten okres
   const report = await prisma.paymentReport.upsert({
     where: { userId_period: { userId, period } },
     update: { pdfBase64, periodFrom, periodTo },
