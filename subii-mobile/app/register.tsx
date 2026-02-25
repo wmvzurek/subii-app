@@ -343,10 +343,10 @@ export default function Register() {
       await login(res.token, res.user);
 
       Alert.alert(
-        "Konto utworzone! 📧",
-        "Na podany adres email wysłaliśmy wiadomość z linkiem weryfikacyjnym. Sprawdź swoją skrzynkę.",
-        [{ text: "OK", onPress: () => {} }]
-      );
+  "Konto utworzone! 📧",
+  "Na podany adres email wysłaliśmy wiadomość z linkiem weryfikacyjnym. Sprawdź swoją skrzynkę.",
+  [{ text: "OK", onPress: () => router.replace("/(tabs)" as any) }]
+);
     } catch (error: any) {
       const msg = error.response?.data?.error || "Błąd rejestracji";
       Alert.alert("Błąd", msg);

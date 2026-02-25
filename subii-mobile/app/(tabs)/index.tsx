@@ -3,6 +3,7 @@ import {
   View,
   Text,
   FlatList,
+  ScrollView,
   Pressable,
   RefreshControl,
   ActivityIndicator,
@@ -43,6 +44,20 @@ export default function Home() {
   // Dane użytkownika (np. informacje billingowe)
   const [userWithBilling, setUserWithBilling] = useState<any>(null);
 
+  const [sendingVerification, setSendingVerification] = useState(false);
+
+  const handleResendVerification = async () => {
+    setSendingVerification(true);
+    try {
+      await api.post("/api/auth/resend-verification");
+      Alert.alert("Wysłano!", "Sprawdź swoją skrzynkę email.");
+    } catch (e: any) {
+      Alert.alert("Błąd", e.response?.data?.error || "Nie udało się wysłać emaila.");
+    } finally {
+      setSendingVerification(false);
+    }
+  };
+
   /**
    * useEffect uruchamiany przy pierwszym renderze komponentu.
    * Pobiera użytkownika z lokalnego storage.
@@ -61,6 +76,10 @@ export default function Home() {
       if (userId) loadSubscriptions();
     }, [userId])
   );
+
+  useEffect(() => {
+    if (userId) loadSubscriptions();
+  }, [userId]);
 
   /**
    * Pobiera dane użytkownika z AsyncStorage.
@@ -94,8 +113,18 @@ export default function Home() {
         return;
       }
 
-      const res = await api.get("/api/subscriptions");
-      setSubscriptions(res.data.subscriptions || []);
+      const [subsRes, meRes] = await Promise.all([
+        api.get("/api/subscriptions"),
+        api.get("/api/auth/me").catch(() => null),
+      ]);
+
+      setSubscriptions(subsRes.data.subscriptions || []);
+
+      if (meRes?.data?.user) {
+        const freshUser = { ...user, ...meRes.data.user };
+        await storage.setUser(freshUser);
+        setUserWithBilling(freshUser);
+      }
     } catch (error: any) {
       if (error.response?.status === 401) {
         await storage.clearAuth();
@@ -200,6 +229,22 @@ export default function Home() {
           <Text style={{ flex: 1, fontSize: 13, fontWeight: "600", color: "#92400e" }}>
             Zweryfikuj adres email, aby móc dodawać subskrypcje
           </Text>
+          <Pressable
+            onPress={handleResendVerification}
+            disabled={sendingVerification}
+            style={{
+              backgroundColor: "#000",
+              paddingHorizontal: 12,
+              paddingVertical: 7,
+              borderRadius: 8,
+              opacity: sendingVerification ? 0.5 : 1,
+            }}
+          >
+            {sendingVerification
+              ? <ActivityIndicator size="small" color="#fff" />
+              : <Text style={{ color: "#fff", fontSize: 12, fontWeight: "700" }}>Wyślij ponownie</Text>
+            }
+          </Pressable>
         </View>
       )}
 
@@ -209,17 +254,20 @@ export default function Home() {
 
       {/* ================= TREŚĆ ================= */}
       {subscriptions.length === 0 ? (
-        /**
-         * Widok pustej listy (empty state),
-         * wyświetlany gdy użytkownik nie ma żadnych subskrypcji.
-         */
-        <View
-          style={{
+        <ScrollView
+          contentContainerStyle={{
             flex: 1,
             justifyContent: "center",
             alignItems: "center",
             padding: 20,
           }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#000"
+            />
+          }
         >
           <Text
             style={{
@@ -259,7 +307,7 @@ export default function Home() {
               Dodaj subskrypcję
             </Text>
           </Pressable>
-        </View>
+        </ScrollView>
       ) : (
         /**
          * Lista subskrypcji renderowana przez komponent FlatList.

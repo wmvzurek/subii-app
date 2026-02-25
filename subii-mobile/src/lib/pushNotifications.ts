@@ -44,10 +44,18 @@ export async function registerForPushNotifications(): Promise<void> {
     });
   }
 
-  try {
-    const tokenData = await Notifications.getExpoPushTokenAsync();
+try {
+    const constants = await import("expo-constants");
+    const projectId = constants.default.expoConfig?.extra?.eas?.projectId
+      ?? constants.default.easConfig?.projectId;
+
+    if (!projectId) {
+      // Expo Go bez projectId — push nie działają, cicho pomijamy
+      return;
+    }
+
+    const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
     const pushToken = tokenData.data;
-    // Wyślij token do backendu
     await api.post("/api/push-token", { token: pushToken });
     console.log("[push] Token zarejestrowany:", pushToken);
   } catch (err) {
