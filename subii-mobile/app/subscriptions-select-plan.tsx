@@ -12,7 +12,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { storage } from "../src/lib/storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import PaymentModal from "../src/components/PaymentModal";
-import { getProviderName } from "../src/lib/providers";
+import { getProviderName } from "../src/lib/provider-logos";
 import { getNextBillingDateStr } from "../src/lib/billing";
 
 export default function SubscriptionsSelectPlan() {

@@ -8,7 +8,7 @@ import { plansApi, subscriptionsApi, api } from "../src/lib/api";
 import { storage } from "../src/lib/storage";
 import { getProviderLogo } from "../src/lib/provider-logos";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { getProviderName } from "../src/lib/providers";
+import { getProviderName } from "../src/lib/provider-logos";
 import { CardField, useStripe } from "@stripe/stripe-react-native";
 
 const BILLING_DAYS = [1, 5, 10, 15, 20, 25, 28];

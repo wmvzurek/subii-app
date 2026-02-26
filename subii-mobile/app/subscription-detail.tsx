@@ -18,7 +18,7 @@ import {
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { api, subscriptionsApi } from "../src/lib/api";
-import { getProviderLogo } from "../src/lib/provider-logos";
+import { getProviderLogo, getProviderName } from "../src/lib/provider-logos";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getNextBillingDateStr } from "../src/lib/billing";
 
@@ -37,20 +37,6 @@ import { getNextBillingDateStr } from "../src/lib/billing";
  * Mapowanie kodu providera na nazwę do UI.
  * (Fallback: zwróć kod, jeśli nie ma w mapie)
  */
-function getProviderName(code: string): string {
-  const names: Record<string, string> = {
-    netflix:       "Netflix",
-    hbo_max:       "HBO Max",
-    disney_plus:   "Disney+",
-    canal_plus:    "Canal+",
-    prime_video:   "Prime Video",
-    apple_tv:      "Apple TV+",
-    skyshowtime:   "SkyShowtime",
-    polsat_box_go: "Polsat Box Go",
-    player:        "Player",
-  };
-  return names[code] || code;
-}
 
 /**
  * Modal "bottom sheet" z własną animacją:
