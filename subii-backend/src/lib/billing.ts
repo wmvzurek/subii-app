@@ -1,5 +1,3 @@
-
-
 import { prisma } from "@/lib/prisma";
 
 export type BillingPreviewItem = {
@@ -13,7 +11,7 @@ export type BillingPreviewItem = {
   periodTo: Date;
   pendingCharge: number;
   toPay: number;
-  chargeType: "renewal" | "first_payment" | "upgrade_addon" | "cancelled_first_payment";
+  chargeType: "renewal" | "upgrade_addon";
 };
 
 export type BillingPreview = {
@@ -26,17 +24,15 @@ export type BillingPreview = {
 
 /**
  * Oblicza okno rozliczeniowe i które renewale w nim wypadają.
- * Okno: od billingDay bieżącego miesiąca (lub następnego jeśli już minął)
- * do billingDay następnego miesiąca.
  */
 export function getBillingWindow(billingDay: number, referenceDate: Date = new Date()) {
   const now = new Date(referenceDate);
   const currentMonthBilling = new Date(now.getFullYear(), now.getMonth(), billingDay);
-  
+
   let windowStart: Date;
   let windowEnd: Date;
-  
-    if (now <= currentMonthBilling) {
+
+  if (now <= currentMonthBilling) {
     windowStart = currentMonthBilling;
     windowEnd = new Date(now.getFullYear(), now.getMonth() + 1, billingDay - 1);
     windowEnd.setHours(23, 59, 59, 999);
@@ -45,7 +41,7 @@ export function getBillingWindow(billingDay: number, referenceDate: Date = new D
     windowEnd = new Date(now.getFullYear(), now.getMonth() + 2, billingDay - 1);
     windowEnd.setHours(23, 59, 59, 999);
   }
-  
+
   return { windowStart, windowEnd };
 }
 
@@ -57,21 +53,18 @@ export function getRenewalInWindow(
   windowStart: Date,
   windowEnd: Date
 ): Date | null {
-  // Sprawdź każdy miesiąc w oknie
   const start = new Date(windowStart);
   const end = new Date(windowEnd);
-  
-  // Sprawdź bieżący miesiąc okna
+
   let candidate = new Date(start.getFullYear(), start.getMonth(), renewalDay);
-  
+
   while (candidate < end) {
     if (candidate >= start) {
       return candidate;
     }
-    // Przejdź do następnego miesiąca
     candidate = new Date(candidate.getFullYear(), candidate.getMonth() + 1, renewalDay);
   }
-  
+
   return null;
 }
 
@@ -99,25 +92,10 @@ export async function calculateBillingPreview(userId: number): Promise<BillingPr
 
     // ── ANULOWANE ──
     if (sub.status === "pending_cancellation") {
-      const hasPendingCharge = sub.pendingChargePLN && sub.pendingChargePLN > 0;
       const activeUntil = sub.activeUntil ? new Date(sub.activeUntil) : null;
       const renewalDate = new Date(sub.nextRenewalDate);
 
-      if (hasPendingCharge) {
-        const subCreatedAt = sub.createdAt ? new Date(sub.createdAt) : new Date(windowStart);
-        items.push({
-          subscriptionId: sub.id,
-          providerCode: sub.providerCode,
-          providerName: sub.provider.name,
-          planName: sub.plan.planName,
-          pricePLN: sub.pendingChargePLN!,
-          periodFrom: subCreatedAt,
-          periodTo: renewalDate,
-          pendingCharge: 0,
-          toPay: sub.pendingChargePLN!,
-          chargeType: "cancelled_first_payment",
-        });
-      } else if (activeUntil && activeUntil >= renewalDate) {
+      if (activeUntil && activeUntil >= renewalDate) {
         if (renewalDate >= windowStart && renewalDate < windowEnd) {
           const price = sub.priceOverridePLN || sub.plan.pricePLN;
           const cycle = sub.plan.cycle;
@@ -145,10 +123,12 @@ export async function calculateBillingPreview(userId: number): Promise<BillingPr
     }
 
     // ── AKTYWNE / PENDING_CHANGE ──
-    const renewalDate = sub.nextRenewalDate;
+    const renewalDate = new Date(sub.nextRenewalDate);
     if (renewalDate < windowStart || renewalDate >= windowEnd) continue;
 
-    const effectivePlan = (sub.status === "pending_change" && sub.pendingPlan) ? sub.pendingPlan : sub.plan;
+    const effectivePlan = (sub.status === "pending_change" && sub.pendingPlan)
+      ? sub.pendingPlan
+      : sub.plan;
     const price = sub.priceOverridePLN || effectivePlan.pricePLN;
     const cycle = effectivePlan.cycle;
     const periodTo = new Date(renewalDate);
@@ -159,58 +139,26 @@ export async function calculateBillingPreview(userId: number): Promise<BillingPr
     }
 
     const pendingCharge = sub.pendingChargePLN || 0;
-    const isFirstPayment = pendingCharge > 0 && Math.abs(pendingCharge - price) < 0.01;
-
-    if (isFirstPayment) {
-      // Pozycja 1: pierwsza płatność za okres od założenia do nextRenewalDate
-      const subCreatedAt = sub.createdAt ? new Date(sub.createdAt) : new Date(renewalDate);
-      items.push({
-        subscriptionId: sub.id,
-        providerCode: sub.providerCode,
-        providerName: sub.provider.name,
-        planName: sub.plan.planName,
-        pricePLN: sub.pendingChargePLN!,
-        periodFrom: subCreatedAt,
-        periodTo: new Date(renewalDate),
-        pendingCharge: 0,
-        toPay: sub.pendingChargePLN!,
-        chargeType: "first_payment",
-      });
-      // Pozycja 2: odnowienie za kolejny okres
-      items.push({
-        subscriptionId: sub.id,
-        providerCode: sub.providerCode,
-        providerName: sub.provider.name,
-        planName: sub.plan.planName,
-        pricePLN: price,
-        periodFrom: new Date(renewalDate),
-        periodTo,
-        pendingCharge: 0,
-        toPay: price,
-        chargeType: "renewal",
-      });
-    } else {
-      const chargeType = pendingCharge > 0 ? "upgrade_addon" : "renewal";
-      items.push({
-        subscriptionId: sub.id,
-        providerCode: sub.providerCode,
-        providerName: sub.provider.name,
-        planName: sub.plan.planName,
-        pendingPlanName: sub.pendingPlan?.planName ?? undefined,
-        pricePLN: price,
-        periodFrom: new Date(renewalDate),
-        periodTo,
-        pendingCharge,
-        toPay: price + pendingCharge,
-        chargeType,
-      });
-    }
+    const chargeType = pendingCharge > 0 ? "upgrade_addon" : "renewal";
+    items.push({
+      subscriptionId: sub.id,
+      providerCode: sub.providerCode,
+      providerName: sub.provider.name,
+      planName: sub.plan.planName,
+      pendingPlanName: sub.pendingPlan?.planName ?? undefined,
+      pricePLN: price,
+      periodFrom: renewalDate,
+      periodTo,
+      pendingCharge,
+      toPay: price + pendingCharge,
+      chargeType,
+    });
   }
 
   const totalToPay = items.reduce((s, i) => s + i.toPay, 0);
 
-  const periodStart = `${windowStart.getFullYear()}-${String(windowStart.getMonth() + 1).padStart(2, '0')}-${String(windowStart.getDate()).padStart(2, '0')}`;
-  const periodEnd = `${windowEnd.getFullYear()}-${String(windowEnd.getMonth() + 1).padStart(2, '0')}-${String(windowEnd.getDate()).padStart(2, '0')}`;
+  const periodStart = `${windowStart.getFullYear()}-${String(windowStart.getMonth() + 1).padStart(2, "0")}-${String(windowStart.getDate()).padStart(2, "0")}`;
+  const periodEnd = `${windowEnd.getFullYear()}-${String(windowEnd.getMonth() + 1).padStart(2, "0")}-${String(windowEnd.getDate()).padStart(2, "0")}`;
   const period = `${periodStart}_${periodEnd}`;
 
   return {
@@ -231,16 +179,16 @@ export function calculateImmediateCost(
   today: Date = new Date()
 ): { amountDue: number; periodFrom: Date; periodTo: Date } {
   const periodFrom = new Date(today);
-  const periodTo = new Date(today.getFullYear(), today.getMonth() + (today.getDate() <= renewalDay ? 0 : 1), renewalDay);
-  
+  const periodTo = new Date(
+    today.getFullYear(),
+    today.getMonth() + (today.getDate() <= renewalDay ? 0 : 1),
+    renewalDay
+  );
+
   if (periodTo <= today) {
     periodTo.setMonth(periodTo.getMonth() + 1);
   }
-  
-  const daysTotal = Math.round((periodTo.getTime() - new Date(today.getFullYear(), today.getMonth(), renewalDay > today.getDate() ? renewalDay - 30 : renewalDay).getTime()) / (1000 * 60 * 60 * 24));
-  const daysRemaining = Math.round((periodTo.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-  
-  // Pełna cena miesięczna (bez proraty po stronie Subii)
+
   return {
     amountDue: pricePLN,
     periodFrom,
@@ -262,16 +210,16 @@ export function calculateUpgradeCost(
   daysRemaining: number;
   daysInCycle: number;
 } {
-  const daysRemaining = Math.max(1, Math.round((nextRenewalDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
-  const daysInCycle = 30; // uproszczenie
-  
-  // Platforma naliczy różnicę za pozostałe dni
+  const daysRemaining = Math.max(
+    1,
+    Math.round((nextRenewalDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+  );
+  const daysInCycle = 30;
+
   const dailyDiff = (newPricePLN - oldPricePLN) / daysInCycle;
   const diffToPayNow = Math.round(dailyDiff * daysRemaining * 100) / 100;
-  
-  // Ile credit zostanie po zapłaceniu pełnego nowego planu
   const creditAfterUpgrade = Math.round((newPricePLN - diffToPayNow) * 100) / 100;
-  
+
   return {
     diffToPayNow,
     creditAfterUpgrade,

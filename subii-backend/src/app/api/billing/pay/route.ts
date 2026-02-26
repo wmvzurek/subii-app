@@ -79,15 +79,7 @@ export async function POST(req: Request) {
         });
       }
 
-      await tx.subscription.updateMany({
-        where: {
-          userId,
-          pendingChargePLN: { not: null },
-        },
-        data: {
-          pendingChargePLN: null,
-        },
-      });
+    
 
       return billingCycle;
     });

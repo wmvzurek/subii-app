@@ -95,7 +95,7 @@ export async function POST(req: Request) {
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const { planId, paymentOption: _paymentOption, priceOverridePLN } = body;
+  const { planId, priceOverridePLN } = body;
   if (priceOverridePLN !== undefined && priceOverridePLN !== null) {
     const price = Number(priceOverridePLN);
     if (isNaN(price) || price < 0 || price > 9999) {
@@ -155,23 +155,18 @@ export async function POST(req: Request) {
     nextRenewalDate.setMonth(nextRenewalDate.getMonth() + 1);
   }
 
-const finalPrice = priceOverridePLN || plan.pricePLN;
-  const paymentOption = _paymentOption || "next_billing";
-
-  // Utwórz subskrypcję
-  const subscription = await prisma.subscription.create({
-    data: {
-      userId,
-      providerCode: plan.providerCode,
-      planId,
-      nextRenewalDate,
-      priceOverridePLN: priceOverridePLN || null,
-      status: "active",
-      // Jeśli user wybrał "zapłać później" — zaznacz że jest zaległa opłata do pobrania
-      pendingChargePLN: paymentOption === "next_billing" ? finalPrice : null,
-    },
-    include: { plan: true, provider: true },
-  });
+const subscription = await prisma.subscription.create({
+  data: {
+    userId,
+    providerCode: plan.providerCode,
+    planId,
+    nextRenewalDate,
+    priceOverridePLN: priceOverridePLN || null,
+    status: "active",
+    pendingChargePLN: null,
+  },
+  include: { plan: true, provider: true },
+});
 
   return NextResponse.json(subscription);
 

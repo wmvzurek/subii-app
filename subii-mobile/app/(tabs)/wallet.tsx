@@ -104,20 +104,6 @@ export default function Payments() {
   };
 
   const getItemTag = (item: any) => {
-    if (item.chargeType === "first_payment") {
-      return {
-        label: "Pierwsza płatność – zapłać później",
-        color: "#7c3aed",
-        bg: "#f5f3ff",
-      };
-    }
-    if (item.chargeType === "cancelled_first_payment") {
-      return {
-        label: "Zapłać później – subskrypcja anulowana",
-        color: "#dc2626",
-        bg: "#fef2f2",
-      };
-    }
     if (item.chargeType === "upgrade_addon") {
       return {
         label: "Dopłata za zmianę planu",
@@ -332,20 +318,14 @@ export default function Payments() {
                   }}
                 >
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 14, fontWeight: "700" }}>{item.providerName}</Text>
-                    <Text style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
-                      {item.planName}
-                      {item.chargeType === "upgrade_addon" && item.pendingCharge > 0 && (
-                        <Text style={{ color: "#f59e0b" }}>{" "}+ dopłata {item.pendingCharge.toFixed(2)} zł</Text>
-                      )}
-                      {item.chargeType === "first_payment" && (
-                        <Text style={{ color: "#7c3aed" }}>{" "}· pierwsza płatność</Text>
-                      )}
-                      {item.chargeType === "cancelled_first_payment" && (
-                        <Text style={{ color: "#dc2626" }}>{" "}· anulowana</Text>
-                      )}
-                    </Text>
-                  </View>
+  <Text style={{ fontSize: 14, fontWeight: "700" }}>{item.providerName}</Text>
+  <Text style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
+    {item.pendingPlanName ?? item.planName}
+    {item.chargeType === "upgrade_addon" && item.pendingCharge > 0 && (
+      <Text style={{ color: "#f59e0b" }}>{" "}+ dopłata {item.pendingCharge.toFixed(2)} zł</Text>
+    )}
+  </Text>
+</View>
                   <Text style={{ fontSize: 15, fontWeight: "700" }}>{item.toPay.toFixed(2)} zł</Text>
                 </View>
               ))}
@@ -452,7 +432,7 @@ export default function Payments() {
         </View>
       </ScrollView>
 
-      {/* ── MODAL: Szczegóły płatności (poza ScrollView) ── */}
+      {/* ── MODAL: Szczegóły płatności ── */}
       <Modal
         visible={showPaymentDetail}
         animationType="slide"
@@ -516,55 +496,71 @@ export default function Payments() {
                       gap: 10,
                     }}
                   >
-                    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 16, fontWeight: "800", color: "#000" }}>{item.providerName}</Text>
-                        <Text style={{ fontSize: 13, color: "#666", marginTop: 2 }}>{item.planName}</Text>
-                      </View>
-                      <Text style={{ fontSize: 17, fontWeight: "900", color: "#000" }}>{item.toPay.toFixed(2)} zł</Text>
-                    </View>
+                    {/* Nagłówek: provider + cena łączna */}
+                    {/* Nagłówek: provider + cena łączna */}
+<View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
+  <View style={{ flex: 1 }}>
+    <Text style={{ fontSize: 16, fontWeight: "800", color: "#000" }}>{item.providerName}</Text>
+    <Text style={{ fontSize: 13, color: "#666", marginTop: 2 }}>
+      {item.pendingPlanName ?? item.planName}
+    </Text>
+  </View>
+  <Text style={{ fontSize: 17, fontWeight: "900", color: "#000" }}>{item.toPay.toFixed(2)} zł</Text>
+</View>
 
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                      <Text
-                        style={{
-                          fontSize: 11,
-                          color: "#999",
-                          fontWeight: "600",
-                          textTransform: "uppercase",
-                          letterSpacing: 0.5,
-                        }}
-                      >
-                        Okres
-                      </Text>
-                      <Text style={{ fontSize: 12, color: "#333", fontWeight: "600" }}>
-                        {formatPeriod(item.periodFrom, item.periodTo)}
-                      </Text>
-                    </View>
+{/* Okres */}
+<View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+  <Text style={{ fontSize: 11, color: "#999", fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5 }}>
+    Okres
+  </Text>
+  <Text style={{ fontSize: 12, color: "#333", fontWeight: "600" }}>
+    {formatPeriod(item.periodFrom, item.periodTo)}
+  </Text>
+</View>
 
-                    {item.chargeType === "upgrade_addon" && item.pendingCharge > 0 && (
-                      <View style={{ gap: 6, borderTopWidth: 1, borderTopColor: "#eee", paddingTop: 8 }}>
-                        {item.planName && item.pendingPlanName && (
-                          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                            <Text style={{ fontSize: 12, color: "#555" }}>{item.planName}</Text>
-                            <Text style={{ fontSize: 12, color: "#999" }}>→</Text>
-                            <Text style={{ fontSize: 12, color: "#555", fontWeight: "700" }}>{item.pendingPlanName}</Text>
-                          </View>
-                        )}
+{/* Rozbicie dla upgrade */}
+{item.chargeType === "upgrade_addon" && item.pendingCharge > 0 && (
+  <View style={{ gap: 6, borderTopWidth: 1, borderTopColor: "#eee", paddingTop: 8 }}>
+    {item.planName && item.pendingPlanName && (
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 2 }}>
+        <Text style={{ fontSize: 12, color: "#555" }}>{item.planName}</Text>
+        <Text style={{ fontSize: 12, color: "#999" }}>→</Text>
+        <Text style={{ fontSize: 12, color: "#555", fontWeight: "700" }}>{item.pendingPlanName}</Text>
+      </View>
+    )}
+    <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+      <Text style={{ fontSize: 12, color: "#555" }}>
+        Subskrypcja ({item.pendingPlanName ?? item.planName})
+      </Text>
+      <Text style={{ fontSize: 12, fontWeight: "600", color: "#555" }}>{item.pricePLN.toFixed(2)} zł</Text>
+    </View>
+    <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+      <Text style={{ fontSize: 12, color: "#f59e0b" }}>Dopłata za zmianę planu</Text>
+      <Text style={{ fontSize: 12, fontWeight: "600", color: "#f59e0b" }}>
+        +{item.pendingCharge.toFixed(2)} zł
+      </Text>
+    </View>
+  </View>
+)}
 
-                        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                          <Text style={{ fontSize: 12, color: "#555" }}>Subskrypcja</Text>
-                          <Text style={{ fontSize: 12, fontWeight: "600", color: "#555" }}>{item.pricePLN.toFixed(2)} zł</Text>
-                        </View>
+{/* Rozbicie dla downgrade */}
+{item.chargeType === "renewal" && item.pendingPlanName && (
+  <View style={{ gap: 6, borderTopWidth: 1, borderTopColor: "#eee", paddingTop: 8 }}>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 2 }}>
+      <Text style={{ fontSize: 12, color: "#555" }}>{item.planName}</Text>
+      <Text style={{ fontSize: 12, color: "#999" }}>→</Text>
+      <Text style={{ fontSize: 12, color: "#555", fontWeight: "700" }}>{item.pendingPlanName}</Text>
+    </View>
+    <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+      <Text style={{ fontSize: 12, color: "#555" }}>
+        Subskrypcja ({item.pendingPlanName})
+      </Text>
+      <Text style={{ fontSize: 12, fontWeight: "600", color: "#555" }}>{item.pricePLN.toFixed(2)} zł</Text>
+    </View>
+  </View>
+)}
 
-                        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                          <Text style={{ fontSize: 12, color: "#f59e0b" }}>Dopłata za zmianę planu</Text>
-                          <Text style={{ fontSize: 12, fontWeight: "600", color: "#f59e0b" }}>
-                            +{item.pendingCharge.toFixed(2)} zł
-                          </Text>
-                        </View>
-                      </View>
-                    )}
-
+                    {/* Tag (np. upgrade_addon) */}
                     {tag && (
                       <View
                         style={{
@@ -599,7 +595,7 @@ export default function Payments() {
         </View>
       </Modal>
 
-      {/* ── MODAL: Raporty (poza ScrollView) ── */}
+      {/* ── MODAL: Raporty ── */}
       <Modal visible={showReports} animationType="slide" transparent onRequestClose={() => setShowReports(false)}>
         <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
           <Pressable
@@ -701,7 +697,9 @@ export default function Payments() {
                           {formatPeriodLabel(report.periodFrom, report.periodTo)}
                         </Text>
                         <Text style={{ fontSize: 11, color: "#bbb", marginTop: 2 }}>
-                          {report.sentAt ? `✉️ Wysłano ${new Date(report.sentAt).toLocaleDateString("pl-PL")}` : "Nie wysłano"}
+                          {report.sentAt
+                            ? `✉️ Wysłano ${new Date(report.sentAt).toLocaleDateString("pl-PL")}`
+                            : "Nie wysłano"}
                         </Text>
                       </View>
 

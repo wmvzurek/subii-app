@@ -189,23 +189,6 @@ const getRenewalDateStr = (renewalDate?: string): string => {
     }
   };
 
-  const handleAddNextBilling = async () => {
-    if (!selectedPlan) return;
-    setShowAddOptions(false);
-    try {
-      await subscriptionsApi.create({
-        planId: selectedPlan.id,
-        paymentOption: "next_billing",
-      });
-      Alert.alert(
-        "Subskrypcja aktywowana",
-        `Od teraz korzystasz z ${providerName}.\nOpłata zostanie doliczona do najbliższej płatności.`
-      );
-      router.back();
-    } catch (e: any) {
-      Alert.alert("Coś poszło nie tak", e.response?.data?.error || "Nie udało się dodać subskrypcji.");
-    }
-  };
 
   const handleChangePlanConfirm = async () => {
   if (!selectedPlan || !currentUserPlan) return;
@@ -540,81 +523,58 @@ const isPendingPlan = currentUserPlan?.pendingPlanId === planId;
         </ScrollView>
 
         {/* ── MODAL: Dodanie nowej platformy ── */}
-        <Modal
-          visible={showAddOptions}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setShowAddOptions(false)}
-        >
-          <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
-            <View style={{
-              backgroundColor: "#fff", borderTopLeftRadius: 24,
-              borderTopRightRadius: 24, padding: 24
-            }}>
-              <Text style={{ fontSize: 20, fontWeight: "800", marginBottom: 4 }}>
-                Wybierz formę płatności
-              </Text>
-              <Text style={{ fontSize: 13, color: "#999", marginBottom: 20 }}>
-                {providerName} · {selectedPlan?.pricePLN?.toFixed(2)} zł
-                {selectedPlan?.cycle === "yearly" ? "/rok" : "/mies"}
-              </Text>
+{/* ── MODAL: Dodanie nowej platformy ── */}
+<Modal
+  visible={showAddOptions}
+  transparent
+  animationType="slide"
+  onRequestClose={() => setShowAddOptions(false)}
+>
+  <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
+    <View style={{
+      backgroundColor: "#fff", borderTopLeftRadius: 24,
+      borderTopRightRadius: 24, padding: 24
+    }}>
+      <Text style={{ fontSize: 20, fontWeight: "800", marginBottom: 4 }}>
+        Potwierdź aktywację
+      </Text>
+      <Text style={{ fontSize: 13, color: "#999", marginBottom: 20 }}>
+        {providerName} · {selectedPlan?.pricePLN?.toFixed(2)} zł
+        {selectedPlan?.cycle === "yearly" ? "/rok" : "/mies"}
+      </Text>
 
-              {/* Opcja A – zapłać teraz */}
-              <Pressable
-                onPress={handleAddNow}
-                style={{ padding: 18, backgroundColor: "#000", borderRadius: 14, marginBottom: 12 }}
-              >
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                  <MaterialIcons name="bolt" size={18} color="#fff" />
-                  <Text style={{ color: "#fff", fontWeight: "800", fontSize: 16 }}>Zapłać teraz</Text>
-                </View>
-                <Text style={{ color: "rgba(255,255,255,0.75)", fontSize: 13, lineHeight: 20 }}>
-                  Nowy plan zostanie aktywowany natychmiast. Dokonujesz jednorazowej opłaty w wysokości{" "}
-                  <Text style={{ color: "#fff", fontWeight: "700" }}>
-                    {selectedPlan?.pricePLN?.toFixed(2)} zł
-                  </Text>.{" "}
-                  Rozliczenie tej usługi w Subii rozpocznie się od kolejnego okresu.
-                </Text>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10 }}>
-                  <MaterialIcons name="lock" size={12} color="rgba(255,255,255,0.6)" />
-                  <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 11 }}>
-                    Płatność obsługiwana przez Stripe · SSL
-                  </Text>
-                </View>
-              </Pressable>
+      <Pressable
+        onPress={handleAddNow}
+        style={{ padding: 18, backgroundColor: "#000", borderRadius: 14, marginBottom: 12 }}
+      >
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
+          <MaterialIcons name="bolt" size={18} color="#fff" />
+          <Text style={{ color: "#fff", fontWeight: "800", fontSize: 16 }}>Zapłać teraz</Text>
+        </View>
+        <Text style={{ color: "rgba(255,255,255,0.75)", fontSize: 13, lineHeight: 20 }}>
+          Nowy plan zostanie aktywowany natychmiast. Dokonujesz jednorazowej opłaty w wysokości{" "}
+          <Text style={{ color: "#fff", fontWeight: "700" }}>
+            {selectedPlan?.pricePLN?.toFixed(2)} zł
+          </Text>.{" "}
+          Rozliczenie tej usługi w Subii rozpocznie się od kolejnego okresu.
+        </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10 }}>
+          <MaterialIcons name="lock" size={12} color="rgba(255,255,255,0.6)" />
+          <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 11 }}>
+            Płatność obsługiwana przez Stripe · SSL
+          </Text>
+        </View>
+      </Pressable>
 
-              {/* Opcja B – zapłać później */}
-              <Pressable
-                onPress={handleAddNextBilling}
-                style={{
-                  padding: 18, backgroundColor: "#f9f9f9",
-                  borderRadius: 14, borderWidth: 1.5,
-                  borderColor: "#e0e0e0", marginBottom: 16
-                }}
-              >
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                  <MaterialIcons name="event" size={18} color="#111" />
-                  <Text style={{ color: "#000", fontWeight: "800", fontSize: 16 }}>Zapłać później</Text>
-                </View>
-                <Text style={{ color: "#555", fontSize: 13, lineHeight: 20 }}>
-                  Dostęp otrzymasz natychmiast. Rozliczenie zostanie doliczone do najbliższej płatności w Subii (
-                  <Text style={{ fontWeight: "700", color: "#000" }}>
-                    {getNextBillingDateStr(user?.billingDay)}
-                  </Text>
-                  ) i obejmie dwa okresy rozliczeniowe.{"\n"}
-                  Każda kolejna płatność będzie naliczana w standardowej wysokości za jeden miesiąc.
-                </Text>
-              </Pressable>
-
-              <Pressable
-                onPress={() => { setShowAddOptions(false); setSelectedPlan(null); setRenewalDay(null); }}
-                style={{ padding: 14, backgroundColor: "#f0f0f0", borderRadius: 12, alignItems: "center" }}
-              >
-                <Text style={{ fontWeight: "600" }}>Anuluj</Text>
-              </Pressable>
-            </View>
-          </View>
-        </Modal>
+      <Pressable
+        onPress={() => { setShowAddOptions(false); setSelectedPlan(null); setRenewalDay(null); }}
+        style={{ padding: 14, backgroundColor: "#f0f0f0", borderRadius: 12, alignItems: "center" }}
+      >
+        <Text style={{ fontWeight: "600" }}>Anuluj</Text>
+      </Pressable>
+    </View>
+  </View>
+</Modal>
 
         {/* ── MODAL: Zmiana planu (upgrade i downgrade) ── */}
         <Modal

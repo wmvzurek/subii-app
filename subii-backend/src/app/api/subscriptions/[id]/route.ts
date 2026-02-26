@@ -26,17 +26,15 @@ const activeUntil = new Date(subscription.nextRenewalDate);
   activeUntil.setDate(activeUntil.getDate() - 1);
   activeUntil.setHours(23, 59, 59, 999);
 
-  // Jeśli subskrypcja ma zaległą opłatę (dodana z opcją "zapłać później"),
-  // zachowaj pendingChargePLN — zostanie pobrana w najbliższym billingu
-  await prisma.subscription.update({
-    where: { id: subscriptionId },
-    data: {
-      status: "pending_cancellation",
-      activeUntil,
-      cancelledAt: new Date(),
-      // NIE czyścimy pendingChargePLN — jeśli istnieje, musi być pobrana
-    }
-  });
+await prisma.subscription.update({
+  where: { id: subscriptionId },
+  data: {
+    status: "pending_cancellation",
+    activeUntil,
+    cancelledAt: new Date(),
+    pendingChargePLN: null,
+  }
+});
 
   return NextResponse.json({
     message: "Subskrypcja zostanie dezaktywowana",
