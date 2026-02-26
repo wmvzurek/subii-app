@@ -55,6 +55,37 @@ export async function POST(req: NextRequest) {
         seriesTitle: seriesTitle ?? null,
       },
     });
+
+    // Upewnij się że serial istnieje w tabeli Title
+    let title = await prisma.title.findUnique({ where: { tmdbId: tmdbSeriesId } });
+    if (!title) {
+      title = await prisma.title.create({
+        data: {
+          tmdbId: tmdbSeriesId,
+          titlePL: seriesTitle ?? `Serial ${tmdbSeriesId}`,
+          titleOriginal: seriesTitle ?? null,
+          mediaType: "tv",
+          posterUrl: null,
+          year: null,
+          genres: "[]",
+          runtime: null,
+        },
+      });
+    }
+
+    // Upewnij się że user ma wpis w UserTitle dla tego serialu
+    await prisma.userTitle.upsert({
+      where: { userId_titleId: { userId, titleId: title.id } },
+      update: {},
+      create: {
+        userId,
+        titleId: title.id,
+        watched: false,
+        favorite: false,
+        rating: null,
+      },
+    });
+
   } else {
     await prisma.userEpisode.deleteMany({
       where: { userId, tmdbSeriesId, seasonNumber, episodeNumber },

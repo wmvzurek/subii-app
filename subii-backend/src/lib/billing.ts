@@ -7,11 +7,13 @@ export type BillingPreviewItem = {
   providerCode: string;
   providerName: string;
   planName: string;
+  pendingPlanName?: string;
   pricePLN: number;
   periodFrom: Date;
   periodTo: Date;
   pendingCharge: number;
   toPay: number;
+  chargeType: "renewal" | "first_payment" | "upgrade_addon" | "cancelled_first_payment";
 };
 
 export type BillingPreview = {
@@ -80,55 +82,137 @@ export async function calculateBillingPreview(userId: number): Promise<BillingPr
   const user = await prisma.user.findUnique({
     where: { id: userId },
   });
-  
+
   if (!user || !user.billingDay) return null;
-  
+
   const { windowStart, windowEnd } = getBillingWindow(user.billingDay);
-  
+
   const subscriptions = await prisma.subscription.findMany({
-    where: { userId, status: "active" },
-    include: { plan: true, provider: true }
+    where: { userId, status: { in: ["active", "pending_change", "pending_cancellation"] } },
+    include: { plan: true, provider: true, pendingPlan: true },
+    orderBy: { createdAt: "asc" },
   });
-  
+
   const items: BillingPreviewItem[] = [];
-  
+
   for (const sub of subscriptions) {
-    // Sprawdź czy nextRenewalDate subskrypcji wypada w oknie rozliczeniowym
+
+    // ── ANULOWANE ──
+    if (sub.status === "pending_cancellation") {
+      const hasPendingCharge = sub.pendingChargePLN && sub.pendingChargePLN > 0;
+      const activeUntil = sub.activeUntil ? new Date(sub.activeUntil) : null;
+      const renewalDate = new Date(sub.nextRenewalDate);
+
+      if (hasPendingCharge) {
+        const subCreatedAt = sub.createdAt ? new Date(sub.createdAt) : new Date(windowStart);
+        items.push({
+          subscriptionId: sub.id,
+          providerCode: sub.providerCode,
+          providerName: sub.provider.name,
+          planName: sub.plan.planName,
+          pricePLN: sub.pendingChargePLN!,
+          periodFrom: subCreatedAt,
+          periodTo: renewalDate,
+          pendingCharge: 0,
+          toPay: sub.pendingChargePLN!,
+          chargeType: "cancelled_first_payment",
+        });
+      } else if (activeUntil && activeUntil >= renewalDate) {
+        if (renewalDate >= windowStart && renewalDate < windowEnd) {
+          const price = sub.priceOverridePLN || sub.plan.pricePLN;
+          const cycle = sub.plan.cycle;
+          const periodTo = new Date(renewalDate);
+          if (cycle === "yearly") {
+            periodTo.setFullYear(periodTo.getFullYear() + 1);
+          } else {
+            periodTo.setMonth(periodTo.getMonth() + 1);
+          }
+          items.push({
+            subscriptionId: sub.id,
+            providerCode: sub.providerCode,
+            providerName: sub.provider.name,
+            planName: sub.plan.planName,
+            pricePLN: price,
+            periodFrom: renewalDate,
+            periodTo,
+            pendingCharge: 0,
+            toPay: price,
+            chargeType: "renewal",
+          });
+        }
+      }
+      continue;
+    }
+
+    // ── AKTYWNE / PENDING_CHANGE ──
     const renewalDate = sub.nextRenewalDate;
     if (renewalDate < windowStart || renewalDate >= windowEnd) continue;
-    
-    const price = sub.priceOverridePLN || sub.plan.pricePLN;
-    const periodFrom = renewalDate;
-    const cycle = sub.plan.cycle;
+
+    const effectivePlan = (sub.status === "pending_change" && sub.pendingPlan) ? sub.pendingPlan : sub.plan;
+    const price = sub.priceOverridePLN || effectivePlan.pricePLN;
+    const cycle = effectivePlan.cycle;
     const periodTo = new Date(renewalDate);
     if (cycle === "yearly") {
       periodTo.setFullYear(periodTo.getFullYear() + 1);
     } else {
       periodTo.setMonth(periodTo.getMonth() + 1);
     }
-    
-    const pendingCharge = sub.pendingChargePLN || 0;
 
-    items.push({
-      subscriptionId: sub.id,
-      providerCode: sub.providerCode,
-      providerName: sub.provider.name,
-      planName: sub.plan.planName,
-      pricePLN: price,
-      periodFrom,
-      periodTo,
-      pendingCharge,
-      toPay: price + pendingCharge,
-    });
+    const pendingCharge = sub.pendingChargePLN || 0;
+    const isFirstPayment = pendingCharge > 0 && Math.abs(pendingCharge - price) < 0.01;
+
+    if (isFirstPayment) {
+      // Pozycja 1: pierwsza płatność za okres od założenia do nextRenewalDate
+      const subCreatedAt = sub.createdAt ? new Date(sub.createdAt) : new Date(renewalDate);
+      items.push({
+        subscriptionId: sub.id,
+        providerCode: sub.providerCode,
+        providerName: sub.provider.name,
+        planName: sub.plan.planName,
+        pricePLN: sub.pendingChargePLN!,
+        periodFrom: subCreatedAt,
+        periodTo: new Date(renewalDate),
+        pendingCharge: 0,
+        toPay: sub.pendingChargePLN!,
+        chargeType: "first_payment",
+      });
+      // Pozycja 2: odnowienie za kolejny okres
+      items.push({
+        subscriptionId: sub.id,
+        providerCode: sub.providerCode,
+        providerName: sub.provider.name,
+        planName: sub.plan.planName,
+        pricePLN: price,
+        periodFrom: new Date(renewalDate),
+        periodTo,
+        pendingCharge: 0,
+        toPay: price,
+        chargeType: "renewal",
+      });
+    } else {
+      const chargeType = pendingCharge > 0 ? "upgrade_addon" : "renewal";
+      items.push({
+        subscriptionId: sub.id,
+        providerCode: sub.providerCode,
+        providerName: sub.provider.name,
+        planName: sub.plan.planName,
+        pendingPlanName: sub.pendingPlan?.planName ?? undefined,
+        pricePLN: price,
+        periodFrom: new Date(renewalDate),
+        periodTo,
+        pendingCharge,
+        toPay: price + pendingCharge,
+        chargeType,
+      });
+    }
   }
-  
-  const totalToPay = items.reduce((s, i) => s + i.pricePLN + i.pendingCharge, 0);
-  
+
+  const totalToPay = items.reduce((s, i) => s + i.toPay, 0);
+
   const periodStart = `${windowStart.getFullYear()}-${String(windowStart.getMonth() + 1).padStart(2, '0')}-${String(windowStart.getDate()).padStart(2, '0')}`;
   const periodEnd = `${windowEnd.getFullYear()}-${String(windowEnd.getMonth() + 1).padStart(2, '0')}-${String(windowEnd.getDate()).padStart(2, '0')}`;
   const period = `${periodStart}_${periodEnd}`;
 
-  
   return {
     billingDay: user.billingDay,
     billingDate: windowStart,

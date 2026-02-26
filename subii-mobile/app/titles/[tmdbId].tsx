@@ -283,6 +283,19 @@ export default function TitleScreen() {
       const ut = await api.get(`/api/user-title`, { params: { tmdbId } });
       setWatchedEpisodes(ut.data.episodes || []);
     }
+
+    // Sprawdź czy po zaznaczeniu sezonu wszystkie odcinki serialu są obejrzane
+    if (newWatched) {
+      const totalEpisodes = seasons.reduce((sum, s) => sum + s.episodes.length, 0);
+      const currentWatched = watchedEpisodes.length;
+      const addedCount = season.episodes.filter(
+        (ep: any) => !isEpisodeWatched(season.seasonNumber, ep.episodeNumber)
+      ).length;
+      const newWatchedCount = currentWatched + addedCount;
+      if (totalEpisodes > 0 && newWatchedCount >= totalEpisodes && !userTitleState.rating) {
+        setShowRatingModal(true);
+      }
+    }
   };
   const formatWatchedTime = () => {
     if (isMovie) {

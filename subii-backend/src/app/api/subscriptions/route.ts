@@ -155,6 +155,9 @@ export async function POST(req: Request) {
     nextRenewalDate.setMonth(nextRenewalDate.getMonth() + 1);
   }
 
+const finalPrice = priceOverridePLN || plan.pricePLN;
+  const paymentOption = _paymentOption || "next_billing";
+
   // Utwórz subskrypcję
   const subscription = await prisma.subscription.create({
     data: {
@@ -164,13 +167,12 @@ export async function POST(req: Request) {
       nextRenewalDate,
       priceOverridePLN: priceOverridePLN || null,
       status: "active",
+      // Jeśli user wybrał "zapłać później" — zaznacz że jest zaległa opłata do pobrania
+      pendingChargePLN: paymentOption === "next_billing" ? finalPrice : null,
     },
     include: { plan: true, provider: true },
   });
 
-  // Jeśli paymentOption === "now" – pobierz pełną cenę z portfela
-    // Płatność zostanie pobrana automatycznie w dniu rozliczeniowym
-  // Jeśli "next_billing" – nic nie pobieramy teraz, Subii finansuje
-
   return NextResponse.json(subscription);
+
 }

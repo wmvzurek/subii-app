@@ -22,16 +22,19 @@ export async function DELETE(
     return NextResponse.json({ error: "Subskrypcja nie znaleziona" }, { status: 404 });
   }
 
-  const activeUntil = new Date(subscription.nextRenewalDate);
+const activeUntil = new Date(subscription.nextRenewalDate);
   activeUntil.setDate(activeUntil.getDate() - 1);
   activeUntil.setHours(23, 59, 59, 999);
 
+  // Jeśli subskrypcja ma zaległą opłatę (dodana z opcją "zapłać później"),
+  // zachowaj pendingChargePLN — zostanie pobrana w najbliższym billingu
   await prisma.subscription.update({
     where: { id: subscriptionId },
     data: {
       status: "pending_cancellation",
       activeUntil,
       cancelledAt: new Date(),
+      // NIE czyścimy pendingChargePLN — jeśli istnieje, musi być pobrana
     }
   });
 
@@ -66,11 +69,23 @@ export async function PATCH(
     const newPlan = await prisma.plan.findUnique({ where: { id: body.planId } });
     if (!newPlan) return NextResponse.json({ error: "Plan nie znaleziony" }, { status: 404 });
 
+    const oldPrice = subscription.priceOverridePLN || subscription.plan.pricePLN;
+    const newPrice = newPlan.pricePLN;
+    const isUpgrade = newPrice > oldPrice;
+
+    let pendingChargePLN: number | null = null;
+    if (isUpgrade) {
+      const today = new Date();
+      const nextRenewal = new Date(subscription.nextRenewalDate);
+      const daysLeft = Math.max(1, Math.round((nextRenewal.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+      pendingChargePLN = Math.round(((newPrice - oldPrice) / 30) * daysLeft * 100) / 100;
+    }
+
     const updated = await prisma.subscription.update({
       where: { id: subscriptionId },
       data: {
         pendingPlanId: body.planId,
-        pendingChargePLN: null,
+        pendingChargePLN,
         status: "pending_change",
       },
       include: { plan: true, provider: true, pendingPlan: true },

@@ -187,7 +187,7 @@ const loadDiscovery = async () => {
                 {recommended.map((item) => (
                   <Pressable
                     key={item.id}
-                    onPress={() => router.push({ pathname: "/titles/[tmdbId]", params: { tmdbId: String(item.id), mediaType: item.mediaType } } as any)}
+                    onPress={() => router.push({ pathname: "/titles/[tmdbId]", params: { tmdbId: String(item.id), mediaType: item.mediaType === "tv" ? "tv" : "movie" } } as any)}
                     style={{ width: 110 }}
                   >
                     {item.posterUrl ? (
@@ -219,7 +219,7 @@ const loadDiscovery = async () => {
                 {newTitles.map((item) => (
                   <Pressable
                     key={item.id}
-                    onPress={() => router.push({ pathname: "/titles/[tmdbId]", params: { tmdbId: String(item.id), mediaType: item.mediaType } } as any)}
+                    onPress={() => router.push({ pathname: "/titles/[tmdbId]", params: { tmdbId: String(item.id), mediaType: item.mediaType === "tv" ? "tv" : "movie" } } as any)}
                     style={{ width: 110 }}
                   >
                     {item.posterUrl ? (
@@ -288,7 +288,7 @@ const loadDiscovery = async () => {
                 }
                 router.push({
                   pathname: "/titles/[tmdbId]",
-                  params: { tmdbId: String(item.id) }
+                  params: { tmdbId: String(item.id), mediaType: item.media_type }
                 } as any);
               }}
               style={{
