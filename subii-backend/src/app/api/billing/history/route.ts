@@ -14,7 +14,7 @@ export async function GET(req: Request) {
         items: true,
       },
       orderBy: { billingDate: "desc" },
-      take: 12, // ostatnie 12 miesięcy
+      take: 12,
     });
 
     return NextResponse.json({ history });

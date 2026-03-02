@@ -2,13 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendPushNotification } from "@/lib/notifications";
 
-/**
- * GET /api/cron/billing-reminders
- * Wywołuj codziennie o 10:00 (Vercel Cron lub zewnętrzny scheduler).
- * Sprawdza trzy przypadki i wysyła odpowiednie powiadomienia push.
- */
 export async function GET(req: NextRequest) {
-  // Zabezpieczenie — tylko wywołania z sekretnym kluczem
   const secret = req.headers.get("x-cron-secret");
   if (secret !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -18,7 +12,6 @@ export async function GET(req: NextRequest) {
   tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowDay = tomorrow.getDate();
 
-  // Zakres dat na jutro (od 00:00 do 23:59)
   const tomorrowStart = new Date(tomorrow);
   tomorrowStart.setHours(0, 0, 0, 0);
 
@@ -26,11 +19,6 @@ export async function GET(req: NextRequest) {
   tomorrowEnd.setHours(23, 59, 59, 999);
 
   let totalSent = 0;
-
-  // ─────────────────────────────────────────────
-  // BLOK 1 — Zbliżająca się płatność zbiorcza
-  // Szukamy userów których billingDay = jutro
-  // ─────────────────────────────────────────────
 
   const usersWithBillingTomorrow = await prisma.user.findMany({
     where: {
@@ -63,18 +51,15 @@ export async function GET(req: NextRequest) {
 
     await sendPushNotification({
       pushToken: user.pushToken,
-      title: "Zbliża się płatność zbiorcza 💳",
-      body: `Jutro zostanie pobrana płatność za Twoje subskrypcje — łącznie ${total.toFixed(2)} zł`,
+      title: "Płatność",
+      body: `Jutro zostanie pobrana płatność za Twoje subskrypcje — łącznie ${total.toFixed(
+        2
+      )} zł`,
       data: { type: "billing_reminder" },
     });
 
     totalSent++;
   }
-
-  // ─────────────────────────────────────────────
-  // BLOK 2 — Jutro wygasa dostęp po rezygnacji
-  // Subskrypcje z pending_cancellation gdzie activeUntil = jutro
-  // ─────────────────────────────────────────────
 
   const cancellingTomorrow = await prisma.subscription.findMany({
     where: {
@@ -95,18 +80,13 @@ export async function GET(req: NextRequest) {
 
     await sendPushNotification({
       pushToken: sub.user.pushToken,
-      title: "Jutro wygasa dostęp 📺",
+      title: "Wygaśnięcie dostępu",
       body: `Dostęp do ${sub.provider.name} wygaśnie jutro. Możesz reaktywować subskrypcję w aplikacji.`,
       data: { type: "cancellation_reminder", subscriptionId: sub.id },
     });
 
     totalSent++;
   }
-
-  // ─────────────────────────────────────────────
-  // BLOK 3 — Jutro wchodzi w życie nowy plan
-  // Subskrypcje z pending_change gdzie nextRenewalDate = jutro
-  // ─────────────────────────────────────────────
 
   const changingTomorrow = await prisma.subscription.findMany({
     where: {
@@ -130,7 +110,7 @@ export async function GET(req: NextRequest) {
 
     await sendPushNotification({
       pushToken: sub.user.pushToken,
-      title: "Jutro zmiana planu 🔄",
+      title: "Zmiana planu",
       body: `Jutro w ${sub.provider.name} zacznie obowiązywać ${newPlanName}.`,
       data: { type: "plan_change_reminder", subscriptionId: sub.id },
     });

@@ -1,30 +1,42 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getUserFromRequest } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
   const userId = await getUserFromRequest(req);
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const { paymentMethodId } = await req.json();
 
-  // Walidacja paymentMethodId
   if (!paymentMethodId || typeof paymentMethodId !== "string") {
-    return NextResponse.json({ error: "Brak identyfikatora metody płatności" }, { status: 400 });
-  }
-  if (!paymentMethodId.startsWith("pm_")) {
-    return NextResponse.json({ error: "Nieprawidłowy identyfikator metody płatności" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Brak identyfikatora metody płatności" },
+      { status: 400 }
+    );
   }
 
-  // Odłącz starą kartę jeśli istnieje
-  const existingUser = await prisma.user.findUnique({ where: { id: userId } });
-  const existingMethodId = (existingUser as Record<string, unknown>)?.stripePaymentMethodId as string | null;
+  if (!paymentMethodId.startsWith("pm_")) {
+    return NextResponse.json(
+      { error: "Nieprawidłowy identyfikator metody płatności" },
+      { status: 400 }
+    );
+  }
+
+  const existingUser = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  const existingMethodId = (existingUser as Record<string, unknown>)
+    ?.stripePaymentMethodId as string | null;
+
   if (existingMethodId) {
     try {
-     await stripe.paymentMethods.detach(existingMethodId);
+      await stripe.paymentMethods.detach(existingMethodId);
     } catch {}
   }
 

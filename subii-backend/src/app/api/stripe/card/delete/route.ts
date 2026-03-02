@@ -1,18 +1,24 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getUserFromRequest } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
   const userId = await getUserFromRequest(req);
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
 
-  // Sprawdź aktywne subskrypcje
+  if (!user) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
   const activeSubscriptions = await prisma.subscription.findMany({
     where: {
       userId,
@@ -22,15 +28,22 @@ export async function POST(req: Request) {
   });
 
   if (activeSubscriptions.length > 0) {
-    const names = activeSubscriptions.map((s) => s.provider.name).join(", ");
-    return NextResponse.json({
-      error: "HAS_ACTIVE_SUBSCRIPTIONS",
-      message: `Masz aktywne subskrypcje: ${names}. Aby usunąć kartę, najpierw dodaj nową metodę płatności.`,
-      count: activeSubscriptions.length,
-    }, { status: 400 });
+    const names = activeSubscriptions
+      .map((s) => s.provider.name)
+      .join(", ");
+
+    return NextResponse.json(
+      {
+        error: "HAS_ACTIVE_SUBSCRIPTIONS",
+        message: `Masz aktywne subskrypcje: ${names}. Aby usunąć kartę, najpierw dodaj nową metodę płatności.`,
+        count: activeSubscriptions.length,
+      },
+      { status: 400 }
+    );
   }
 
-  const stripePaymentMethodId = (user as Record<string, unknown>).stripePaymentMethodId as string | null;
+  const stripePaymentMethodId = (user as Record<string, unknown>)
+    .stripePaymentMethodId as string | null;
 
   if (stripePaymentMethodId) {
     try {

@@ -15,7 +15,7 @@ app.prepare().then(() => {
     const parsedUrl = parse(req.url!, true);
     handle(req, res, parsedUrl);
   }).listen(3000, () => {
-    console.log("🚀 Server uruchomiony na http://localhost:3000");
-    console.log("⏰ Cron jobs aktywne");
+    console.log("Server uruchomiony na http://localhost:3000");
+    console.log("Cron jobs aktywne");
   });
 });

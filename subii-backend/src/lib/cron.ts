@@ -1,13 +1,11 @@
 import cron from "node-cron";
 import { generateAndSaveReport } from "./report";
 import { sendReportEmail } from "./email";
-
 import { prisma } from "@/lib/prisma";
 
 export function startCronJobs() {
-  // Odpala się codziennie o 00:00
   cron.schedule("0 0 * * *", async () => {
-    console.log("⏰ [CRON] Start — sprawdzam użytkowników do rozliczenia...");
+    console.log("[CRON] Start — sprawdzam użytkowników do rozliczenia...");
 
     const today = new Date();
     const todayDay = today.getDate();
@@ -20,11 +18,15 @@ export function startCronJobs() {
         },
       });
 
-      console.log(`[CRON] Znaleziono ${users.length} userów (dzień rozliczeniowy: ${todayDay})`);
+      console.log(
+        `[CRON] Znaleziono ${users.length} userów (dzień rozliczeniowy: ${todayDay})`
+      );
 
       for (const user of users) {
         try {
-          console.log(`[CRON] Generuję raport dla userId=${user.id} (${user.email})`);
+          console.log(
+            `[CRON] Generuję raport dla userId=${user.id} (${user.email})`
+          );
 
           const { pdfBase64, period, periodFrom, periodTo, reportId } =
             await generateAndSaveReport(user.id);
@@ -43,21 +45,25 @@ export function startCronJobs() {
               where: { id: reportId },
               data: { sentAt: new Date() },
             });
-            console.log(`✅ [CRON] Raport wysłany do ${user.email}`);
+            console.log(`[CRON] Raport wysłany do ${user.email}`);
           } else {
-            console.log(`❌ [CRON] Błąd wysyłki do ${user.email}`);
+            console.log(`[CRON] Błąd wysyłki do ${user.email}`);
           }
         } catch (err: unknown) {
-          const message = err instanceof Error ? err.message : "Nieznany błąd";
-          console.error(`❌ [CRON] Błąd dla userId=${user.id}:`, message);
+          const message =
+            err instanceof Error ? err.message : "Nieznany błąd";
+          console.error(
+            `[CRON] Błąd dla userId=${user.id}:`,
+            message
+          );
         }
       }
 
-      console.log("✅ [CRON] Zakończono przetwarzanie");
+      console.log("[CRON] Zakończono przetwarzanie");
     } catch (err) {
-      console.error("❌ [CRON] Błąd główny:", err);
+      console.error("[CRON] Błąd główny:", err);
     }
   });
 
-  console.log("✅ [CRON] Zaplanowane zadania uruchomione");
+  console.log("[CRON] Zaplanowane zadania uruchomione");
 }

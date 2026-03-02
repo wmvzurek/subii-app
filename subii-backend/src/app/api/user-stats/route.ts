@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
-
 import { prisma } from "@/lib/prisma";
 
 export async function GET(req: NextRequest) {
   const userId = await getUserFromRequest(req);
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-  // Suma minut dla filmów (watched = true)
   const watchedMovies = await prisma.userTitle.findMany({
     where: { userId, watched: true },
     include: { title: { select: { runtime: true } } },
@@ -19,7 +19,6 @@ export async function GET(req: NextRequest) {
 
   const movieCount = watchedMovies.length;
 
-  // Suma minut dla seriali (z tabeli user_episodes)
   const episodes = await prisma.userEpisode.findMany({
     where: { userId },
     select: { durationMinutes: true },

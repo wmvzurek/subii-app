@@ -2,11 +2,8 @@ import { NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
 import { generateAndSaveReport } from "@/lib/report";
 import { sendReportEmail } from "@/lib/email";
-
 import { prisma } from "@/lib/prisma";
 
-// POST /api/reports/generate
-// Body: { sendEmail?: boolean }
 export async function POST(req: Request) {
   const userId = await getUserFromRequest(req);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

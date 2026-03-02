@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
-
 import { prisma } from "@/lib/prisma";
 
-// GET /api/reports/:id
-// Zwraca PDF jako base64
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

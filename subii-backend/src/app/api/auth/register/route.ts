@@ -1,24 +1,21 @@
 import { NextResponse } from "next/server";
 import { hashPassword, generateToken } from "@/lib/auth";
 import { sendVerificationEmail } from "@/lib/email";
-
 import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
-  
   try {
     const body = await req.json();
-    
-    const { 
-      email: rawEmail, 
-      password, 
-      firstName: rawFirstName, 
-      lastName: rawLastName, 
-      phone: rawPhone, 
-      dateOfBirth 
+
+    const {
+      email: rawEmail,
+      password,
+      firstName: rawFirstName,
+      lastName: rawLastName,
+      phone: rawPhone,
+      dateOfBirth,
     } = body;
 
-    // Normalizacja danych wejściowych
     const email = rawEmail?.trim().toLowerCase();
     const firstName = rawFirstName?.trim();
     const lastName = rawLastName?.trim();
@@ -31,8 +28,6 @@ export async function POST(req: Request) {
       );
     }
 
-
-    // Walidacja emaila
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return NextResponse.json(
@@ -41,30 +36,49 @@ export async function POST(req: Request) {
       );
     }
 
-    // Walidacja długości pól — dodaj to tutaj
     if (email.length > 255) {
-      return NextResponse.json({ error: "Email jest zbyt długi (max 255 znaków)" }, { status: 400 });
-    }
-    if (firstName.length < 2 || firstName.length > 50) {
-      return NextResponse.json({ error: "Imię musi mieć od 2 do 50 znaków" }, { status: 400 });
-    }
-    if (lastName.length < 2 || lastName.length > 50) {
-      return NextResponse.json({ error: "Nazwisko musi mieć od 2 do 50 znaków" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Email jest zbyt długi (max 255 znaków)" },
+        { status: 400 }
+      );
     }
 
-     // Walidacja telefonu
+    if (firstName.length < 2 || firstName.length > 50) {
+      return NextResponse.json(
+        { error: "Imię musi mieć od 2 do 50 znaków" },
+        { status: 400 }
+      );
+    }
+
+    if (lastName.length < 2 || lastName.length > 50) {
+      return NextResponse.json(
+        { error: "Nazwisko musi mieć od 2 do 50 znaków" },
+        { status: 400 }
+      );
+    }
+
     const cleanedPhone = phone.replace(/[\s\-\+]/g, "");
     if (!/^[0-9]{9}$/.test(cleanedPhone)) {
-      return NextResponse.json({ error: "Numer telefonu musi mieć 9 cyfr" }, { status: 400 });
-    }
-    if (!/^[4-9]/.test(cleanedPhone)) {
-      return NextResponse.json({ error: "Podaj prawidłowy polski numer telefonu" }, { status: 400 });
-    }
-    if (/^(.)\1{8}$/.test(cleanedPhone)) {
-      return NextResponse.json({ error: "Podaj prawidłowy numer telefonu" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Numer telefonu musi mieć 9 cyfr" },
+        { status: 400 }
+      );
     }
 
-    // Walidacja hasła
+    if (!/^[4-9]/.test(cleanedPhone)) {
+      return NextResponse.json(
+        { error: "Podaj prawidłowy polski numer telefonu" },
+        { status: 400 }
+      );
+    }
+
+    if (/^(.)\1{8}$/.test(cleanedPhone)) {
+      return NextResponse.json(
+        { error: "Podaj prawidłowy numer telefonu" },
+        { status: 400 }
+      );
+    }
+
     if (password.length < 8) {
       return NextResponse.json(
         { error: "Hasło musi mieć min. 8 znaków" },
@@ -100,12 +114,11 @@ export async function POST(req: Request) {
       );
     }
 
-    // Walidacja wieku (minimum 13 lat)
     const birthDate = new Date(dateOfBirth);
     const today = new Date();
     const age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
-    
+
     let actualAge = age;
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
       actualAge = age - 1;
@@ -131,31 +144,31 @@ export async function POST(req: Request) {
 
     const passwordHash = await hashPassword(password);
 
-  const user = await prisma.user.create({
+    const user = await prisma.user.create({
       data: {
         email,
         passwordHash,
         firstName,
         lastName,
         dateOfBirth: new Date(dateOfBirth),
-         phone: cleanedPhone,
+        phone: cleanedPhone,
         emailVerified: false,
       },
     });
 
-
     const token = generateToken({ userId: user.id, email: user.email });
-    const verificationToken = generateToken({ 
-      userId: user.id, 
+
+    const verificationToken = generateToken({
+      userId: user.id,
       email: user.email,
-      type: 'verification'
+      type: "verification",
     });
 
-    // Wyślij email weryfikacyjny (nie blokuj rejestracji jeśli się nie powiedzie)
     await sendVerificationEmail(email, firstName, verificationToken);
 
     return NextResponse.json({
-      message: "Konto utworzone. Sprawdź swoją skrzynkę email aby potwierdzić adres.",
+      message:
+        "Konto utworzone. Sprawdź swoją skrzynkę email aby potwierdzić adres.",
       token,
       user: {
         id: user.id,

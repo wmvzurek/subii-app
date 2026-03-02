@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { getUserFromRequest, generateToken, verifyPassword } from "@/lib/auth";
 import { sendVerificationEmail } from "@/lib/email";
-
 import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
@@ -18,7 +17,7 @@ export async function POST(req: Request) {
     }
 
     if (!currentPassword) {
-      return NextResponse.json({ error: "Podaj obecne hasło aby zmienić email" }, { status: 400 });
+      return NextResponse.json({ error: "Podaj obecne hasło" }, { status: 400 });
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -26,7 +25,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Nieprawidłowy format adresu e-mail" }, { status: 400 });
     }
 
-    // Sprawdź obecne hasło
     const currentUser = await prisma.user.findUnique({ where: { id: userId } });
     if (!currentUser) {
       return NextResponse.json({ error: "Użytkownik nie istnieje" }, { status: 404 });
@@ -37,7 +35,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Nieprawidłowe hasło" }, { status: 400 });
     }
 
-    // Normalizacja emaila
     const normalizedEmail = newEmail.toLowerCase().trim();
 
     const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });

@@ -1,20 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
-
 import { prisma } from "@/lib/prisma";
 
-// GET /api/user-title?tmdbId=123
-// Zwraca stan watched, favorite i listę obejrzanych odcinków
 export async function GET(req: NextRequest) {
   const userId = await getUserFromRequest(req);
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const { searchParams } = new URL(req.url);
   const tmdbId = Number(searchParams.get("tmdbId"));
-  if (!tmdbId) return NextResponse.json({ error: "tmdbId required" }, { status: 400 });
+
+  if (!tmdbId) {
+    return NextResponse.json({ error: "tmdbId required" }, { status: 400 });
+  }
 
   const title = await prisma.title.findUnique({ where: { tmdbId } });
-  if (!title) return NextResponse.json({ watched: false, favorite: false, episodes: [] });
+
+  if (!title) {
+    return NextResponse.json({
+      watched: false,
+      favorite: false,
+      episodes: [],
+    });
+  }
 
   const userTitle = await prisma.userTitle.findUnique({
     where: { userId_titleId: { userId, titleId: title.id } },
@@ -33,48 +42,59 @@ export async function GET(req: NextRequest) {
   });
 }
 
-// PATCH /api/user-title
-// Body: { tmdbId, mediaType, titlePL, titleOriginal, year, posterUrl, genres, watched?, favorite? }
 export async function PATCH(req: NextRequest) {
   const userId = await getUserFromRequest(req);
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const body = await req.json();
-  const { tmdbId, mediaType, titlePL, titleOriginal, year, posterUrl, genres, watched, favorite } = body;
+  const {
+    tmdbId,
+    mediaType,
+    titlePL,
+    titleOriginal,
+    year,
+    posterUrl,
+    genres,
+    watched,
+    favorite,
+  } = body;
 
-  if (!tmdbId) return NextResponse.json({ error: "tmdbId required" }, { status: 400 });
+  if (!tmdbId) {
+    return NextResponse.json({ error: "tmdbId required" }, { status: 400 });
+  }
 
-  // Walidacja tmdbId
   const parsedTmdbId = Number(tmdbId);
   if (isNaN(parsedTmdbId) || parsedTmdbId <= 0) {
     return NextResponse.json({ error: "Nieprawidłowe tmdbId" }, { status: 400 });
   }
 
-  // Walidacja ratingu
   if (body.rating !== undefined && body.rating !== null) {
     const rating = Number(body.rating);
     if (isNaN(rating) || rating < 1 || rating > 10) {
-      return NextResponse.json({ error: "Ocena musi być liczbą między 1 a 10" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Ocena musi być liczbą między 1 a 10" },
+        { status: 400 }
+      );
     }
   }
 
-  // Upewnij się że tytuł istnieje w bazie (upsert)
-  // PO:
-const title = await prisma.title.upsert({
-  where: { tmdbId },
-  update: {
-    ...(body.runtime !== undefined && { runtime: body.runtime }),
-  },
-  create: {
-    tmdbId,
-    titlePL: titlePL || "",
-    titleOriginal: titleOriginal || "",
-    year: year || null,
-    posterUrl: posterUrl || null,
-    genres: genres || "[]",
-    runtime: body.runtime || null,
-  },
-});
+  const title = await prisma.title.upsert({
+    where: { tmdbId },
+    update: {
+      ...(body.runtime !== undefined && { runtime: body.runtime }),
+    },
+    create: {
+      tmdbId,
+      titlePL: titlePL || "",
+      titleOriginal: titleOriginal || "",
+      year: year || null,
+      posterUrl: posterUrl || null,
+      genres: genres || "[]",
+      runtime: body.runtime || null,
+    },
+  });
 
   const data: Record<string, boolean | number | Date> = { updatedAt: new Date() };
   if (watched !== undefined) data.watched = watched;
@@ -92,5 +112,8 @@ const title = await prisma.title.upsert({
     },
   });
 
-  return NextResponse.json({ watched: userTitle.watched, favorite: userTitle.favorite });
+  return NextResponse.json({
+    watched: userTitle.watched,
+    favorite: userTitle.favorite,
+  });
 }

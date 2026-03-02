@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
-
 import { prisma } from "@/lib/prisma";
 
-// GET /api/reports
-// Zwraca listę raportów użytkownika (bez pdfBase64 — tylko metadane)
 export async function GET(req: Request) {
   const userId = await getUserFromRequest(req);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

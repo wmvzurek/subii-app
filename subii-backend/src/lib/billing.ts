@@ -22,9 +22,6 @@ export type BillingPreview = {
   totalToPay: number;
 };
 
-/**
- * Oblicza okno rozliczeniowe i które renewale w nim wypadają.
- */
 export function getBillingWindow(billingDay: number, referenceDate: Date = new Date()) {
   const now = new Date(referenceDate);
   const currentMonthBilling = new Date(now.getFullYear(), now.getMonth(), billingDay);
@@ -45,9 +42,6 @@ export function getBillingWindow(billingDay: number, referenceDate: Date = new D
   return { windowStart, windowEnd };
 }
 
-/**
- * Dla danej subskrypcji oblicza datę jej renewalu w oknie rozliczeniowym.
- */
 export function getRenewalInWindow(
   renewalDay: number,
   windowStart: Date,
@@ -68,9 +62,6 @@ export function getRenewalInWindow(
   return null;
 }
 
-/**
- * Główna funkcja – generuje podgląd następnej płatności zbiorczej.
- */
 export async function calculateBillingPreview(userId: number): Promise<BillingPreview | null> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -89,8 +80,6 @@ export async function calculateBillingPreview(userId: number): Promise<BillingPr
   const items: BillingPreviewItem[] = [];
 
   for (const sub of subscriptions) {
-
-    // ── ANULOWANE ──
     if (sub.status === "pending_cancellation") {
       const activeUntil = sub.activeUntil ? new Date(sub.activeUntil) : null;
       const renewalDate = new Date(sub.nextRenewalDate);
@@ -100,11 +89,13 @@ export async function calculateBillingPreview(userId: number): Promise<BillingPr
           const price = sub.priceOverridePLN || sub.plan.pricePLN;
           const cycle = sub.plan.cycle;
           const periodTo = new Date(renewalDate);
+
           if (cycle === "yearly") {
             periodTo.setFullYear(periodTo.getFullYear() + 1);
           } else {
             periodTo.setMonth(periodTo.getMonth() + 1);
           }
+
           items.push({
             subscriptionId: sub.id,
             providerCode: sub.providerCode,
@@ -122,16 +113,16 @@ export async function calculateBillingPreview(userId: number): Promise<BillingPr
       continue;
     }
 
-    // ── AKTYWNE / PENDING_CHANGE ──
     const renewalDate = new Date(sub.nextRenewalDate);
     if (renewalDate < windowStart || renewalDate >= windowEnd) continue;
 
-    const effectivePlan = (sub.status === "pending_change" && sub.pendingPlan)
-      ? sub.pendingPlan
-      : sub.plan;
+    const effectivePlan =
+      sub.status === "pending_change" && sub.pendingPlan ? sub.pendingPlan : sub.plan;
+
     const price = sub.priceOverridePLN || effectivePlan.pricePLN;
     const cycle = effectivePlan.cycle;
     const periodTo = new Date(renewalDate);
+
     if (cycle === "yearly") {
       periodTo.setFullYear(periodTo.getFullYear() + 1);
     } else {
@@ -140,6 +131,7 @@ export async function calculateBillingPreview(userId: number): Promise<BillingPr
 
     const pendingCharge = sub.pendingChargePLN || 0;
     const chargeType = pendingCharge > 0 ? "upgrade_addon" : "renewal";
+
     items.push({
       subscriptionId: sub.id,
       providerCode: sub.providerCode,
@@ -157,8 +149,16 @@ export async function calculateBillingPreview(userId: number): Promise<BillingPr
 
   const totalToPay = items.reduce((s, i) => s + i.toPay, 0);
 
-  const periodStart = `${windowStart.getFullYear()}-${String(windowStart.getMonth() + 1).padStart(2, "0")}-${String(windowStart.getDate()).padStart(2, "0")}`;
-  const periodEnd = `${windowEnd.getFullYear()}-${String(windowEnd.getMonth() + 1).padStart(2, "0")}-${String(windowEnd.getDate()).padStart(2, "0")}`;
+  const periodStart = `${windowStart.getFullYear()}-${String(windowStart.getMonth() + 1).padStart(
+    2,
+    "0"
+  )}-${String(windowStart.getDate()).padStart(2, "0")}`;
+
+  const periodEnd = `${windowEnd.getFullYear()}-${String(windowEnd.getMonth() + 1).padStart(
+    2,
+    "0"
+  )}-${String(windowEnd.getDate()).padStart(2, "0")}`;
+
   const period = `${periodStart}_${periodEnd}`;
 
   return {
@@ -170,9 +170,6 @@ export async function calculateBillingPreview(userId: number): Promise<BillingPr
   };
 }
 
-/**
- * Oblicza koszt dodania nowej subskrypcji opcją "teraz".
- */
 export function calculateImmediateCost(
   pricePLN: number,
   renewalDay: number,
@@ -196,9 +193,6 @@ export function calculateImmediateCost(
   };
 }
 
-/**
- * Oblicza koszt upgrade'u planu.
- */
 export function calculateUpgradeCost(
   oldPricePLN: number,
   newPricePLN: number,
@@ -214,8 +208,8 @@ export function calculateUpgradeCost(
     1,
     Math.round((nextRenewalDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
   );
-  const daysInCycle = 30;
 
+  const daysInCycle = 30;
   const dailyDiff = (newPricePLN - oldPricePLN) / daysInCycle;
   const diffToPayNow = Math.round(dailyDiff * daysRemaining * 100) / 100;
   const creditAfterUpgrade = Math.round((newPricePLN - diffToPayNow) * 100) / 100;

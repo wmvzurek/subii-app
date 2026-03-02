@@ -1,18 +1,24 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getUserFromRequest } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
   const userId = await getUserFromRequest(req);
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
 
-  // Znajdź lub stwórz customera w Stripe
+  if (!user) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
   let stripeCustomerId = user.stripeCustomerId;
 
   if (!stripeCustomerId) {
@@ -20,7 +26,9 @@ export async function POST(req: Request) {
       email: user.email,
       name: `${user.firstName} ${user.lastName}`,
     });
+
     stripeCustomerId = customer.id;
+
     await prisma.user.update({
       where: { id: userId },
       data: { stripeCustomerId: customer.id },
@@ -32,5 +40,7 @@ export async function POST(req: Request) {
     payment_method_types: ["card"],
   });
 
-  return NextResponse.json({ clientSecret: setupIntent.client_secret });
+  return NextResponse.json({
+    clientSecret: setupIntent.client_secret,
+  });
 }

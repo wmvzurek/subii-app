@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
 import axios from "axios";
-
 import { prisma } from "@/lib/prisma";
 
 export async function GET(req: NextRequest) {
   const userId = await getUserFromRequest(req);
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-  // Pobierz wszystkie tytuły użytkownika (obejrzane LUB ulubione)
   const { searchParams } = new URL(req.url);
   const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
   const limit = 30;
@@ -33,24 +33,38 @@ export async function GET(req: NextRequest) {
     }),
   ]);
 
-  // Pobierz wszystkie obejrzane odcinki użytkownika (z durationMinutes do liczenia czasu)
   const userEpisodes = await prisma.userEpisode.findMany({
     where: { userId },
-    select: { tmdbSeriesId: true, seasonNumber: true, episodeNumber: true, seriesTitle: true, durationMinutes: true },
+    select: {
+      tmdbSeriesId: true,
+      seasonNumber: true,
+      episodeNumber: true,
+      seriesTitle: true,
+      durationMinutes: true,
+    },
   });
 
-  // Zbierz tmdbId seriali które mają odcinki ale NIE mają wpisu w UserTitle
-  const seriesIdsFromEpisodes = [...new Set(userEpisodes.map(e => e.tmdbSeriesId))];
-  const existingTitleIds = new Set(userTitles.map(ut => ut.title.tmdbId));
-  const missingSeriesIds = seriesIdsFromEpisodes.filter(id => !existingTitleIds.has(id));
+  const seriesIdsFromEpisodes = [
+    ...new Set(userEpisodes.map((e) => e.tmdbSeriesId)),
+  ];
 
-  // Pobierz tytuły dla seriali które mają odcinki ale brak w UserTitle
-  const missingTitles = missingSeriesIds.length > 0
-    ? await prisma.title.findMany({ where: { tmdbId: { in: missingSeriesIds } } })
-    : [];
+  const existingTitleIds = new Set(userTitles.map((ut) => ut.title.tmdbId));
+  const missingSeriesIds = seriesIdsFromEpisodes.filter(
+    (id) => !existingTitleIds.has(id)
+  );
 
-  // Grupuj odcinki po serialu
-  const episodesBySeriesId: Record<number, { season: number; episode: number }[]> = {};
+  const missingTitles =
+    missingSeriesIds.length > 0
+      ? await prisma.title.findMany({
+          where: { tmdbId: { in: missingSeriesIds } },
+        })
+      : [];
+
+  const episodesBySeriesId: Record<
+    number,
+    { season: number; episode: number }[]
+  > = {};
+
   for (const ep of userEpisodes) {
     if (!episodesBySeriesId[ep.tmdbSeriesId]) {
       episodesBySeriesId[ep.tmdbSeriesId] = [];
@@ -85,30 +99,35 @@ export async function GET(req: NextRequest) {
 
   for (const ut of userTitles) {
     const t = ut.title;
-    // Rozróżnienie film/serial — najpierw po polu mediaType, potem po odcinkach
+
     const isTVTitle =
       t.mediaType === "tv" ||
       episodesBySeriesId[t.tmdbId] !== undefined ||
-      userEpisodes.some(e => e.tmdbSeriesId === t.tmdbId);
-    
+      userEpisodes.some((e) => e.tmdbSeriesId === t.tmdbId);
 
     if (isTVTitle || episodesBySeriesId[t.tmdbId]) {
-      // Serial
       const watched = episodesBySeriesId[t.tmdbId] || [];
       const watchedCount = watched.length;
 
-      // Pobierz łączną liczbę odcinków z TMDB
       let totalEpisodes = 0;
       try {
-        const tvRes = await axios.get(`https://api.themoviedb.org/3/tv/${t.tmdbId}`, {
-          params: { api_key: process.env.TMDB_API_KEY, language: "pl-PL" },
-        });
+        const tvRes = await axios.get(
+          `https://api.themoviedb.org/3/tv/${t.tmdbId}`,
+          {
+            params: {
+              api_key: process.env.TMDB_API_KEY,
+              language: "pl-PL",
+            },
+          }
+        );
         totalEpisodes = tvRes.data.number_of_episodes || 0;
       } catch {
         totalEpisodes = 0;
       }
 
-      let status: "completed" | "in_progress" | "favorite_only" = "favorite_only";
+      let status: "completed" | "in_progress" | "favorite_only" =
+        "favorite_only";
+
       if (watchedCount > 0 && totalEpisodes > 0 && watchedCount >= totalEpisodes) {
         status = "completed";
       } else if (watchedCount > 0) {
@@ -127,7 +146,6 @@ export async function GET(req: NextRequest) {
         rating: ut.rating,
       });
     } else {
-      // Film
       movies.push({
         tmdbId: t.tmdbId,
         titlePL: t.titlePL,
@@ -140,22 +158,28 @@ export async function GET(req: NextRequest) {
     }
   }
 
- // Dodaj seriale które mają odcinki ale brak w UserTitle (nie są ulubione/watched na poziomie serialu)
   for (const t of missingTitles) {
     const watched = episodesBySeriesId[t.tmdbId] || [];
     const watchedCount = watched.length;
 
     let totalEpisodes = 0;
     try {
-      const tvRes = await axios.get(`https://api.themoviedb.org/3/tv/${t.tmdbId}`, {
-        params: { api_key: process.env.TMDB_API_KEY, language: "pl-PL" },
-      });
+      const tvRes = await axios.get(
+        `https://api.themoviedb.org/3/tv/${t.tmdbId}`,
+        {
+          params: {
+            api_key: process.env.TMDB_API_KEY,
+            language: "pl-PL",
+          },
+        }
+      );
       totalEpisodes = tvRes.data.number_of_episodes || 0;
     } catch {
       totalEpisodes = 0;
     }
 
     let status: "completed" | "in_progress" | "favorite_only" = "in_progress";
+
     if (watchedCount > 0 && totalEpisodes > 0 && watchedCount >= totalEpisodes) {
       status = "completed";
     }
@@ -173,7 +197,7 @@ export async function GET(req: NextRequest) {
     });
   }
 
-return NextResponse.json({
+  return NextResponse.json({
     movies,
     series,
     pagination: {

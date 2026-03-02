@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { getUserFromRequest, hashPassword, verifyPassword } from "@/lib/auth";
-
 import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
@@ -21,19 +20,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Użytkownik nie istnieje" }, { status: 404 });
     }
 
-    // Weryfikuj obecne hasło
     const isCurrentValid = await verifyPassword(currentPassword, user.passwordHash);
     if (!isCurrentValid) {
       return NextResponse.json({ error: "Obecne hasło jest nieprawidłowe" }, { status: 400 });
     }
 
-    // Sprawdź czy nowe hasło różni się od obecnego
     const isSamePassword = await verifyPassword(newPassword, user.passwordHash);
     if (isSamePassword) {
       return NextResponse.json({ error: "Nowe hasło musi być inne niż obecne" }, { status: 400 });
     }
 
-    // Walidacja nowego hasła
     if (newPassword.length < 8) {
       return NextResponse.json({ error: "Hasło musi mieć min. 8 znaków" }, { status: 400 });
     }

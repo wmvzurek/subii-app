@@ -57,7 +57,6 @@ export async function GET() {
         rating: t.vote_average,
       }));
 
-    // Mieszamy filmy i seriale i bierzemy 10
     const mixed: typeof movies = [];
     let mi = 0, ti = 0;
     while (mixed.length < 10 && (mi < movies.length || ti < tvShows.length)) {

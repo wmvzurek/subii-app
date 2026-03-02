@@ -7,9 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ============================================
-// UŻYTKOWNIK
-// ============================================
 model User {
   id            Int            @id @default(autoincrement())
   email         String         @unique
@@ -17,18 +14,18 @@ model User {
   firstName     String
   lastName      String
   dateOfBirth   DateTime
-  phone         String         // ← ZMIENIONE: usunięto ? (teraz obowiązkowe)
+  phone         String
   emailVerified Boolean        @default(false)
-  billingDay    Int?    // dzień miesiąca 1-28, null = nieustalony
+  billingDay    Int?
   tokenVersion  Int            @default(0)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   
   subscriptions Subscription[]
-userTitles    UserTitle[]
-billingCycles BillingCycle[]
-paymentReports PaymentReport[]
-userEpisodes  UserEpisode[]
+  userTitles    UserTitle[]
+  billingCycles BillingCycle[]
+  paymentReports PaymentReport[]
+  userEpisodes  UserEpisode[]
 
   stripeCustomerId      String?
   stripePaymentMethodId String?
@@ -37,15 +34,11 @@ userEpisodes  UserEpisode[]
   cardExpMonth          Int?
   cardExpYear           Int?
   
-  pushToken             String?   // Expo push token
+  pushToken             String?
 
   @@map("users")
 }
 
-
-// ============================================
-// PLATFORMY I PLANY
-// ============================================
 model Provider {
   code          String         @id
   name          String
@@ -77,21 +70,17 @@ model Plan {
   @@map("plans")
 }
 
-// ============================================
-// SUBSKRYPCJE UŻYTKOWNIKA
-// ============================================
 model Subscription {
   id               Int       @id @default(autoincrement())
   userId           Int
   providerCode     String
   planId           Int
-  pendingPlanId    Int?      // nowy plan czekający na wejście w życie
+  pendingPlanId    Int?
   priceOverridePLN Float?
-  nextRenewalDate DateTime  // najbliższa data odnowienia (miesięczne i roczne)
+  nextRenewalDate  DateTime
   status           String    @default("active")
-  // active | cancelled | pending_change | pending_cancellation
-  activeUntil      DateTime? // data do kiedy działa przy pending_cancellation
-  pendingChargePLN Float?    // dopłata proporcjonalna za upgrade, doliczana do najbliższego billingu
+  activeUntil      DateTime?
+  pendingChargePLN Float?
   cancelledAt      DateTime?
   createdAt        DateTime  @default(now())
 
@@ -104,9 +93,6 @@ model Subscription {
   @@map("subscriptions")
 }
 
-// ============================================
-// FILMY/SERIALE (CACHE Z TMDB)
-// ============================================
 model Title {
   id             Int            @id @default(autoincrement())
   tmdbId         Int            @unique
@@ -115,11 +101,11 @@ model Title {
   titleOriginal  String
   year           Int?
   runtime        Int?
-  mediaType      String?        // "movie" | "tv"
+  mediaType      String?
   plot           String?
   posterUrl      String?
-  genres         String         // JSON array jako string
-  keywords       String?        // JSON array jako string
+  genres         String
+  keywords       String?
   createdAt      DateTime       @default(now())
   
   availability   Availability[]
@@ -132,9 +118,9 @@ model Availability {
   id           Int      @id @default(autoincrement())
   titleId      Int
   providerCode String
-  offerType    String   // "subscription", "rent", "buy"
+  offerType    String
   pricePLN     Float?
-  quality      String?  // "SD", "HD", "4K"
+  quality      String?
   link         String?
   region       String   @default("PL")
   lastSeenAt   DateTime @default(now())
@@ -144,15 +130,12 @@ model Availability {
   @@map("availability")
 }
 
-// ============================================
-// ULUBIONE / OBEJRZANE
-// ============================================
 model UserTitle {
   userId    Int
   titleId   Int
   favorite  Boolean  @default(false)
   watched   Boolean  @default(false)
-  rating    Int?     // 1-10
+  rating    Int?
   updatedAt DateTime @default(now()) @updatedAt
   
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -162,18 +145,13 @@ model UserTitle {
   @@map("user_titles")
 }
 
-
-// ============================================
-// HISTORIA OGLĄDANIA
-// ============================================
-
 model BillingCycle {
   id          String             @id @default(cuid())
   userId      Int
-  period      String             // "2026-03"
-  billingDate DateTime           // konkretna data płatności np. 2026-03-10
+  period      String
+  billingDate DateTime
   totalPLN    Float
-  status      String             @default("pending") // pending, paid, overdue
+  status      String             @default("pending")
   createdAt   DateTime           @default(now())
 
   user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -203,11 +181,11 @@ model BillingCycleItem {
 model PaymentReport {
   id         String   @id @default(cuid())
   userId     Int
-  period     String   // "2026-03"
+  period     String
   periodFrom DateTime
   periodTo   DateTime
-  pdfBase64  String   // PDF zakodowany w base64
-  sentAt     DateTime? // kiedy wysłano mailem, null = jeszcze nie wysłano
+  pdfBase64  String
+  sentAt     DateTime?
   createdAt  DateTime @default(now())
 
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -216,18 +194,15 @@ model PaymentReport {
   @@map("payment_reports")
 }
 
-// ============================================
-// OBEJRZANE ODCINKI (SERIALE)
-// ============================================
 model UserEpisode {
   id              Int      @id @default(autoincrement())
   userId          Int
-  tmdbSeriesId    Int      // tmdbId serialu
+  tmdbSeriesId    Int
   seasonNumber    Int
   episodeNumber   Int
-  durationMinutes Int?     // runtime odcinka w minutach (z TMDB)
+  durationMinutes Int?
   watchedAt       DateTime @default(now())
-  seriesTitle   String?
+  seriesTitle     String?
 
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 

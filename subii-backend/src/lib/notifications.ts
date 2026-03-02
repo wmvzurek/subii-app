@@ -1,7 +1,3 @@
-/**
- * Wysyła push notyfikację przez Expo Push API.
- * Dokumentacja: https://docs.expo.dev/push-notifications/sending-notifications/
- */
 export async function sendPushNotification({
   pushToken,
   title,

@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
 import { calculateBillingPreview } from "@/lib/billing";
-
 import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
   const userId = await getUserFromRequest(req);
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   try {
     const preview = await calculateBillingPreview(userId);
@@ -25,7 +26,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Sprawdź czy billing na ten okres już istnieje
     const existing = await prisma.billingCycle.findUnique({
       where: {
         userId_period: {
@@ -42,7 +42,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Wykonaj transakcję
     const result = await prisma.$transaction(async (tx) => {
       const billingCycle = await tx.billingCycle.upsert({
         where: {
@@ -78,8 +77,6 @@ export async function POST(req: Request) {
           },
         });
       }
-
-    
 
       return billingCycle;
     });
