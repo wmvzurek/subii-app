@@ -58,6 +58,7 @@ export default function Home() {
     }
   };
 
+
   /**
    * useEffect uruchamiany przy pierwszym renderze komponentu.
    * Pobiera użytkownika z lokalnego storage.
@@ -76,10 +77,6 @@ export default function Home() {
       if (userId) loadSubscriptions();
     }, [userId])
   );
-
-  useEffect(() => {
-    if (userId) loadSubscriptions();
-  }, [userId]);
 
   /**
    * Pobiera dane użytkownika z AsyncStorage.
@@ -181,6 +178,7 @@ export default function Home() {
           padding: 20,
           paddingTop: insets.top + 10,
           backgroundColor: "#fff",
+          
         }}
       >
         <View
@@ -188,16 +186,17 @@ export default function Home() {
             flexDirection: "row",
             justifyContent: "space-between",
             alignItems: "center",
+            
           }}
         >
-          <View>
+          <View style={{ gap: 10 }}>
             {/* Tytuł sekcji */}
-            <Text style={{ fontSize: 28, fontWeight: "800" }}>
+            <Text style={{ fontSize: 28, fontFamily: "Inter_600SemiBold" }}>
               Moje subskrypcje
             </Text>
 
             {/* Informacja o liczbie aktywnych subskrypcji i łącznym koszcie */}
-            <Text style={{ fontSize: 14, color: "#666", marginTop: 4 }}>
+            <Text style={{ fontSize: 14, color: "#666", fontFamily: "Inter_400Regular" }}>
               {subscriptions.length} aktywnych · {totalMonthly.toFixed(2)} zł/mies
             </Text>
           </View>
@@ -221,36 +220,35 @@ export default function Home() {
       </View>
 
      {/* ================= BANER WERYFIKACJI ================= */}
-      {userWithBilling && !userWithBilling.emailVerified && (
-        <View
-          style={{ backgroundColor: "#fef3c7", paddingVertical: 12, paddingHorizontal: 20, flexDirection: "row", alignItems: "center", gap: 10, borderBottomWidth: 1, borderBottomColor: "#fde68a" }}
-        >
-          <Ionicons name="warning-outline" size={18} color="#d97706" />
-          <Text style={{ flex: 1, fontSize: 13, fontWeight: "600", color: "#92400e" }}>
-            Zweryfikuj adres email, aby móc dodawać subskrypcje
-          </Text>
-          <Pressable
-            onPress={handleResendVerification}
-            disabled={sendingVerification}
-            style={{
-              backgroundColor: "#000",
-              paddingHorizontal: 12,
-              paddingVertical: 7,
-              borderRadius: 8,
-              opacity: sendingVerification ? 0.5 : 1,
-            }}
-          >
-            {sendingVerification
-              ? <ActivityIndicator size="small" color="#fff" />
-              : <Text style={{ color: "#fff", fontSize: 12, fontWeight: "700" }}>Wyślij ponownie</Text>
-            }
-          </Pressable>
-        </View>
-      )}
+{userWithBilling && !userWithBilling.emailVerified && (
+  <Pressable
+    onPress={handleResendVerification}
+    style={({ pressed }) => ({
+      backgroundColor: "#fef3c7",
+      paddingVertical: 12,
+      paddingHorizontal: 20,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: "#fde68a",
+      opacity: pressed ? 0.85 : 1,
+    })}
+  >
+    <Ionicons name="warning-outline" size={20} color="#d97706" />
+    <Text
+      style={{
+        flex: 1,
+        fontSize: 11,
+        fontFamily: "Inter_600SemiBold",
+        color: "#92400e",
+      }}
+    >
+      Zweryfikuj adres e-mail, aby móc dodawać subskrypcje. Naciśnij, aby ponownie wysłać link weryfikacyjny.
+    </Text>
+  </Pressable>
+)}
 
-      {/* ================= TREŚĆ ================= */}
-
-      {/* ================= TREŚĆ ================= */}
 
       {/* ================= TREŚĆ ================= */}
       {subscriptions.length === 0 ? (
@@ -271,7 +269,8 @@ export default function Home() {
         >
           <Text
             style={{
-              fontSize: 16,
+              fontFamily:"Inter_400Regular", 
+              fontSize: 14,
               color: "#999",
               textAlign: "center",
               marginBottom: 16,
@@ -288,20 +287,21 @@ export default function Home() {
               alignItems: "center",
               justifyContent: "center",
               gap: 8,
-              paddingVertical: 14,
+              paddingVertical: 16,
               paddingHorizontal: 20,
-              backgroundColor: "#000",
-              borderRadius: 14,
+              backgroundColor: "#252729",
+              borderRadius: 12,
               opacity: pressed ? 0.85 : 1,
             })}
           >
             <Ionicons name="add" size={18} color="#fff" />
             <Text
               style={{
-                color: "#fff",
-                fontWeight: "700",
-                fontSize: 15,
-                letterSpacing: 0.3,
+                    color: "#fff",
+                    textAlign: "center",
+                    fontWeight: "700",
+                    fontSize: 14,
+                    fontFamily:"Inter_600SemiBold",
               }}
             >
               Dodaj subskrypcję
@@ -375,7 +375,7 @@ const nextRenewalStr = item.nextRenewalDate
                 style={{
                   padding: 16,
                   backgroundColor: "#fff",
-                  borderRadius: 16,
+                  borderRadius: 12,
                   shadowColor: "#000",
                   shadowOffset: { width: 0, height: 2 },
                   shadowOpacity: 0.08,
@@ -412,8 +412,8 @@ const nextRenewalStr = item.nextRenewalDate
                   >
                     <Text
                       style={{
-                        fontSize: 16,
-                        fontWeight: "800",
+                        fontSize: 17,
+                        fontWeight: "700",
                         color: "#000",
                         flex: 1,
                         marginRight: 10,
@@ -425,30 +425,32 @@ const nextRenewalStr = item.nextRenewalDate
 
                     {/* Status subskrypcji */}
                     <View
-                      style={{
-                        paddingHorizontal: 8,
-                        paddingVertical: 4,
-                        backgroundColor: badgeBg,
-                        borderRadius: 8,
-                        borderWidth: 1,
-                        borderColor: badgeBorder,
-                      }}
-                    >
-                      <Text
-                        style={{
-                          color: badgeColor,
-                          fontSize: 9,
-                          fontWeight: "700",
-                        }}
-                      >
-                        {badgeText}
-                      </Text>
-                    </View>
+  style={{
+    width: 90,
+    paddingVertical: 4,
+    backgroundColor: badgeBg,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: badgeBorder,
+    alignItems: "center",
+    justifyContent: "center",
+  }}
+>
+  <Text
+    style={{
+      color: badgeColor,
+      fontSize: 9,
+      fontWeight: "700",
+    }}
+  >
+    {badgeText}
+  </Text>
+</View>
                   </View>
 
                   {/* Nazwa planu + cykl rozliczeniowy */}
                   <Text
-                    style={{ fontSize: 13, color: "#666" }}
+                    style={{ fontSize: 12, color: "#666" }}
                     numberOfLines={1}
                   >
                     {item.plan?.planName} ·{" "}

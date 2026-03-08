@@ -168,6 +168,79 @@ async function main() {
       console.log("Disney+ subscription already exists");
     }
   }
+  // ── Historia płatności ──
+  const netflixSub = await prisma.subscription.findFirst({
+    where: { userId: user.id, providerCode: "netflix" },
+  });
+  const disneySub = await prisma.subscription.findFirst({
+    where: { userId: user.id, providerCode: "disney_plus" },
+  });
+
+  const billingMonths = [
+    { period: "2025-10", date: "2025-10-10", label: "Październik 2025" },
+    { period: "2025-11", date: "2025-11-10", label: "Listopad 2025" },
+    { period: "2025-12", date: "2025-12-10", label: "Grudzień 2025" },
+    { period: "2026-01", date: "2026-01-10", label: "Styczeń 2026" },
+    { period: "2026-02", date: "2026-02-10", label: "Luty 2026" },
+  ];
+
+  for (const month of billingMonths) {
+    const existing = await prisma.billingCycle.findUnique({
+      where: { userId_period: { userId: user.id, period: month.period } },
+    });
+    if (existing) {
+      console.log(`Billing cycle ${month.period} already exists, skipping`);
+      continue;
+    }
+
+    const items: { subscriptionId: number; providerCode: string; planName: string; pricePLN: number }[] = [];
+
+    if (netflixSub) {
+      items.push({
+        subscriptionId: netflixSub.id,
+        providerCode: "netflix",
+        planName: "Standard",
+        pricePLN: 49,
+      });
+    }
+    if (disneySub) {
+      items.push({
+        subscriptionId: disneySub.id,
+        providerCode: "disney_plus",
+        planName: "Standard",
+        pricePLN: 37.99,
+      });
+    }
+
+    const totalPLN = items.reduce((sum, i) => sum + i.pricePLN, 0);
+
+    const billingDate = new Date(month.date);
+    const periodFrom = new Date(billingDate.getFullYear(), billingDate.getMonth(), 10);
+    const periodTo = new Date(billingDate.getFullYear(), billingDate.getMonth() + 1, 9);
+
+    await prisma.billingCycle.create({
+      data: {
+        userId: user.id,
+        period: month.period,
+        billingDate,
+        totalPLN,
+        status: "paid",
+        items: {
+          create: items.map((item) => ({
+            subscriptionId: item.subscriptionId,
+            providerCode: item.providerCode,
+            planName: item.planName,
+            pricePLN: item.pricePLN,
+            periodFrom,
+            periodTo,
+            creditApplied: 0,
+          })),
+        },
+      },
+    });
+
+    console.log(`Billing cycle ${month.period} created (${totalPLN} zł)`);
+  }
 
   console.log("\nSeed completed!");
   console.log("Demo user: anna@test.pl / haslo123");

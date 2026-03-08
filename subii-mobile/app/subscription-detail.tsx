@@ -21,6 +21,7 @@ import { api, subscriptionsApi } from "../src/lib/api";
 import { getProviderLogo, getProviderName } from "../src/lib/provider-logos";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getNextBillingDateStr } from "../src/lib/billing";
+import { Ionicons } from "@expo/vector-icons";
 
 /**
  * Wylicza datę kolejnego odnowienia subskrypcji:
@@ -181,10 +182,10 @@ export default function SubscriptionDetail() {
 
   // załaduj dane przy wejściu / zmianie id
   useFocusEffect(
-  useCallback(() => {
-    loadData();
-  }, [id])
-);
+    useCallback(() => {
+      loadData();
+    }, [id])
+  );
 
   /**
    * Ładuje użytkownika ze storage + subskrypcje z API,
@@ -314,31 +315,33 @@ export default function SubscriptionDetail() {
   const providerName = getProviderName(subscription.providerCode);
   const cycle = subscription.plan?.cycle || "monthly";
   const isPendingChange = subscription.status === "pending_change";
-const isPendingCancellation = subscription.status === "pending_cancellation";
+  const isPendingCancellation = subscription.status === "pending_cancellation";
 
-const price = isPendingChange && subscription.pendingPlan
-  ? subscription.pendingPlan.pricePLN
-  : subscription.priceOverridePLN || subscription.plan?.pricePLN || 0;
-
-
+  const price =
+    isPendingChange && subscription.pendingPlan
+      ? subscription.pendingPlan.pricePLN
+      : subscription.priceOverridePLN || subscription.plan?.pricePLN || 0;
 
   // daty do UI (odnowienie i zintegrowana płatność)
   const nextRenewalStr = subscription.nextRenewalDate
     ? new Date(subscription.nextRenewalDate).toLocaleDateString("pl-PL")
     : "—";
-const nextBillingStr = getNextBillingDateStr(user?.billingDay, subscription?.nextRenewalDate);
+  const nextBillingStr = getNextBillingDateStr(
+    user?.billingDay,
+    subscription?.nextRenewalDate
+  );
 
-const pendingPlan = subscription.pendingPlan;
-const oldPrice = subscription.priceOverridePLN || subscription.plan?.pricePLN || 0;
-const newPrice = pendingPlan?.pricePLN ?? oldPrice;
-const oldScreens = subscription.plan?.screens ?? 0;
-const newScreens = pendingPlan?.screens ?? oldScreens;
-const oldUhd = subscription.plan?.uhd ?? false;
-const newUhd = pendingPlan?.uhd ?? oldUhd;
-const oldAds = subscription.plan?.ads ?? false;
-const newAds = pendingPlan?.ads ?? oldAds;
-const oldCycle = subscription.plan?.cycle ?? "monthly";
-const newCycle = pendingPlan?.cycle ?? oldCycle;
+  const pendingPlan = subscription.pendingPlan;
+  const oldPrice = subscription.priceOverridePLN || subscription.plan?.pricePLN || 0;
+  const newPrice = pendingPlan?.pricePLN ?? oldPrice;
+  const oldScreens = subscription.plan?.screens ?? 0;
+  const newScreens = pendingPlan?.screens ?? oldScreens;
+  const oldUhd = subscription.plan?.uhd ?? false;
+  const newUhd = pendingPlan?.uhd ?? oldUhd;
+  const oldAds = subscription.plan?.ads ?? false;
+  const newAds = pendingPlan?.ads ?? oldAds;
+  const oldCycle = subscription.plan?.cycle ?? "monthly";
+  const newCycle = pendingPlan?.cycle ?? oldCycle;
 
   // Data wygaśnięcia dostępu (dla komunikatów) - jeśli backend ustawi activeUntil, użyj tego,
   // w innym wypadku fallback do nextRenewal.
@@ -355,12 +358,10 @@ const newCycle = pendingPlan?.cycle ?? oldCycle;
           paddingBottom: 20,
           paddingHorizontal: 20,
           backgroundColor: "#fff",
-          borderBottomWidth: 1,
-          borderBottomColor: "#eee",
         }}
       >
         {/* back */}
-        <Pressable onPress={() => router.back()} style={{ marginBottom:-5 }}>
+        <Pressable onPress={() => router.back()} style={{ marginBottom: -5 }}>
           <Text style={{ fontSize: 28 }}>←</Text>
         </Pressable>
 
@@ -374,10 +375,8 @@ const newCycle = pendingPlan?.cycle ?? oldCycle;
           )}
 
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 24, fontWeight: "900" }}>
-              {providerName}
-            </Text>
-            <Text style={{ fontSize: 14, color: "#666" }}>
+            <Text style={{ fontSize: 24, fontWeight: "600" }}>{providerName}</Text>
+            <Text style={{ fontSize: 12, color: "#666" }}>
               {subscription.plan?.planName}
             </Text>
           </View>
@@ -385,6 +384,9 @@ const newCycle = pendingPlan?.cycle ?? oldCycle;
           {/* status pill */}
           <View
             style={{
+              width: 100,
+              alignItems: "center",
+    justifyContent: "center",
               paddingHorizontal: 10,
               paddingVertical: 6,
               borderRadius: 10,
@@ -403,7 +405,7 @@ const newCycle = pendingPlan?.cycle ?? oldCycle;
           >
             <Text
               style={{
-                fontSize: 10,
+                fontSize: 9,
                 fontWeight: "800",
                 color: isPendingCancellation
                   ? "#dc2626"
@@ -422,184 +424,212 @@ const newCycle = pendingPlan?.cycle ?? oldCycle;
         </View>
       </View>
 
-      <ScrollView
-        contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 40 }}
-      >
-        {/* Karta informacyjna gdy subskrypcja jest w trakcie wygaszania */}
-        {isPendingCancellation && (
-          <View
-            style={{
-              backgroundColor: "#fff5f5",
-              borderRadius: 16,
-              padding: 16,
-              borderWidth: 1,
-              borderColor: "#fca5a5",
-              gap: 10,
-            }}
-          >
-            <Text style={{ fontSize: 14, fontWeight: "800", color: "#dc2626" }}>
-              Subskrypcja została anulowana.
-            </Text>
+      {isPendingCancellation && (
+        <Pressable
+          onPress={() => setShowReactivateConfirm(true)} // ← Twoja funkcja otwierająca modal
+          style={({ pressed }) => ({
+            backgroundColor: "#fff5f5",
+            paddingVertical: 14,
+            paddingHorizontal: 20,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 12,
+            borderWidth: 1,
+            borderColor: "#fecaca",
+            opacity: pressed ? 0.85 : 1,
+          })}
+        >
+          <Ionicons name="close-circle-outline" size={30} color="#eb3c3c" />
 
-            <Text style={{ fontSize: 13, color: "#dc2626", lineHeight: 20 }}>
-              Dostęp do platformy wygaśnie{" "}
-              <Text style={{ fontWeight: "700" }}>{accessUntilStr}</Text>
-            </Text>
-
-            {/* Link-style CTA - otwiera modal reaktywacji */}
+          <View style={{ flex: 1, gap: 4 }}>
+            {/* Nagłówek */}
             <Text
-              onPress={() => setShowReactivateConfirm(true)}
               style={{
-                marginTop: 6,
                 fontSize: 14,
-                fontWeight: "700",
+                fontFamily: "Inter_700Bold",
                 color: "#dc2626",
-                textAlign: "center",
               }}
             >
-              Włącz ponownie
+              Subskrypcja została anulowana
+            </Text>
+
+            {/* Informacja o wygaśnięciu */}
+            <Text
+              style={{
+                fontSize: 13,
+                fontFamily: "Inter_400Regular",
+                color: "#dc2626",
+                lineHeight: 16,
+              }}
+            >
+              Dostęp wygaśnie{" "}
+              <Text style={{ fontFamily: "Inter_700Bold" }}>{accessUntilStr}</Text>
+            </Text>
+
+            {/* CTA */}
+            <Text
+              style={{
+                fontSize: 13,
+                fontFamily: "Inter_600SemiBold",
+                color: "#dc2626",
+              }}
+            >
+              Naciśnij, aby ponownie włączyć subskrypcję
             </Text>
           </View>
-        )}
+        </Pressable>
+      )}
 
-        {/* Karta informacyjna gdy jest pending_change i jest pendingPlan */}
-{isPendingChange && subscription.pendingPlan && (
-  <View style={{
-    backgroundColor: "#eff6ff",
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "#bfdbfe",
-    gap: 12,
-  }}>
-    <Text style={{ fontSize: 14, fontWeight: "800", color: "#1d4ed8" }}>
-      Zmiana planu w toku
-    </Text>
+      {/* Karta informacyjna gdy jest pending_change i jest pendingPlan */}
+      {isPendingChange && subscription.pendingPlan && (
+        <View
+          style={{
+            backgroundColor: "#eff6ff",
+            paddingVertical: 14,
+            paddingHorizontal: 20,
+            gap: 4,
+            borderWidth: 1,
+            borderColor: "#bfdbfe",
+          }}
+        >
+          <Text style={{ fontSize: 14, fontWeight: "700", color: "#1d4ed8" }}>
+            Zmiana planu w toku
+          </Text>
 
-    <Text style={{ fontSize: 13, color: "#1d4ed8", lineHeight: 20 }}>
-      {subscription.plan?.planName} → {subscription.pendingPlan.planName}
-    </Text>
+          <Text
+            style={{
+              fontSize: 13,
+              fontWeight: "400",
+              color: "#1d4ed8",
+              lineHeight: 20,
+            }}
+          >
+            {subscription.plan?.planName} → {subscription.pendingPlan.planName}
+          </Text>
 
-    <InfoRow
-      label="Obecny plan do"
-      value={nextRenewalStr}
-      highlight
-    />
-    <InfoRow
-      label="Nowa cena od następnego okresu"
-      value={`${subscription.pendingPlan.pricePLN?.toFixed(2)} zł / ${
-        cycle === "yearly" ? "rok" : "mies."
-      }`}
-    />
-  </View>
-)}
+          <InfoRow label="Obecny plan do" value={nextRenewalStr} highlight />
+          <InfoRow
+            label="Nowa cena od następnego okresu"
+            value={`${subscription.pendingPlan.pricePLN?.toFixed(2)} zł / ${
+              cycle === "yearly" ? "rok" : "mies."
+            }`}
+          />
+        </View>
+      )}
 
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 40 }}>
         {/* Szczegóły planu */}
-<View
-  style={{
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 20,
-    gap: 14,
-  }}
->
-  <Text style={{ fontSize: 16, fontWeight: "800", marginBottom: 4 }}>
-    Szczegóły planu
-  </Text>
+        <View
+          style={{
+            backgroundColor: "#fff",
+            borderRadius: 12,
+            padding: 20,
+            gap: 8,
+          }}
+        >
+          <Text style={{ fontSize: 16, fontWeight: "700", marginBottom: 4 }}>
+            Szczegóły planu
+          </Text>
 
-  {isPendingChange && pendingPlan ? (
-    <>
-      <InfoRowTransition
-        label="Cena"
-        oldValue={`${oldPrice.toFixed(2)} zł / ${oldCycle === "yearly" ? "rok" : "miesiąc"}`}
-        newValue={`${newPrice.toFixed(2)} zł / ${newCycle === "yearly" ? "rok" : "miesiąc"}`}
-        changed={oldPrice !== newPrice || oldCycle !== newCycle}
-      />
-      <InfoRowTransition
-        label="Ekrany"
-        oldValue={String(oldScreens)}
-        newValue={String(newScreens)}
-        changed={oldScreens !== newScreens}
-      />
-      <InfoRowTransition
-        label="Jakość"
-        oldValue={oldUhd ? "4K Ultra HD" : "HD"}
-        newValue={newUhd ? "4K Ultra HD" : "HD"}
-        changed={oldUhd !== newUhd}
-      />
-      <InfoRowTransition
-        label="Reklamy"
-        oldValue={oldAds ? "Tak" : "Nie"}
-        newValue={newAds ? "Tak" : "Nie"}
-        changed={oldAds !== newAds}
-      />
-      <InfoRowTransition
-        label="Typ cyklu"
-        oldValue={oldCycle === "yearly" ? "Roczna" : "Miesięczna"}
-        newValue={newCycle === "yearly" ? "Roczna" : "Miesięczna"}
-        changed={oldCycle !== newCycle}
-      />
-    </>
-  ) : (
-    <>
-      <InfoRow
-        label="Cena"
-        value={`${price.toFixed(2)} zł / ${cycle === "yearly" ? "rok" : "miesiąc"}`}
-      />
-      <InfoRow
-        label="Ekrany"
-        value={String(subscription.plan?.screens ?? "—")}
-      />
-      <InfoRow
-        label="Jakość"
-        value={subscription.plan?.uhd ? "4K Ultra HD" : "HD"}
-      />
-      <InfoRow label="Reklamy" value={subscription.plan?.ads ? "Tak" : "Nie"} />
-      <InfoRow
-        label="Typ cyklu"
-        value={cycle === "yearly" ? "Roczna" : "Miesięczna"}
-      />
-    </>
-  )}
-</View>
+          {isPendingChange && pendingPlan ? (
+            <>
+              <InfoRowTransition
+                label="Cena"
+                oldValue={`${oldPrice.toFixed(2)} zł / ${
+                  oldCycle === "yearly" ? "rok" : "mies."
+                }`}
+                newValue={`${newPrice.toFixed(2)} zł / ${
+                  newCycle === "yearly" ? "rok" : "mies."
+                }`}
+                changed={oldPrice !== newPrice || oldCycle !== newCycle}
+              />
+              <InfoRowTransition
+                label="Ekrany"
+                oldValue={String(oldScreens)}
+                newValue={String(newScreens)}
+                changed={oldScreens !== newScreens}
+              />
+              <InfoRowTransition
+                label="Jakość"
+                oldValue={oldUhd ? "4K Ultra HD" : "HD"}
+                newValue={newUhd ? "4K Ultra HD" : "HD"}
+                changed={oldUhd !== newUhd}
+              />
+              <InfoRowTransition
+                label="Reklamy"
+                oldValue={oldAds ? "Tak" : "Nie"}
+                newValue={newAds ? "Tak" : "Nie"}
+                changed={oldAds !== newAds}
+              />
+              <InfoRowTransition
+                label="Typ cyklu"
+                oldValue={oldCycle === "yearly" ? "Roczny" : "Miesięczny"}
+                newValue={newCycle === "yearly" ? "Roczny" : "Miesięczny"}
+                changed={oldCycle !== newCycle}
+              />
+            </>
+          ) : (
+            <>
+              <InfoRow
+                label="Cena"
+                value={`${price.toFixed(2)} zł / ${
+                  cycle === "yearly" ? "rok" : "mies."
+                }`}
+              />
+              <InfoRow label="Ekrany" value={String(subscription.plan?.screens ?? "—")} />
+              <InfoRow
+                label="Jakość"
+                value={subscription.plan?.uhd ? "4K Ultra HD" : "HD"}
+              />
+              <InfoRow label="Reklamy" value={subscription.plan?.ads ? "Tak" : "Nie"} />
+              <InfoRow
+                label="Typ cyklu"
+                value={cycle === "yearly" ? "Roczna" : "Miesięczna"}
+              />
+            </>
+          )}
+        </View>
 
         {/* Rozliczenie */}
-{/* Rozliczenie */}
-<View
-  style={{
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 20,
-    gap: 14,
-  }}
->
-  <Text style={{ fontSize: 16, fontWeight: "800", marginBottom: 4 }}>
-    Rozliczenie
-  </Text>
-  <InfoRow
-    label="Aktywna od"
-    value={new Date(subscription.createdAt).toLocaleDateString("pl-PL")}
-  />
-  <InfoRow
-    label={cycle === "yearly" ? "Następne odnowienie (roczne)" : "Następne odnowienie"}
-    value={isPendingCancellation ? "Anulowana" : nextRenewalStr}
-    highlight={!isPendingCancellation}
-    danger={isPendingCancellation}
-  />
-  <InfoRow
-    label="Cena"
-    value={`${price.toFixed(2)} zł / ${cycle === "yearly" ? "rok" : "mies."}`}
-  />
-  <InfoRow
-    label="Najbliższa płatność zbiorcza"
-    value={isPendingCancellation ? "Brak" : nextBillingStr}
-    muted={isPendingCancellation}
-  />
-</View>
+        <View
+          style={{
+            backgroundColor: "#fff",
+            borderRadius: 12,
+            padding: 20,
+            gap: 8,
+          }}
+        >
+          <Text style={{ fontSize: 16, fontWeight: "700", marginBottom: 4 }}>
+            Rozliczenie
+          </Text>
+          <InfoRow
+            label="Aktywna od"
+            value={new Date(subscription.createdAt).toLocaleDateString("pl-PL")}
+          />
+          <InfoRow
+            label={
+              cycle === "yearly"
+                ? "Następne odnowienie (roczne)"
+                : "Następne odnowienie"
+            }
+            value={isPendingCancellation ? "Anulowana" : nextRenewalStr}
+            highlight={!isPendingCancellation}
+            danger={isPendingCancellation}
+          />
+          <InfoRow
+            label="Cena"
+            value={`${price.toFixed(2)} zł / ${cycle === "yearly" ? "rok" : "mies."}`}
+          />
+          <InfoRow
+            label="Najbliższa płatność zbiorcza"
+            value={isPendingCancellation ? "Brak" : nextBillingStr}
+            muted={isPendingCancellation}
+          />
+        </View>
 
         {/* Nowości */}
-        <View style={{ gap: 10 }}>
-          <Text style={{ fontSize: 16, fontWeight: "800", paddingHorizontal: 2 }}>
+        <View style={{ gap: 8 }}>
+          <Text style={{ fontSize: 16, fontWeight: "700", paddingHorizontal: 2 }}>
             Nowości na {providerName}
           </Text>
 
@@ -611,13 +641,17 @@ const newCycle = pendingPlan?.cycle ?? oldCycle;
               showsHorizontalScrollIndicator={false}
               data={movies}
               keyExtractor={(item) => String(item.id)}
-              contentContainerStyle={{ gap: 12, paddingHorizontal: 2 }}
-renderItem={({ item }) => (
+              contentContainerStyle={{ gap: 8, paddingHorizontal: 2 }}
+              renderItem={({ item }) => (
                 <Pressable
-                  onPress={() => router.push({
-                    pathname: "/titles/[tmdbId]",
-                    params: { tmdbId: String(item.id), mediaType: "movie" },
-                  } as any)}
+                  onPress={() =>
+                    router.push(
+                      {
+                        pathname: "/titles/[tmdbId]",
+                        params: { tmdbId: String(item.id), mediaType: "movie" },
+                      } as any
+                    )
+                  }
                   style={{
                     width: 120,
                     backgroundColor: "#fff",
@@ -631,23 +665,23 @@ renderItem={({ item }) => (
                   }}
                 >
                   {item.posterUrl ? (
-                    <Image
-                      source={{ uri: item.posterUrl }}
-                      style={{ width: 120, height: 170, resizeMode: "cover" }}
-                    />
-                  ) : (
-                    <View
-                      style={{
-                        width: 120,
-                        height: 170,
-                        backgroundColor: "#f0f0f0",
-                        justifyContent: "center",
-                        alignItems: "center",
-                      }}
-                    >
-                      <Text style={{ fontSize: 32 }}>🎬</Text>
-                    </View>
-                  )}
+  <Image
+    source={{ uri: item.posterUrl }}
+    style={{ width: 120, height: 170, resizeMode: "cover" }}
+  />
+) : (
+  <View
+    style={{
+      width: 120,
+      height: 170,
+      backgroundColor: "#f0f0f0",
+      justifyContent: "center",
+      alignItems: "center",
+    }}
+  >
+    <Ionicons name="film-outline" size={36} color="#999" />
+  </View>
+)}
 
                   <View style={{ padding: 8, height: 70, justifyContent: "space-between" }}>
                     <View style={{ flex: 1, justifyContent: "center" }}>
@@ -656,7 +690,7 @@ renderItem={({ item }) => (
                           fontSize: 11,
                           fontWeight: "700",
                           color: "#000",
-                          textAlign: "center",
+                          
                         }}
                         numberOfLines={2}
                       >
@@ -671,11 +705,11 @@ renderItem={({ item }) => (
                         alignItems: "center",
                       }}
                     >
-                      <Text style={{ fontSize: 10, color: "#999" }}>{item.year}</Text>
+                      <Text style={{ fontSize: 10,fontWeight:"400", color: "#999" }}>{item.year}</Text>
 
                       {item.rating && (
                         <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                          <MaterialIcons name="star-border" size={12} color="#999" />
+                          <MaterialIcons name="star" size={12} color="#999" />
                           <Text style={{ fontSize: 10, color: "#999", fontWeight: "600" }}>
                             {item.rating}
                           </Text>
@@ -702,12 +736,12 @@ renderItem={({ item }) => (
                 paddingVertical: 16,
                 paddingHorizontal: 16,
                 backgroundColor: "#000",
-                borderRadius: 14,
+                borderRadius: 12,
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              <Text style={{ fontWeight: "800", fontSize: 15, color: "#fff" }}>
+              <Text style={{ fontWeight: "700", fontSize: 15, color: "#fff" }}>
                 Zmień plan
               </Text>
             </Pressable>
@@ -715,17 +749,14 @@ renderItem={({ item }) => (
             <Pressable
               onPress={() => setShowCancelConfirm(true)}
               style={{
-                paddingVertical: 16,
-                paddingHorizontal: 16,
-                backgroundColor: "#fff",
-                borderRadius: 14,
-                borderWidth: 1.5,
-                borderColor: "#fca5a5",
+                paddingVertical: 14,
+                backgroundColor: "#f0f0f0",
+                borderRadius: 12,
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              <Text style={{ color: "#dc2626", fontWeight: "800", fontSize: 15 }}>
+              <Text style={{ color: "#333", fontWeight: "700", fontSize: 14 }}>
                 Anuluj subskrypcję
               </Text>
             </Pressable>
@@ -746,16 +777,13 @@ renderItem={({ item }) => (
             padding: 24,
           }}
         >
-          <Text style={{ fontSize: 20, fontWeight: "800", marginBottom: 6 }}>
+          <Text style={{ fontSize: 20, fontWeight: "700", marginBottom: 6  }}>
             Aktywować subskrypcję {providerName}?
           </Text>
 
           <Text
             style={{
-              fontSize: 13,
-              color: "#666",
-              lineHeight: 18,
-              marginBottom: 14,
+              fontSize: 12, color: "#666", marginBottom: 16, fontWeight:"400"
             }}
           >
             Subskrypcja zostanie ponownie aktywowana. Dostęp pozostanie bez przerwy.
@@ -788,7 +816,7 @@ renderItem={({ item }) => (
                 borderColor: "#eee",
               }}
             >
-              <Text style={{ fontSize: 12, color: "#666", lineHeight: 18 }}>
+              <Text style={{ fontSize: 12, color: "#666", lineHeight: 18, fontWeight:"400" }}>
                 Opłata zostanie doliczona do najbliższej płatności: {nextBillingStr}.
               </Text>
             </View>
@@ -797,9 +825,9 @@ renderItem={({ item }) => (
           <Pressable
             onPress={handleReactivateConfirm}
             style={{
-              padding: 18,
+              paddingVertical: 16,
               backgroundColor: "#000",
-              borderRadius: 14,
+              borderRadius: 12,
               marginBottom: 12,
             }}
           >
@@ -807,8 +835,8 @@ renderItem={({ item }) => (
               style={{
                 color: "#fff",
                 textAlign: "center",
-                fontWeight: "800",
-                fontSize: 16,
+                fontWeight: "700",
+                fontSize: 15,
               }}
             >
               Aktywuj subskrypcję
@@ -818,14 +846,16 @@ renderItem={({ item }) => (
           <Pressable
             onPress={() => setShowReactivateConfirm(false)}
             style={{
-              padding: 14,
+              paddingVertical: 14,
               backgroundColor: "#f0f0f0",
               borderRadius: 12,
               alignItems: "center",
             }}
           >
-            <Text style={{ fontWeight: "700", color: "#333" }}>Anuluj</Text>
+            <Text style={{ fontWeight: "700", color: "#333", fontSize:14 }}>Anuluj</Text>
           </Pressable>
+
+          
         </View>
       </AnimatedSheetModal>
 
@@ -842,11 +872,11 @@ renderItem={({ item }) => (
             padding: 24,
           }}
         >
-          <Text style={{ fontSize: 20, fontWeight: "800", marginBottom: 6 }}>
+          <Text style={{ fontSize: 20, fontWeight: "700", marginBottom: 6 }}>
             Czy na pewno chcesz zrezygnować z {providerName}?
           </Text>
 
-          <Text style={{ fontSize: 13, color: "#999", marginBottom: 16 }}>
+          <Text style={{ fontSize: 12, color: "#666", marginBottom: 16, fontWeight:"400" }}>
             {subscription?.plan?.planName} · {price.toFixed(2)} zł/
             {cycle === "yearly" ? "rok" : "mies."}
           </Text>
@@ -855,23 +885,23 @@ renderItem={({ item }) => (
             style={{
               padding: 16,
               backgroundColor: "#f5f5f5",
-              borderRadius: 12,
+              borderRadius: 10,
               marginBottom: 20,
               borderWidth: 1,
               borderColor: "#eee",
               gap: 10,
             }}
           >
-            <Text style={{ fontSize: 13, color: "#333", lineHeight: 18 }}>
+            <Text style={{ fontSize: 12, color: "#666", lineHeight: 18 }}>
               Dostęp pozostanie aktywny do{" "}
-              <Text style={{ fontWeight: "800" }}>{accessUntilStr}</Text>.
+              <Text style={{ fontWeight: "800" }}>{accessUntilStr} </Text>.
             </Text>
 
-            <Text style={{ fontSize: 13, color: "#333", lineHeight: 18 }}>
+            <Text style={{ fontSize: 12, color: "#666", lineHeight: 18 }}>
               Po tej dacie subskrypcja wygaśnie automatycznie.
             </Text>
 
-            <Text style={{ fontSize: 13, color: "#333", lineHeight: 18 }}>
+            <Text style={{ fontSize: 12, color: "#666", lineHeight: 18 }}>
               Opłata za kolejny okres nie zostanie pobrana.
             </Text>
           </View>
@@ -879,9 +909,9 @@ renderItem={({ item }) => (
           <Pressable
             onPress={handleCancelSubscription}
             style={{
-              padding: 18,
-              backgroundColor: "#dc2626",
-              borderRadius: 14,
+              paddingVertical: 16,
+              backgroundColor: "#000",
+              borderRadius: 12,
               marginBottom: 12,
               alignItems: "center",
               justifyContent: "center",
@@ -891,8 +921,8 @@ renderItem={({ item }) => (
               style={{
                 color: "#fff",
                 textAlign: "center",
-                fontWeight: "800",
-                fontSize: 16,
+                fontWeight: "700",
+                fontSize: 15,
               }}
             >
               Potwierdź rezygnację
@@ -909,7 +939,7 @@ renderItem={({ item }) => (
               justifyContent: "center",
             }}
           >
-            <Text style={{ fontWeight: "700", color: "#333" }}>Anuluj</Text>
+            <Text style={{ fontWeight: "700", color: "#333", fontSize:14 }}>Anuluj</Text>
           </Pressable>
         </View>
       </AnimatedSheetModal>

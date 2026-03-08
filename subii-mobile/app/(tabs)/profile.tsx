@@ -12,8 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useStripe, CardField, CardFieldInput } from "@stripe/stripe-react-native";
 import * as ImagePicker from "expo-image-picker";
-
-// WKLEJ TO PRZED: export default function Profile()
+import { MaterialIcons } from "@expo/vector-icons";
 
 const PosterCard = React.memo(({ item, mediaType, onPress }: {
   item: any;
@@ -47,24 +46,14 @@ export default function Profile() {
   const [activeTab, setActiveTab] = useState<"movies" | "series">("movies");
   const [watchedData, setWatchedData] = useState<{
     movies: {
-      tmdbId: number;
-      titlePL: string;
-      posterUrl: string | null;
-      year: number | null;
-      favorite: boolean;
-      watched: boolean;
-      rating: number | null;
+      tmdbId: number; titlePL: string; posterUrl: string | null;
+      year: number | null; favorite: boolean; watched: boolean; rating: number | null;
     }[];
     series: {
-      tmdbId: number;
-      titlePL: string;
-      posterUrl: string | null;
-      year: number | null;
-      favorite: boolean;
+      tmdbId: number; titlePL: string; posterUrl: string | null;
+      year: number | null; favorite: boolean;
       status: "completed" | "in_progress" | "favorite_only";
-      watchedEpisodes: number;
-      totalEpisodes: number;
-      rating: number | null;
+      watchedEpisodes: number; totalEpisodes: number; rating: number | null;
     }[];
   } | null>(null);
   const [watchStats, setWatchStats] = useState<{
@@ -72,27 +61,44 @@ export default function Profile() {
     series: { minutes: number; episodeCount: number };
   } | null>(null);
 
-  // Ustawienia modal
+  // Ustawienia
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
-  const [showChangeEmail, setShowChangeEmail] = useState(false);
-  const [showChangePhone, setShowChangePhone] = useState(false);
+
+  // Modale od dołu
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const [showCardModal, setShowCardModal] = useState(false);
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+
+  // Formularz email
   const [newEmail, setNewEmail] = useState("");
   const [emailPassword, setEmailPassword] = useState("");
-  const [newPhone, setNewPhone] = useState("");
   const [savingEmail, setSavingEmail] = useState(false);
+
+  // Formularz hasło
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [savingPassword, setSavingPassword] = useState(false);
+
+  // Formularz telefon
+  const [newPhone, setNewPhone] = useState("");
+  const [phonePassword, setPhonePassword] = useState("");
   const [savingPhone, setSavingPhone] = useState(false);
 
   // Karta płatnicza
   const [showCardForm, setShowCardForm] = useState(false);
   const [cardDetails, setCardDetails] = useState<any>(null);
+  const [cardPassword, setCardPassword] = useState("");
   const [savingCard, setSavingCard] = useState(false);
   const [savedCard, setSavedCard] = useState<{ brand: string; last4: string; expMonth: number; expYear: number } | null>(null);
   const { confirmSetupIntent } = useStripe();
 
-  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
-const [deletePassword, setDeletePassword] = useState("");
-const [deletingAccount, setDeletingAccount] = useState(false);
+  // Usunięcie konta
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   useEffect(() => {
     loadUser();
@@ -113,7 +119,6 @@ const [deletingAccount, setDeletingAccount] = useState(false);
       await refreshUser();
       const freshUser = await storage.getUser();
       setUser(freshUser);
-      // Załaduj dane karty
       try {
         const cardRes = await api.get("/api/stripe/card");
         if (cardRes.data.card) setSavedCard(cardRes.data.card);
@@ -123,9 +128,7 @@ const [deletingAccount, setDeletingAccount] = useState(false);
         setWatchStats(stats.data);
         const watched = await api.get("/api/user-watched");
         setWatchedData(watched.data);
-      } catch {
-        // statystyki opcjonalne
-      }
+      } catch {}
     } catch (error) {
       const savedUser = await storage.getUser();
       setUser(savedUser);
@@ -139,36 +142,28 @@ const [deletingAccount, setDeletingAccount] = useState(false);
   };
 
   const handleLogout = async () => {
-    Alert.alert(
-      "Wylogować się?",
-      "Czy na pewno chcesz się wylogować?",
-      [
-        { text: "Anuluj", style: "cancel" },
-        {
-          text: "Wyloguj",
-          style: "destructive",
-          onPress: async () => { await logout(); }
-        }
-      ]
-    );
+    Alert.alert("Wylogować się?", "Czy na pewno chcesz się wylogować?", [
+      { text: "Anuluj", style: "cancel" },
+      { text: "Wyloguj", style: "destructive", onPress: async () => { await logout(); } }
+    ]);
   };
 
   const handleDeleteAccount = async () => {
-  if (!deletePassword.trim()) {
-    Alert.alert("Błąd", "Podaj hasło aby potwierdzić usunięcie konta");
-    return;
-  }
-  setDeletingAccount(true);
-  try {
-    await api.post("/api/auth/delete-account", { password: deletePassword });
-    setShowDeleteAccount(false);
-    await logout();
-  } catch (e: any) {
-    Alert.alert("Błąd", e.response?.data?.error || "Nie udało się usunąć konta");
-  } finally {
-    setDeletingAccount(false);
-  }
-};
+    if (!deletePassword.trim()) {
+      Alert.alert("Błąd", "Podaj hasło aby potwierdzić usunięcie konta");
+      return;
+    }
+    setDeletingAccount(true);
+    try {
+      await api.post("/api/auth/delete-account", { password: deletePassword });
+      setShowDeleteAccount(false);
+      await logout();
+    } catch (e: any) {
+      Alert.alert("Błąd", e.response?.data?.error || "Nie udało się usunąć konta");
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
 
   const handlePickImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -189,26 +184,23 @@ const [deletingAccount, setDeletingAccount] = useState(false);
 
   const handleChangeEmail = async () => {
     if (!newEmail.trim()) return;
+    if (!emailPassword.trim()) {
+      Alert.alert("Błąd", "Podaj swoje hasło aby zmienić email");
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newEmail.trim())) {
+      Alert.alert("Błąd", "Podaj prawidłowy adres email");
+      return;
+    }
     setSavingEmail(true);
     try {
-      if (!emailPassword.trim()) {
-  Alert.alert("Błąd", "Podaj swoje hasło aby zmienić email");
-  return;
-}
-
-// Walidacja formatu emaila po stronie klienta
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-if (!emailRegex.test(newEmail.trim())) {
-  Alert.alert("Błąd", "Podaj prawidłowy adres email");
-  return;
-}
-
-await api.post("/api/auth/change-email", { 
-  newEmail: newEmail.trim().toLowerCase(), 
-  currentPassword: emailPassword 
-});
+      await api.post("/api/auth/change-email", {
+        newEmail: newEmail.trim().toLowerCase(),
+        currentPassword: emailPassword
+      });
       Alert.alert("Gotowe!", "Wysłaliśmy link weryfikacyjny na nowy adres e-mail.");
-      setShowChangeEmail(false);
+      setShowEmailModal(false);
       setEmailPassword("");
       setNewEmail("");
     } catch (e: any) {
@@ -218,17 +210,57 @@ await api.post("/api/auth/change-email", {
     }
   };
 
+  const handleChangePassword = async () => {
+    if (!currentPassword.trim()) {
+      Alert.alert("Błąd", "Podaj obecne hasło");
+      return;
+    }
+    if (!newPassword.trim()) {
+      Alert.alert("Błąd", "Podaj nowe hasło");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      Alert.alert("Błąd", "Hasła nie są takie same");
+      return;
+    }
+    if (newPassword.length < 8) {
+      Alert.alert("Błąd", "Hasło musi mieć min. 8 znaków");
+      return;
+    }
+    setSavingPassword(true);
+    try {
+      await api.post("/api/auth/change-password", {
+        currentPassword,
+        newPassword,
+      });
+      Alert.alert("Gotowe!", "Hasło zostało zmienione.");
+      setShowPasswordModal(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (e: any) {
+      Alert.alert("Błąd", e.response?.data?.error || "Nie udało się zmienić hasła");
+    } finally {
+      setSavingPassword(false);
+    }
+  };
+
   const handleChangePhone = async () => {
     if (!newPhone.trim()) return;
+    if (!phonePassword.trim()) {
+      Alert.alert("Błąd", "Podaj hasło aby zmienić numer telefonu");
+      return;
+    }
     setSavingPhone(true);
     try {
-      await api.post("/api/auth/change-phone", { phone: newPhone.trim() });
+      await api.post("/api/auth/change-phone", { phone: newPhone.trim(), currentPassword: phonePassword });
       const updatedUser = { ...user, phone: newPhone.trim() };
       setUser(updatedUser);
       await storage.setUser(updatedUser);
       Alert.alert("Gotowe!", "Numer telefonu został zaktualizowany.");
-      setShowChangePhone(false);
+      setShowPhoneModal(false);
       setNewPhone("");
+      setPhonePassword("");
     } catch (e: any) {
       Alert.alert("Błąd", e.response?.data?.error || "Nie udało się zmienić numeru");
     } finally {
@@ -243,30 +275,23 @@ await api.post("/api/auth/change-email", {
     }
     setSavingCard(true);
     try {
-      // Pobierz SetupIntent z backendu
       const res = await api.post("/api/stripe/setup-intent");
       const { clientSecret } = res.data;
-
-      // Potwierdź kartę przez Stripe SDK
       const { setupIntent, error } = await confirmSetupIntent(clientSecret, {
         paymentMethodType: "Card",
       });
-
       if (error) {
         Alert.alert("Błąd", error.message);
         return;
       }
-
-      // Zapisz paymentMethodId na backendzie
       await api.post("/api/stripe/save-payment-method", {
         paymentMethodId: setupIntent!.paymentMethodId,
       });
-
-      // Odśwież dane karty
       const cardRes = await api.get("/api/stripe/card");
       if (cardRes.data.card) setSavedCard(cardRes.data.card);
-
       setShowCardForm(false);
+      setShowCardModal(false);
+      setCardPassword("");
       Alert.alert("Gotowe!", "Karta została zapisana pomyślnie.");
     } catch (e: any) {
       Alert.alert("Błąd", e.response?.data?.error || "Nie udało się zapisać karty");
@@ -275,18 +300,10 @@ await api.post("/api/auth/change-email", {
     }
   };
 
-  // Komponent plakatu do poziomych list
-
-  // Komponent sekcji z poziomą listą
-// NOWY HorizontalSection wewnątrz Profile() – zamień stary na ten:
   const HorizontalSection = useCallback(({
     title, items, mediaType, filter, emptyText
   }: {
-    title: string;
-    items: any[];
-    mediaType: "movie" | "tv";
-    filter: string;
-    emptyText: string;
+    title: string; items: any[]; mediaType: "movie" | "tv"; filter: string; emptyText: string;
   }) => (
     <View style={{ gap: 12 }}>
       <Pressable
@@ -320,38 +337,35 @@ await api.post("/api/auth/change-email", {
   return (
     <View style={{ flex: 1, backgroundColor: "#f5f5f5" }}>
 
-      {/* NAGŁÓWEK z zdjęciem i trzema kropkami */}
+      {/* NAGŁÓWEK */}
       <View style={{ padding: 20, paddingTop: insets.top + 10, backgroundColor: "#fff", flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
           <Pressable onPress={() => setShowSettingsModal(true)}>
-            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: "#f0f0f0", justifyContent: "center", alignItems: "center", overflow: "hidden" }}>
+            <View style={{ width: 54, height: 54, borderRadius: 32, backgroundColor: "#f0f0f0", justifyContent: "center", alignItems: "center", overflow: "hidden" }}>
               {profileImage ? (
-                <Image source={{ uri: profileImage }} style={{ width: 64, height: 64, borderRadius: 32 }} />
+                <Image source={{ uri: profileImage }} style={{ width: 60, height: 60, borderRadius: 32 }} />
               ) : (
-                <Ionicons name="person-circle" size={64} color="#ccc" />
+                <Ionicons name="person" size={40} color="#999" />
               )}
             </View>
           </Pressable>
           <View>
-            <Text style={{ fontSize: 20, fontWeight: "800", color: "#000" }}>
+            <Text style={{ fontSize: 28, fontWeight: "600", color: "#000" }}>
               {user?.firstName} {user?.lastName}
             </Text>
-            <Text style={{ fontSize: 13, color: "#999", marginTop: 2 }}>{user?.email}</Text>
+            <Text style={{ fontSize: 14, color: "#666", marginTop: 2 }}>{user?.email}</Text>
           </View>
         </View>
         <Pressable onPress={() => setShowSettingsModal(true)} style={{ padding: 8 }}>
-          <Ionicons name="ellipsis-vertical" size={22} color="#000" />
+          <MaterialIcons name="settings" size={25} color="#000" />
         </Pressable>
       </View>
 
-      {/* MODAL USTAWIEŃ */}
+      {/* ============================================================ */}
+      {/* MODAL USTAWIEŃ                                                */}
+      {/* ============================================================ */}
       <Modal visible={showSettingsModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowSettingsModal(false)}>
-        <KeyboardAvoidingView
-  behavior={Platform.OS === "ios" ? "padding" : "height"}
-  style={{ flex: 1 }}
->
-<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-<View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)"}}>
+        <View style={{ flex: 1, backgroundColor: "#f5f5f5" }}>
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 20, backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#f0f0f0" }}>
             <Text style={{ fontSize: 18, fontWeight: "800" }}>Ustawienia</Text>
             <Pressable onPress={() => setShowSettingsModal(false)}>
@@ -362,12 +376,12 @@ await api.post("/api/auth/change-email", {
           <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }}>
 
             {/* Zdjęcie profilowe */}
-            <View style={{ backgroundColor: "#fff", borderRadius: 14, padding: 20, alignItems: "center", gap: 12 }}>
-              <View style={{ width: 90, height: 90, borderRadius: 45, backgroundColor: "#f0f0f0", justifyContent: "center", alignItems: "center", overflow: "hidden" }}>
+            <View style={{ backgroundColor: "#fff", borderRadius: 14, padding: 20, flexDirection: "row", alignItems: "center", gap: 16 }}>
+              <View style={{ width: 70, height: 70, borderRadius: 35, backgroundColor: "#f0f0f0", justifyContent: "center", alignItems: "center", overflow: "hidden" }}>
                 {profileImage ? (
-                  <Image source={{ uri: profileImage }} style={{ width: 90, height: 90, borderRadius: 45 }} />
+                  <Image source={{ uri: profileImage }} style={{ width: 70, height: 70, borderRadius: 35 }} />
                 ) : (
-                  <Ionicons name="person-circle" size={90} color="#ccc" />
+                  <Ionicons name="person" size={40} color="#999" />
                 )}
               </View>
               <Pressable onPress={handlePickImage} style={{ backgroundColor: "#000", paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20 }}>
@@ -383,59 +397,21 @@ await api.post("/api/auth/change-email", {
             </View>
 
             {/* Email */}
-            <View style={{ backgroundColor: "#fff", borderRadius: 14, padding: 20, gap: 10 }}>
-              <Text style={{ fontSize: 12, color: "#999", fontWeight: "600", marginBottom: 4 }}>ADRES E-MAIL</Text>
-              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 16, fontWeight: "700", color: "#000" }}>{user?.email}</Text>
-                  <Text style={{ fontSize: 12, marginTop: 3, color: user?.emailVerified ? "#22c55e" : "#f59e0b", fontWeight: "600" }}>
-                    {user?.emailVerified ? "✓ Zweryfikowany" : "⚠ Niezweryfikowany"}
-                  </Text>
-                </View>
-                <Pressable onPress={() => { setShowChangeEmail(!showChangeEmail); setNewEmail(""); }} style={{ padding: 8 }}>
-                  <Ionicons name="pencil" size={18} color="#000" />
-                </Pressable>
+            <Pressable onPress={() => setShowEmailModal(true)}
+              style={{ backgroundColor: "#fff", borderRadius: 14, padding: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 12, color: "#999", fontWeight: "600", marginBottom: 4 }}>ADRES E-MAIL</Text>
+                <Text style={{ fontSize: 16, fontWeight: "700", color: "#000" }}>{user?.email}</Text>
+                <Text style={{ fontSize: 12, marginTop: 3, color: user?.emailVerified ? "#22c55e" : "#f59e0b", fontWeight: "600" }}>
+                  {user?.emailVerified ? "✓ Zweryfikowany" : "⚠ Niezweryfikowany"}
+                </Text>
               </View>
-              {showChangeEmail && (
-                
-                <View style={{ gap: 10, marginTop: 8 }}>
-                  <TextInput
-  placeholder="Twoje obecne hasło"
-  secureTextEntry
-  value={emailPassword}
-  onChangeText={setEmailPassword}
-  style={{
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 12,
-    padding: 14,
-    fontSize: 15,
-    marginBottom: 12,
-    backgroundColor: "#fff",
-  }}
-/>
-                  <TextInput
-  value={newEmail}
-  onChangeText={setNewEmail}
-  placeholder="Nowy adres e-mail"
-  keyboardType="email-address"
-  autoCapitalize="none"
-  returnKeyType="done"
-  onSubmitEditing={Keyboard.dismiss}
-  style={{ borderWidth: 1, borderColor: "#e0e0e0", borderRadius: 10, padding: 12, fontSize: 15, backgroundColor: "#f9f9f9" }}
-/>
-                  <Pressable onPress={handleChangeEmail} disabled={savingEmail} style={{ backgroundColor: "#000", padding: 12, borderRadius: 10, alignItems: "center", opacity: savingEmail ? 0.6 : 1 }}>
-                    {savingEmail ? <ActivityIndicator color="#fff" size="small" /> : <Text style={{ color: "#fff", fontWeight: "700" }}>Zapisz i wyślij weryfikację</Text>}
-                  </Pressable>
-                </View>
-              )}
-            </View>
+              <Ionicons name="chevron-forward" size={20} color="#ccc" />
+            </Pressable>
 
-            {/* Zmień hasło */}
-            <Pressable
-              onPress={() => { setShowSettingsModal(false); setTimeout(() => router.push("/change-password" as any), 300); }}
-              style={{ backgroundColor: "#fff", borderRadius: 14, padding: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}
-            >
+            {/* Hasło */}
+            <Pressable onPress={() => setShowPasswordModal(true)}
+              style={{ backgroundColor: "#fff", borderRadius: 14, padding: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
               <View>
                 <Text style={{ fontSize: 12, color: "#999", fontWeight: "600", marginBottom: 4 }}>HASŁO</Text>
                 <Text style={{ fontSize: 16, fontWeight: "700", color: "#000" }}>Zmień hasło</Text>
@@ -444,138 +420,36 @@ await api.post("/api/auth/change-email", {
             </Pressable>
 
             {/* Telefon */}
-            <View style={{ backgroundColor: "#fff", borderRadius: 14, padding: 20, gap: 10 }}>
-              <Text style={{ fontSize: 12, color: "#999", fontWeight: "600", marginBottom: 4 }}>TELEFON</Text>
-              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                <Text style={{ fontSize: 16, fontWeight: "700", color: "#000" }}>{user?.phone}</Text>
-                <Pressable onPress={() => { setShowChangePhone(!showChangePhone); setNewPhone(""); }} style={{ padding: 8 }}>
-                  <Ionicons name="pencil" size={18} color="#000" />
-                </Pressable>
+            <Pressable onPress={() => setShowPhoneModal(true)}
+              style={{ backgroundColor: "#fff", borderRadius: 14, padding: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              <View>
+                <Text style={{ fontSize: 12, color: "#999", fontWeight: "600", marginBottom: 4 }}>TELEFON</Text>
+                <Text style={{ fontSize: 16, fontWeight: "700", color: "#000" }}>{user?.phone || "Dodaj numer"}</Text>
               </View>
-              {showChangePhone && (
-                <View style={{ gap: 10, marginTop: 8 }}>
-                  <TextInput
-  value={newPhone}
-  onChangeText={setNewPhone}
-  placeholder="Nowy numer telefonu"
-  keyboardType="phone-pad"
-  returnKeyType="done"
-  onSubmitEditing={Keyboard.dismiss}
-  style={{ borderWidth: 1, borderColor: "#e0e0e0", borderRadius: 10, padding: 12, fontSize: 15, backgroundColor: "#f9f9f9" }}
-/>
-                  <Pressable onPress={handleChangePhone} disabled={savingPhone} style={{ backgroundColor: "#000", padding: 12, borderRadius: 10, alignItems: "center", opacity: savingPhone ? 0.6 : 1 }}>
-                    {savingPhone ? <ActivityIndicator color="#fff" size="small" /> : <Text style={{ color: "#fff", fontWeight: "700" }}>Zapisz</Text>}
-                  </Pressable>
-                </View>
-              )}
-            </View>
+              <Ionicons name="chevron-forward" size={20} color="#ccc" />
+            </Pressable>
 
             {/* Karta płatnicza */}
-            <View style={{ backgroundColor: "#fff", borderRadius: 14, padding: 20, gap: 10 }}>
-              <Text style={{ fontSize: 12, color: "#999", fontWeight: "600", marginBottom: 4 }}>METODA PŁATNOŚCI</Text>
-
-              {savedCard ? (
-                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <Pressable onPress={() => setShowCardModal(true)}
+              style={{ backgroundColor: "#fff", borderRadius: 14, padding: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 12, color: "#999", fontWeight: "600", marginBottom: 4 }}>METODA PŁATNOŚCI</Text>
+                {savedCard ? (
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                    <View style={{ backgroundColor: "#f0f0f0", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 }}>
-                      <Text style={{ fontSize: 13, fontWeight: "700", color: "#000", textTransform: "uppercase" }}>
-                        {savedCard.brand}
-                      </Text>
+                    <View style={{ backgroundColor: "#f0f0f0", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
+                      <Text style={{ fontSize: 12, fontWeight: "700", color: "#000", textTransform: "uppercase" }}>{savedCard.brand}</Text>
                     </View>
-                    <View>
-                      <Text style={{ fontSize: 15, fontWeight: "700", color: "#000" }}>
-                        •••• •••• •••• {savedCard.last4}
-                      </Text>
-                      <Text style={{ fontSize: 12, color: "#999", marginTop: 2 }}>
-                        Wygasa {savedCard.expMonth.toString().padStart(2, "0")}/{savedCard.expYear}
-                      </Text>
-                    </View>
+                    <Text style={{ fontSize: 15, fontWeight: "700", color: "#000" }}>•••• {savedCard.last4}</Text>
                   </View>
-                  <View style={{ flexDirection: "row", gap: 4 }}>
-                    <Pressable onPress={() => setShowCardForm(!showCardForm)} style={{ padding: 8 }}>
-                      <Ionicons name="pencil" size={18} color="#000" />
-                    </Pressable>
-                    <Pressable
-                      onPress={async () => {
-                        try {
-                          await api.post("/api/stripe/card/delete");
-                          setSavedCard(null);
-                          Alert.alert("Gotowe", "Karta została usunięta.");
-                        } catch (e: any) {
-                          const errorCode = e.response?.data?.error;
-                          const message = e.response?.data?.message;
-
-                          if (errorCode === "HAS_ACTIVE_SUBSCRIPTIONS") {
-                            Alert.alert(
-                              "Nie można usunąć karty",
-                              message,
-                              [
-                                { text: "Anuluj", style: "cancel" },
-                                {
-                                  text: "Zmień kartę",
-                                  onPress: () => setShowCardForm(true),
-                                },
-                              ]
-                            );
-                          } else {
-                            Alert.alert("Błąd", "Nie udało się usunąć karty.");
-                          }
-                        }
-                      }}
-                      style={{ padding: 8 }}
-                    >
-                      <Ionicons name="trash-outline" size={18} color="#dc2626" />
-                    </Pressable>
+                ) : (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <Ionicons name="card-outline" size={20} color="#000" />
+                    <Text style={{ fontSize: 15, fontWeight: "700", color: "#000" }}>Dodaj kartę</Text>
                   </View>
-                </View>
-              ) : (
-                <Pressable
-                  onPress={() => setShowCardForm(!showCardForm)}
-                  style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
-                >
-                  <Ionicons name="card-outline" size={22} color="#000" />
-                  <Text style={{ fontSize: 15, fontWeight: "700", color: "#000" }}>Dodaj kartę płatniczą</Text>
-                </Pressable>
-              )}
-
-              {showCardForm && (
-                <View style={{ gap: 12, marginTop: 8 }}>
-                  <CardField
-                    postalCodeEnabled={false}
-                    placeholders={{ number: "1234 5678 9012 3456" }}
-                    cardStyle={{
-                      backgroundColor: "#f9f9f9",
-                      textColor: "#000",
-                      borderColor: "#e0e0e0",
-                      borderWidth: 1,
-                      borderRadius: 10,
-                      fontSize: 15,
-                    }}
-                    style={{ width: "100%", height: 52 }}
-                    onCardChange={(details) => setCardDetails(details)}
-                  />
-                  <Text style={{ fontSize: 11, color: "#999", textAlign: "center" }}>
-                    🔒 Dane karty są szyfrowane przez Stripe. Subii nie przechowuje numerów kart.
-                  </Text>
-                  <Pressable
-                    onPress={handleSaveCard}
-                    disabled={savingCard || !cardDetails?.complete}
-                    style={{
-                      backgroundColor: cardDetails?.complete ? "#000" : "#ccc",
-                      padding: 14,
-                      borderRadius: 10,
-                      alignItems: "center",
-                      opacity: savingCard ? 0.6 : 1,
-                    }}
-                  >
-                    {savingCard
-                      ? <ActivityIndicator color="#fff" size="small" />
-                      : <Text style={{ color: "#fff", fontWeight: "700" }}>Zapisz kartę</Text>
-                    }
-                  </Pressable>
-                </View>
-              )}
-            </View>
+                )}
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#ccc" />
+            </Pressable>
 
             {/* Data urodzenia */}
             <View style={{ backgroundColor: "#fff", borderRadius: 14, padding: 20 }}>
@@ -586,71 +460,49 @@ await api.post("/api/auth/change-email", {
             </View>
 
             {/* Wyloguj */}
-            <Pressable
-              onPress={() => { setShowSettingsModal(false); handleLogout(); }}
-              style={{ backgroundColor: "#fff", borderRadius: 14, padding: 20, alignItems: "center", borderWidth: 1.5, borderColor: "#fca5a5", marginTop: 8 }}
-            >
+            <Pressable onPress={() => { setShowSettingsModal(false); handleLogout(); }}
+              style={{ backgroundColor: "#fff", borderRadius: 14, padding: 20, alignItems: "center", borderWidth: 1.5, borderColor: "#fca5a5", marginTop: 8 }}>
               <Text style={{ color: "#dc2626", fontWeight: "800", fontSize: 15 }}>Wyloguj się</Text>
             </Pressable>
 
-            <Pressable
-  onPress={() => setShowDeleteAccount(true)}
-  style={{
-    padding: 16,
-    alignItems: "center",
-    marginTop: 8,
-  }}
->
-  <Text style={{ fontSize: 14, color: "#dc2626", fontWeight: "600" }}>
-    Usuń konto
-  </Text>
-</Pressable>
+            <Pressable onPress={() => setShowDeleteAccount(true)} style={{ padding: 16, alignItems: "center", marginTop: 8 }}>
+              <Text style={{ fontSize: 14, color: "#dc2626", fontWeight: "600" }}>Usuń konto</Text>
+            </Pressable>
 
             {/* Regulamin */}
-            <Pressable
-              onPress={() => { setShowSettingsModal(false); setTimeout(() => router.push("/terms" as any), 300); }}
-              style={{ backgroundColor: "#fff", borderRadius: 14, padding: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}
-            >
+            <Pressable onPress={() => { setShowSettingsModal(false); setTimeout(() => router.push("/terms" as any), 300); }}
+              style={{ backgroundColor: "#fff", borderRadius: 14, padding: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
               <Text style={{ fontSize: 15, fontWeight: "600", color: "#000" }}>Regulamin i prywatność</Text>
               <Ionicons name="chevron-forward" size={20} color="#ccc" />
             </Pressable>
 
             {/* Centrum pomocy */}
-            <Pressable
-              onPress={() => { setShowSettingsModal(false); setTimeout(() => router.push("/help" as any), 300); }}
-              style={{ backgroundColor: "#fff", borderRadius: 14, padding: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}
-            >
+            <Pressable onPress={() => { setShowSettingsModal(false); setTimeout(() => router.push("/help" as any), 300); }}
+              style={{ backgroundColor: "#fff", borderRadius: 14, padding: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
               <Text style={{ fontSize: 15, fontWeight: "600", color: "#000" }}>Centrum pomocy</Text>
               <Ionicons name="chevron-forward" size={20} color="#ccc" />
             </Pressable>
 
           </ScrollView>
         </View>
-</TouchableWithoutFeedback>
-</KeyboardAvoidingView>
-        
       </Modal>
 
-      {/* GŁÓWNA TREŚĆ */}
+      {/* ============================================================ */}
+      {/* GŁÓWNA TREŚĆ                                                  */}
+      {/* ============================================================ */}
       <ScrollView
         contentContainerStyle={{ padding: 20, gap: 24 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#000" title="Odświeżanie..." />}
       >
-
-        {/* Przełącznik zakładek */}
         <View style={{ flexDirection: "row", backgroundColor: "#e8e8e8", borderRadius: 12, padding: 3 }}>
           {(["movies", "series"] as const).map((tab) => (
-            <Pressable
-              key={tab}
-              onPress={() => setActiveTab(tab)}
+            <Pressable key={tab} onPress={() => setActiveTab(tab)}
               style={{
                 flex: 1, paddingVertical: 10, borderRadius: 10,
-                backgroundColor: activeTab === tab ? "#fff" : "transparent",
-                alignItems: "center",
+                backgroundColor: activeTab === tab ? "#fff" : "transparent", alignItems: "center",
                 shadowColor: activeTab === tab ? "#000" : "transparent",
                 shadowOpacity: 0.08, shadowRadius: 4, elevation: activeTab === tab ? 2 : 0,
-              }}
-            >
+              }}>
               <Text style={{ fontSize: 14, fontWeight: "700", color: activeTab === tab ? "#000" : "#999" }}>
                 {tab === "movies" ? "🎬 Filmy" : "📺 Serie"}
               </Text>
@@ -658,174 +510,282 @@ await api.post("/api/auth/change-email", {
           ))}
         </View>
 
-        {/* ===== ZAKŁADKA FILMY ===== */}
         {activeTab === "movies" && (
           <View style={{ gap: 24 }}>
-
-            {/* Statystyki filmów */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20 }} contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}>
               <View style={{ backgroundColor: "#fff", borderRadius: 16, padding: 20, minWidth: 150, alignItems: "center", gap: 4 }}>
-                <Text style={{ fontSize: 28, fontWeight: "900", color: "#000" }}>
-                  {watchStats ? formatTime(watchStats.movies.minutes) : "—"}
-                </Text>
+                <Text style={{ fontSize: 28, fontWeight: "900", color: "#000" }}>{watchStats ? formatTime(watchStats.movies.minutes) : "—"}</Text>
                 <Text style={{ fontSize: 12, color: "#999", fontWeight: "600" }}>Czas oglądania</Text>
               </View>
               <View style={{ backgroundColor: "#fff", borderRadius: 16, padding: 20, minWidth: 150, alignItems: "center", gap: 4 }}>
-                <Text style={{ fontSize: 28, fontWeight: "900", color: "#000" }}>
-                  {watchStats ? watchStats.movies.count : "—"}
-                </Text>
-                <Text style={{ fontSize: 12, color: "#999", fontWeight: "600" }}>
-                  {watchStats?.movies.count === 1 ? "Film" : "Filmów"}
-                </Text>
+                <Text style={{ fontSize: 28, fontWeight: "900", color: "#000" }}>{watchStats ? watchStats.movies.count : "—"}</Text>
+                <Text style={{ fontSize: 12, color: "#999", fontWeight: "600" }}>{watchStats?.movies.count === 1 ? "Film" : "Filmów"}</Text>
               </View>
             </ScrollView>
-
-            <HorizontalSection
-              title="❤️ Ulubione"
-              items={watchedData?.movies.filter(m => m.favorite) ?? []}
-              mediaType="movie"
-              filter="favorite"
-              emptyText="Brak ulubionych filmów"
-            />
-
-            <HorizontalSection
-              title="✅ Obejrzane"
-              items={watchedData?.movies.filter(m => m.watched) ?? []}
-              mediaType="movie"
-              filter="watched"
-              emptyText="Brak obejrzanych filmów"
-            />
-
+            <HorizontalSection title="❤️ Ulubione" items={watchedData?.movies.filter(m => m.favorite) ?? []} mediaType="movie" filter="favorite" emptyText="Brak ulubionych filmów" />
+            <HorizontalSection title="✅ Obejrzane" items={watchedData?.movies.filter(m => m.watched) ?? []} mediaType="movie" filter="watched" emptyText="Brak obejrzanych filmów" />
           </View>
         )}
 
-        {/* ===== ZAKŁADKA SERIE ===== */}
         {activeTab === "series" && (
           <View style={{ gap: 24 }}>
-
-            {/* Statystyki seriali */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20 }} contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}>
               <View style={{ backgroundColor: "#fff", borderRadius: 16, padding: 20, minWidth: 150, alignItems: "center", gap: 4 }}>
-                <Text style={{ fontSize: 28, fontWeight: "900", color: "#000" }}>
-                  {watchStats ? formatTime(watchStats.series.minutes) : "—"}
-                </Text>
+                <Text style={{ fontSize: 28, fontWeight: "900", color: "#000" }}>{watchStats ? formatTime(watchStats.series.minutes) : "—"}</Text>
                 <Text style={{ fontSize: 12, color: "#999", fontWeight: "600" }}>Czas oglądania</Text>
               </View>
               <View style={{ backgroundColor: "#fff", borderRadius: 16, padding: 20, minWidth: 150, alignItems: "center", gap: 4 }}>
-                <Text style={{ fontSize: 28, fontWeight: "900", color: "#000" }}>
-                  {watchStats ? watchStats.series.episodeCount : "—"}
-                </Text>
-                <Text style={{ fontSize: 12, color: "#999", fontWeight: "600" }}>
-                  {watchStats?.series.episodeCount === 1 ? "Odcinek" : "Odcinków"}
-                </Text>
+                <Text style={{ fontSize: 28, fontWeight: "900", color: "#000" }}>{watchStats ? watchStats.series.episodeCount : "—"}</Text>
+                <Text style={{ fontSize: 12, color: "#999", fontWeight: "600" }}>{watchStats?.series.episodeCount === 1 ? "Odcinek" : "Odcinków"}</Text>
               </View>
             </ScrollView>
-
-            <HorizontalSection
-              title="❤️ Ulubione"
-              items={watchedData?.series.filter(s => s.favorite) ?? []}
-              mediaType="tv"
-              filter="favorite"
-              emptyText="Brak ulubionych seriali"
-            />
-
-            <HorizontalSection
-              title="▶️ W trakcie"
-              items={watchedData?.series.filter(s => s.status === "in_progress") ?? []}
-              mediaType="tv"
-              filter="in_progress"
-              emptyText="Brak seriali w trakcie"
-            />
-
-            <HorizontalSection
-              title="🏁 Ukończone"
-              items={watchedData?.series.filter(s => s.status === "completed") ?? []}
-              mediaType="tv"
-              filter="completed"
-              emptyText="Brak ukończonych seriali"
-            />
-
+            <HorizontalSection title="❤️ Ulubione" items={watchedData?.series.filter(s => s.favorite) ?? []} mediaType="tv" filter="favorite" emptyText="Brak ulubionych seriali" />
+            <HorizontalSection title="▶️ W trakcie" items={watchedData?.series.filter(s => s.status === "in_progress") ?? []} mediaType="tv" filter="in_progress" emptyText="Brak seriali w trakcie" />
+            <HorizontalSection title="🏁 Ukończone" items={watchedData?.series.filter(s => s.status === "completed") ?? []} mediaType="tv" filter="completed" emptyText="Brak ukończonych seriali" />
           </View>
         )}
-
       </ScrollView>
+
+      {/* ============================================================ */}
+      {/* MODAL: Zmiana emaila                                          */}
+      {/* ============================================================ */}
+      <Modal visible={showEmailModal} transparent animationType="slide" onRequestClose={() => setShowEmailModal(false)}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
+              <Pressable style={{ flex: 1 }} onPress={() => setShowEmailModal(false)} />
+              <View style={{ backgroundColor: "#fff", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: insets.bottom + 24 }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                  <Text style={{ fontSize: 18, fontWeight: "800" }}>Zmień adres e-mail</Text>
+                  <Pressable onPress={() => { setShowEmailModal(false); setNewEmail(""); setEmailPassword(""); }}>
+                    <Ionicons name="close" size={24} color="#000" />
+                  </Pressable>
+                </View>
+                <View style={{ gap: 12 }}>
+                  <View>
+                    <Text style={{ fontSize: 12, color: "#999", fontWeight: "600", marginBottom: 6 }}>OBECNE HASŁO</Text>
+                    <TextInput placeholder="Wpisz obecne hasło" secureTextEntry value={emailPassword} onChangeText={setEmailPassword}
+                      style={{ borderWidth: 1, borderColor: "#e0e0e0", borderRadius: 12, padding: 14, fontSize: 15, backgroundColor: "#f9f9f9" }} />
+                  </View>
+                  <View>
+                    <Text style={{ fontSize: 12, color: "#999", fontWeight: "600", marginBottom: 6 }}>NOWY ADRES E-MAIL</Text>
+                    <TextInput value={newEmail} onChangeText={setNewEmail} placeholder="Nowy adres e-mail" keyboardType="email-address" autoCapitalize="none"
+                      style={{ borderWidth: 1, borderColor: "#e0e0e0", borderRadius: 12, padding: 14, fontSize: 15, backgroundColor: "#f9f9f9" }} />
+                  </View>
+                  <Pressable onPress={handleChangeEmail} disabled={savingEmail}
+                    style={{ backgroundColor: "#000", padding: 16, borderRadius: 14, alignItems: "center", marginTop: 4, opacity: savingEmail ? 0.6 : 1 }}>
+                    {savingEmail ? <ActivityIndicator color="#fff" size="small" /> : <Text style={{ color: "#fff", fontWeight: "800", fontSize: 15 }}>Zatwierdź</Text>}
+                  </Pressable>
+                </View>
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* ============================================================ */}
+      {/* MODAL: Zmiana hasła                                           */}
+      {/* ============================================================ */}
+      <Modal visible={showPasswordModal} transparent animationType="slide" onRequestClose={() => setShowPasswordModal(false)}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
+              <Pressable style={{ flex: 1 }} onPress={() => setShowPasswordModal(false)} />
+              <View style={{ backgroundColor: "#fff", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: insets.bottom + 24 }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                  <Text style={{ fontSize: 18, fontWeight: "800" }}>Zmień hasło</Text>
+                  <Pressable onPress={() => { setShowPasswordModal(false); setCurrentPassword(""); setNewPassword(""); setConfirmPassword(""); }}>
+                    <Ionicons name="close" size={24} color="#000" />
+                  </Pressable>
+                </View>
+                <View style={{ gap: 12 }}>
+                  <View>
+                    <Text style={{ fontSize: 12, color: "#999", fontWeight: "600", marginBottom: 6 }}>OBECNE HASŁO</Text>
+                    <TextInput placeholder="Wpisz obecne hasło" secureTextEntry value={currentPassword} onChangeText={setCurrentPassword}
+                      style={{ borderWidth: 1, borderColor: "#e0e0e0", borderRadius: 12, padding: 14, fontSize: 15, backgroundColor: "#f9f9f9" }} />
+                  </View>
+                  <View>
+                    <Text style={{ fontSize: 12, color: "#999", fontWeight: "600", marginBottom: 6 }}>NOWE HASŁO</Text>
+                    <TextInput placeholder="Wpisz nowe hasło" secureTextEntry value={newPassword} onChangeText={setNewPassword}
+                      style={{ borderWidth: 1, borderColor: "#e0e0e0", borderRadius: 12, padding: 14, fontSize: 15, backgroundColor: "#f9f9f9" }} />
+                  </View>
+                  <View>
+                    <Text style={{ fontSize: 12, color: "#999", fontWeight: "600", marginBottom: 6 }}>POTWIERDŹ NOWE HASŁO</Text>
+                    <TextInput placeholder="Powtórz nowe hasło" secureTextEntry value={confirmPassword} onChangeText={setConfirmPassword}
+                      style={{ borderWidth: 1, borderColor: "#e0e0e0", borderRadius: 12, padding: 14, fontSize: 15, backgroundColor: "#f9f9f9" }} />
+                  </View>
+                  <Pressable onPress={handleChangePassword} disabled={savingPassword}
+                    style={{ backgroundColor: "#000", padding: 16, borderRadius: 14, alignItems: "center", marginTop: 4, opacity: savingPassword ? 0.6 : 1 }}>
+                    {savingPassword ? <ActivityIndicator color="#fff" size="small" /> : <Text style={{ color: "#fff", fontWeight: "800", fontSize: 15 }}>Zatwierdź</Text>}
+                  </Pressable>
+                </View>
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* ============================================================ */}
+      {/* MODAL: Zmiana telefonu                                        */}
+      {/* ============================================================ */}
+      <Modal visible={showPhoneModal} transparent animationType="slide" onRequestClose={() => setShowPhoneModal(false)}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
+              <Pressable style={{ flex: 1 }} onPress={() => setShowPhoneModal(false)} />
+              <View style={{ backgroundColor: "#fff", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: insets.bottom + 24 }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                  <Text style={{ fontSize: 18, fontWeight: "800" }}>Zmień numer telefonu</Text>
+                  <Pressable onPress={() => { setShowPhoneModal(false); setNewPhone(""); setPhonePassword(""); }}>
+                    <Ionicons name="close" size={24} color="#000" />
+                  </Pressable>
+                </View>
+                <View style={{ gap: 12 }}>
+                  <View>
+                    <Text style={{ fontSize: 12, color: "#999", fontWeight: "600", marginBottom: 6 }}>OBECNE HASŁO</Text>
+                    <TextInput placeholder="Wpisz obecne hasło" secureTextEntry value={phonePassword} onChangeText={setPhonePassword}
+                      style={{ borderWidth: 1, borderColor: "#e0e0e0", borderRadius: 12, padding: 14, fontSize: 15, backgroundColor: "#f9f9f9" }} />
+                  </View>
+                  <View>
+                    <Text style={{ fontSize: 12, color: "#999", fontWeight: "600", marginBottom: 6 }}>NOWY NUMER TELEFONU</Text>
+                    <TextInput value={newPhone} onChangeText={setNewPhone} placeholder="Nowy numer telefonu" keyboardType="phone-pad"
+                      style={{ borderWidth: 1, borderColor: "#e0e0e0", borderRadius: 12, padding: 14, fontSize: 15, backgroundColor: "#f9f9f9" }} />
+                  </View>
+                  <Pressable onPress={handleChangePhone} disabled={savingPhone}
+                    style={{ backgroundColor: "#000", padding: 16, borderRadius: 14, alignItems: "center", marginTop: 4, opacity: savingPhone ? 0.6 : 1 }}>
+                    {savingPhone ? <ActivityIndicator color="#fff" size="small" /> : <Text style={{ color: "#fff", fontWeight: "800", fontSize: 15 }}>Zatwierdź</Text>}
+                  </Pressable>
+                </View>
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* ============================================================ */}
+      {/* MODAL: Metoda płatności                                       */}
+      {/* ============================================================ */}
+      <Modal visible={showCardModal} transparent animationType="slide" onRequestClose={() => setShowCardModal(false)}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
+              <Pressable style={{ flex: 1 }} onPress={() => setShowCardModal(false)} />
+              <View style={{ backgroundColor: "#fff", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: insets.bottom + 24 }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                  <Text style={{ fontSize: 18, fontWeight: "800" }}>Metoda płatności</Text>
+                  <Pressable onPress={() => { setShowCardModal(false); setShowCardForm(false); setCardPassword(""); }}>
+                    <Ionicons name="close" size={24} color="#000" />
+                  </Pressable>
+                </View>
+
+                {savedCard && !showCardForm ? (
+                  <View style={{ gap: 16 }}>
+                    <View style={{ backgroundColor: "#f5f5f5", borderRadius: 14, padding: 16, flexDirection: "row", alignItems: "center", gap: 12 }}>
+                      <View style={{ backgroundColor: "#fff", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 }}>
+                        <Text style={{ fontSize: 13, fontWeight: "700", color: "#000", textTransform: "uppercase" }}>{savedCard.brand}</Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 15, fontWeight: "700", color: "#000" }}>•••• •••• •••• {savedCard.last4}</Text>
+                        <Text style={{ fontSize: 12, color: "#999", marginTop: 2 }}>Wygasa {savedCard.expMonth.toString().padStart(2, "0")}/{savedCard.expYear}</Text>
+                      </View>
+                    </View>
+                    <View style={{ flexDirection: "row", gap: 10 }}>
+                      <Pressable onPress={() => setShowCardForm(true)}
+                        style={{ flex: 1, padding: 14, backgroundColor: "#000", borderRadius: 12, alignItems: "center" }}>
+                        <Text style={{ color: "#fff", fontWeight: "700", fontSize: 14 }}>Zmień kartę</Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={async () => {
+                          try {
+                            await api.post("/api/stripe/card/delete");
+                            setSavedCard(null);
+                            setShowCardModal(false);
+                            Alert.alert("Gotowe", "Karta została usunięta.");
+                          } catch (e: any) {
+                            const errorCode = e.response?.data?.error;
+                            const message = e.response?.data?.message;
+                            if (errorCode === "HAS_ACTIVE_SUBSCRIPTIONS") {
+                              Alert.alert("Nie można usunąć karty", message, [
+                                { text: "Anuluj", style: "cancel" },
+                                { text: "Zmień kartę", onPress: () => setShowCardForm(true) },
+                              ]);
+                            } else {
+                              Alert.alert("Błąd", "Nie udało się usunąć karty.");
+                            }
+                          }
+                        }}
+                        style={{ flex: 1, padding: 14, backgroundColor: "#fff5f5", borderRadius: 12, alignItems: "center", borderWidth: 1, borderColor: "#fca5a5" }}>
+                        <Text style={{ color: "#dc2626", fontWeight: "700", fontSize: 14 }}>Usuń kartę</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                ) : (
+                  <View style={{ gap: 12 }}>
+                    <CardField
+                      postalCodeEnabled={false}
+                      placeholders={{ number: "1234 5678 9012 3456" }}
+                      cardStyle={{ backgroundColor: "#f9f9f9", textColor: "#000", borderColor: "#e0e0e0", borderWidth: 1, borderRadius: 10, fontSize: 15 }}
+                      style={{ width: "100%", height: 52 }}
+                      onCardChange={(details) => setCardDetails(details)}
+                    />
+                    <View>
+                      <Text style={{ fontSize: 12, color: "#999", fontWeight: "600", marginBottom: 6 }}>POTWIERDŹ HASŁEM</Text>
+                      <TextInput placeholder="Wpisz hasło" secureTextEntry value={cardPassword} onChangeText={setCardPassword}
+                        style={{ borderWidth: 1, borderColor: "#e0e0e0", borderRadius: 12, padding: 14, fontSize: 15, backgroundColor: "#f9f9f9" }} />
+                    </View>
+                    <Text style={{ fontSize: 11, color: "#999", textAlign: "center" }}>
+                      🔒 Dane karty są szyfrowane przez Stripe. Subii nie przechowuje numerów kart.
+                    </Text>
+                    <Pressable onPress={handleSaveCard} disabled={savingCard || !cardDetails?.complete}
+                      style={{ backgroundColor: cardDetails?.complete ? "#000" : "#ccc", padding: 16, borderRadius: 14, alignItems: "center", opacity: savingCard ? 0.6 : 1 }}>
+                      {savingCard ? <ActivityIndicator color="#fff" size="small" /> : <Text style={{ color: "#fff", fontWeight: "800", fontSize: 15 }}>Zatwierdź</Text>}
+                    </Pressable>
+                    {savedCard && (
+                      <Pressable onPress={() => setShowCardForm(false)} style={{ padding: 12, alignItems: "center" }}>
+                        <Text style={{ color: "#666", fontWeight: "600" }}>Anuluj</Text>
+                      </Pressable>
+                    )}
+                  </View>
+                )}
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* ============================================================ */}
+      {/* MODAL: Usunięcie konta                                        */}
+      {/* ============================================================ */}
+      <Modal visible={showDeleteAccount} transparent animationType="slide" onRequestClose={() => setShowDeleteAccount(false)}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
+              <Pressable style={{ flex: 1 }} onPress={() => setShowDeleteAccount(false)} />
+              <View style={{ backgroundColor: "#fff", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: insets.bottom + 24 }}>
+                <Text style={{ fontSize: 20, fontWeight: "800", color: "#dc2626", marginBottom: 8 }}>Usuń konto</Text>
+                <Text style={{ fontSize: 14, color: "#666", lineHeight: 22, marginBottom: 20 }}>
+                  Ta operacja jest nieodwracalna. Wszystkie Twoje dane zostaną trwale usunięte — subskrypcje, historia oglądania, oceny i dane płatności.
+                </Text>
+                <View style={{ backgroundColor: "#fff5f5", borderRadius: 12, padding: 14, marginBottom: 20, borderWidth: 1, borderColor: "#fca5a5" }}>
+                  <Text style={{ fontSize: 13, color: "#dc2626", lineHeight: 20 }}>⚠️ Potwierdź hasłem że chcesz usunąć swoje konto w Subii.</Text>
+                </View>
+                <Text style={{ fontSize: 13, color: "#999", fontWeight: "600", marginBottom: 8 }}>TWOJE HASŁO</Text>
+                <TextInput value={deletePassword} onChangeText={setDeletePassword} placeholder="Wpisz hasło" secureTextEntry
+                  style={{ borderWidth: 1.5, borderColor: "#e0e0e0", borderRadius: 12, padding: 14, fontSize: 16, marginBottom: 20, backgroundColor: "#fafafa" }} />
+                <Pressable onPress={handleDeleteAccount} disabled={deletingAccount}
+                  style={{ padding: 16, backgroundColor: deletingAccount ? "#ccc" : "#dc2626", borderRadius: 14, alignItems: "center", marginBottom: 12 }}>
+                  {deletingAccount ? <ActivityIndicator color="#fff" /> : <Text style={{ color: "#fff", fontWeight: "800", fontSize: 16 }}>Usuń konto na zawsze</Text>}
+                </Pressable>
+                <Pressable onPress={() => { setShowDeleteAccount(false); setDeletePassword(""); }}
+                  style={{ padding: 14, backgroundColor: "#f0f0f0", borderRadius: 12, alignItems: "center" }}>
+                  <Text style={{ fontWeight: "700", color: "#333" }}>Anuluj</Text>
+                </Pressable>
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
+      </Modal>
+
     </View>
   );
-  {/* MODAL: Usunięcie konta */}
-<Modal
-  visible={showDeleteAccount}
-  transparent
-  animationType="slide"
-  onRequestClose={() => setShowDeleteAccount(false)}
->
-  <KeyboardAvoidingView
-    style={{ flex: 1 }}
-    behavior={Platform.OS === "ios" ? "padding" : "height"}
-  >
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
-        <View style={{ backgroundColor: "#fff", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 }}>
-          
-          <Text style={{ fontSize: 20, fontWeight: "800", color: "#dc2626", marginBottom: 8 }}>
-            Usuń konto
-          </Text>
-
-          <Text style={{ fontSize: 14, color: "#666", lineHeight: 22, marginBottom: 20 }}>
-            Ta operacja jest nieodwracalna. Wszystkie Twoje dane zostaną trwale usunięte — subskrypcje, historia oglądania, oceny i dane płatności.
-          </Text>
-
-          <View style={{ backgroundColor: "#fff5f5", borderRadius: 12, padding: 14, marginBottom: 20, borderWidth: 1, borderColor: "#fca5a5" }}>
-            <Text style={{ fontSize: 13, color: "#dc2626", lineHeight: 20 }}>
-              ⚠️ Potwierdź hasłem że chcesz usunąć swoje konto w Subii.
-            </Text>
-          </View>
-
-          <Text style={{ fontSize: 13, color: "#999", fontWeight: "600", marginBottom: 8 }}>
-            TWOJE HASŁO
-          </Text>
-          <TextInput
-            value={deletePassword}
-            onChangeText={setDeletePassword}
-            placeholder="Wpisz hasło"
-            secureTextEntry
-            style={{
-              borderWidth: 1.5,
-              borderColor: "#e0e0e0",
-              borderRadius: 12,
-              padding: 14,
-              fontSize: 16,
-              marginBottom: 20,
-              backgroundColor: "#fafafa",
-            }}
-          />
-
-          <Pressable
-            onPress={handleDeleteAccount}
-            disabled={deletingAccount}
-            style={{
-              padding: 16,
-              backgroundColor: deletingAccount ? "#ccc" : "#dc2626",
-              borderRadius: 14,
-              alignItems: "center",
-              marginBottom: 12,
-            }}
-          >
-            {deletingAccount
-              ? <ActivityIndicator color="#fff" />
-              : <Text style={{ color: "#fff", fontWeight: "800", fontSize: 16 }}>Usuń konto na zawsze</Text>
-            }
-          </Pressable>
-
-          <Pressable
-            onPress={() => { setShowDeleteAccount(false); setDeletePassword(""); }}
-            style={{ padding: 14, backgroundColor: "#f0f0f0", borderRadius: 12, alignItems: "center" }}
-          >
-            <Text style={{ fontWeight: "700", color: "#333" }}>Anuluj</Text>
-          </Pressable>
-
-        </View>
-      </View>
-    </TouchableWithoutFeedback>
-  </KeyboardAvoidingView>
-</Modal>
 }

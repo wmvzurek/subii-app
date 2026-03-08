@@ -18,6 +18,8 @@ import { api } from "../../src/lib/api";
 import { storage } from "../../src/lib/storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { MaterialIcons } from "@expo/vector-icons";
+
 
 export default function Payments() {
   const router = useRouter();
@@ -34,6 +36,7 @@ export default function Payments() {
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [showPaymentDetail, setShowPaymentDetail] = useState(false);
   const [showReports, setShowReports] = useState(false);
+  const [expandedCycles, setExpandedCycles] = useState<string[]>([]);
 
   useEffect(() => {
     loadData();
@@ -105,11 +108,6 @@ export default function Payments() {
 
   const getItemTag = (item: any) => {
     if (item.chargeType === "upgrade_addon") {
-      return {
-        label: "Dopłata za zmianę planu",
-        color: "#f59e0b",
-        bg: "#fef3c7",
-      };
     }
     return null;
   };
@@ -125,6 +123,12 @@ export default function Payments() {
       year: "numeric",
     });
   };
+
+  const toggleCycle = (cycleId: string) => {
+  setExpandedCycles((prev) =>
+    prev.includes(cycleId) ? prev.filter((id) => id !== cycleId) : [...prev, cycleId]
+  );
+};
 
   const handleGenerateReport = async () => {
     setGeneratingReport(true);
@@ -200,7 +204,7 @@ export default function Payments() {
     );
   }
 
-  return (
+    return (
     <View style={{ flex: 1, backgroundColor: "#f5f5f5" }}>
       {/* ── EKRAN (ScrollView) ── */}
       <ScrollView
@@ -219,70 +223,91 @@ export default function Payments() {
             alignItems: "center",
           }}
         >
-          <Text style={{ fontSize: 28, fontWeight: "800" }}>Płatności</Text>
-          <Pressable onPress={() => setShowReports(true)}>
-            <Ionicons name="document-text-outline" size={26} color="#000" />
+          <Text style={{ fontSize: 28, fontWeight: "600" }}>Płatności</Text>
+          <Pressable onPress={() => setShowReports(true)}style={{
+      position: "absolute",
+      right: 30, // ← regulujesz jak daleko od prawej
+      top: insets.top + 16,
+    }}>
+          <MaterialIcons name="bar-chart" size={26} color="#000" />
           </Pressable>
         </View>
 
+        {!user?.billingDay && (
+          <View
+            style={{
+              paddingVertical: 12,
+              paddingHorizontal: 20,
+              backgroundColor: "#fef3c7",
+              borderWidth: 1,
+              borderColor: "#fde68a",
+              flexDirection: "row",
+              alignItems: "flex-start",
+              gap: 10,
+            }}
+          >
+            <Ionicons name="warning-outline" size={20} color="#d97706" />
+
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 12, color: "#92400e", fontWeight: "600" }}>
+                Nie masz ustawionego dnia rozliczeniowego
+              </Text>
+
+              <Text style={{ fontSize: 11, color: "#92400e", marginTop: 4 }}>
+                Zostanie ustawiony przy dodaniu pierwszej subskrypcji.
+              </Text>
+            </View>
+          </View>
+        )}
+
         <View style={{ padding: 16, gap: 16 }}>
           {/* Karta rozliczeniowa */}
-          {user?.billingDay ? (
-            <View style={{ backgroundColor: "#000", borderRadius: 20, padding: 24, gap: 4 }}>
+          {user?.billingDay && (
+            <View style={{
+              backgroundColor: "#fff", borderRadius: 12, padding: 16,
+              gap: 0,
+              shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
+            }}>
               <Text
                 style={{
-                  color: "rgba(255,255,255,0.55)",
+                  color: "#000",
                   fontSize: 12,
-                  fontWeight: "600",
+                  fontWeight: "400",
                   textTransform: "uppercase",
                   letterSpacing: 1,
                 }}
               >
                 Dzień rozliczeniowy
               </Text>
-              <Text style={{ color: "#fff", fontSize: 32, fontWeight: "900", marginTop: 2 }}>
-                {user.billingDay}. każdego miesiąca
+
+              <Text style={{ color: "#000", fontSize: 24, fontWeight: "800", marginTop: 2 }}>
+                {user.billingDay}. dnia każdego miesiąca
               </Text>
+
               <View
                 style={{
                   marginTop: 12,
                   paddingTop: 12,
                   borderTopWidth: 1,
-                  borderTopColor: "rgba(255,255,255,0.15)",
+                  borderTopColor: "#000",
                 }}
               >
                 <Text
                   style={{
-                    color: "rgba(255,255,255,0.55)",
+                    color: "#000",
                     fontSize: 12,
-                    fontWeight: "600",
+                    fontWeight: "400",
                     textTransform: "uppercase",
                     letterSpacing: 1,
                   }}
                 >
                   Najbliższa płatność
                 </Text>
-                <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700", marginTop: 4 }}>
+
+                <Text style={{ color: "#000", fontSize: 18, fontWeight: "600", marginTop: 4 }}>
                   {getNextBillingDate()}
                 </Text>
               </View>
-            </View>
-          ) : (
-            <View
-              style={{
-                padding: 16,
-                backgroundColor: "#fff3cd",
-                borderRadius: 16,
-                borderWidth: 1,
-                borderColor: "#ffc107",
-              }}
-            >
-              <Text style={{ fontSize: 14, color: "#856404", fontWeight: "600" }}>
-                ⚠️ Nie masz ustawionego dnia rozliczeniowego
-              </Text>
-              <Text style={{ fontSize: 12, color: "#856404", marginTop: 4 }}>
-                Zostanie ustawiony przy dodaniu pierwszej subskrypcji.
-              </Text>
             </View>
           )}
 
@@ -291,18 +316,22 @@ export default function Payments() {
             <TouchableOpacity
               activeOpacity={0.85}
               onPress={() => setShowPaymentDetail(true)}
-              style={{ backgroundColor: "#fff", borderRadius: 20, padding: 20, gap: 0 }}
+              style={{
+              backgroundColor: "#fff", borderRadius: 12, padding: 16,
+              gap: 0,
+              shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
+            }}
             >
               <View
                 style={{
                   flexDirection: "row",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  marginBottom: 16,
+                  marginBottom: 0,
                 }}
               >
-                <Text style={{ fontSize: 16, fontWeight: "800" }}>Co wchodzi w tę płatność</Text>
-                <Text style={{ fontSize: 12, color: "#999", fontWeight: "600" }}>Szczegóły →</Text>
+                <Text style={{ fontSize: 16, fontWeight: "700" }}>Co wchodzi w tę płatność</Text>
+                <Text style={{ fontSize: 22, color: "#999", fontWeight: "400" }}>›</Text>
               </View>
 
               {preview.items.map((item: any, idx: number) => (
@@ -318,14 +347,17 @@ export default function Payments() {
                   }}
                 >
                   <View style={{ flex: 1 }}>
-  <Text style={{ fontSize: 14, fontWeight: "700" }}>{item.providerName}</Text>
-  <Text style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
-    {item.pendingPlanName ?? item.planName}
-    {item.chargeType === "upgrade_addon" && item.pendingCharge > 0 && (
-      <Text style={{ color: "#f59e0b" }}>{" "}+ dopłata {item.pendingCharge.toFixed(2)} zł</Text>
-    )}
-  </Text>
-</View>
+                    <Text style={{ fontSize: 14, fontWeight: "700" }}>{item.providerName}</Text>
+                    <Text style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
+                      {item.pendingPlanName ?? item.planName}
+                      {item.chargeType === "upgrade_addon" && item.pendingCharge > 0 && (
+                        <Text style={{ color: "#f59e0b" }}>
+                          {" "}
+                          + dopłata {item.pendingCharge.toFixed(2)} zł
+                        </Text>
+                      )}
+                    </Text>
+                  </View>
                   <Text style={{ fontSize: 15, fontWeight: "700" }}>{item.toPay.toFixed(2)} zł</Text>
                 </View>
               ))}
@@ -340,8 +372,8 @@ export default function Payments() {
                   borderTopColor: "#000",
                 }}
               >
-                <Text style={{ fontSize: 17, fontWeight: "900" }}>Razem</Text>
-                <Text style={{ fontSize: 17, fontWeight: "900" }}>{preview.totalToPay.toFixed(2)} zł</Text>
+                <Text style={{ fontSize: 17, fontWeight: "800" }}>Razem</Text>
+                <Text style={{ fontSize: 17, fontWeight: "800" }}>{preview.totalToPay.toFixed(2)} zł</Text>
               </View>
             </TouchableOpacity>
           ) : (
@@ -352,81 +384,120 @@ export default function Payments() {
 
           {/* Historia płatności */}
           {history.length > 0 && (
-            <View style={{ gap: 12 }}>
-              <Text style={{ fontSize: 16, fontWeight: "800", paddingHorizontal: 2 }}>Historia płatności</Text>
+            <View style={{
+              backgroundColor: "#fff", borderRadius: 12, padding: 16,
+              gap: 0,
+              shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
+            }}>
+              <Text style={{ fontSize: 16, fontWeight: "700", marginBottom: 12 }}>Historia płatności</Text>
 
-              {history.map((cycle: any) => (
-                <View
-                  key={cycle.id}
-                  style={{
-                    backgroundColor: "#fff",
-                    borderRadius: 20,
-                    padding: 16,
-                    gap: 10,
-                  }}
-                >
-                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                    <Text style={{ fontSize: 14, fontWeight: "700" }}>
-                      {new Date(cycle.billingDate).toLocaleDateString("pl-PL", {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      })}
-                    </Text>
-                    <View
-                      style={{
-                        paddingHorizontal: 8,
-                        paddingVertical: 4,
-                        backgroundColor: cycle.status === "paid" ? "#d1fae5" : "#fef3c7",
-                        borderRadius: 8,
-                      }}
-                    >
-                      <Text
-                        style={{
-                          fontSize: 11,
-                          fontWeight: "700",
-                          color: cycle.status === "paid" ? "#065f46" : "#92400e",
-                        }}
-                      >
-                        {cycle.status === "paid" ? "Opłacone" : "Oczekuje"}
-                      </Text>
-                    </View>
-                  </View>
-
-                  {cycle.items?.map((item: any, idx: number) => (
-                    <View
-                      key={idx}
+              {history.map((cycle: any, index: number) => {
+                const isExpanded = expandedCycles.includes(cycle.id);
+                return (
+                  <View key={cycle.id}>
+                    {/* Wiersz z datą — klikalny */}
+                    <Pressable
+                      onPress={() => toggleCycle(cycle.id)}
                       style={{
                         flexDirection: "row",
                         justifyContent: "space-between",
-                        paddingVertical: 6,
-                        borderTopWidth: 1,
+                        alignItems: "center",
+                        paddingVertical: 14,
+                        borderTopWidth: index === 0 ? 0 : 1,
                         borderTopColor: "#f0f0f0",
                       }}
                     >
-                      <Text style={{ fontSize: 13, color: "#555" }}>
-                        {item.providerCode.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())}
-                        {" · "}
-                        {item.planName}
-                      </Text>
-                      <Text style={{ fontSize: 13, fontWeight: "600" }}>{item.pricePLN.toFixed(2)} zł</Text>
-                    </View>
-                  ))}
+                      <View style={{ flex: 1, gap: 2 }}>
+                        <Text style={{ fontSize: 14, fontWeight: "600", color: "#000" }}>
+                          {new Date(cycle.billingDate).toLocaleDateString("pl-PL", {
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
+                          })}
+                        </Text>
+                        <Text style={{ fontSize: 12, color: "#999" }}>
+                          {cycle.totalPLN?.toFixed(2)} zł
+                        </Text>
+                      </View>
 
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                      paddingTop: 10,
-                      borderTopWidth: 2,
-                      borderTopColor: "#000",
-                    }}
-                  >
-                    <Text style={{ fontSize: 14, fontWeight: "800" }}>Razem</Text>
-                    <Text style={{ fontSize: 14, fontWeight: "800" }}>{cycle.totalPLN?.toFixed(2)} zł</Text>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                        <View
+                          style={{
+                            paddingHorizontal: 8,
+                            paddingVertical: 3,
+                            backgroundColor: cycle.status === "paid" ? "rgba(134,239,172,0.2)" : "rgba(239,68,68,0.12)",
+                            borderColor: cycle.status === "paid" ? "rgba(134,239,172,0.4)" : "rgba(239,68,68,0.4)",
+                            borderRadius: 8,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontSize: 11,
+                              fontWeight: "700",
+                              color: cycle.status === "paid" ? "#16a34a" : "#dc2626",
+                            }}
+                          >
+                            {cycle.status === "paid" ? "Opłacone" : "Oczekuje"}
+                          </Text>
+                        </View>
+                        <Ionicons
+                          name={isExpanded ? "chevron-up" : "chevron-down"}
+                          size={18}
+                          color="#999"
+                        />
+                      </View>
+                    </Pressable>
+
+                    {/* Szczegóły — widoczne po rozwinięciu */}
+                    {isExpanded && (
+                      <View style={{
+                        backgroundColor: "#f5f5f5",
+                        borderRadius: 10,
+                        padding: 14,
+                        marginBottom: 8,
+                        gap: 8,
+                      }}>
+                        {cycle.items?.map((item: any, idx: number) => (
+                          <View
+                            key={idx}
+                            style={{
+                              flexDirection: "row",
+                              justifyContent: "space-between",
+                              paddingVertical: 4,
+                              borderTopWidth: idx === 0 ? 0 : 1,
+                              borderTopColor: "#e8e8e8",
+                            }}
+                          >
+                            <Text style={{ fontSize: 13, color: "#555" }}>
+                              {item.providerCode.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                              {" · "}
+                              {item.planName}
+                            </Text>
+                            <Text style={{ fontSize: 13, fontWeight: "600", color: "#555" }}>
+                              {item.pricePLN.toFixed(2)} zł
+                            </Text>
+                          </View>
+                        ))}
+
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            justifyContent: "space-between",
+                            paddingTop: 8,
+                            borderTopWidth: 1,
+                            borderTopColor: "#ccc",
+                          }}
+                        >
+                          <Text style={{ fontSize: 14, fontWeight: "800", color: "#333" }}>Razem</Text>
+                          <Text style={{ fontSize: 14, fontWeight: "800", color: "#333" }}>
+                            {cycle.totalPLN?.toFixed(2)} zł
+                          </Text>
+                        </View>
+                      </View>
+                    )}
                   </View>
-                </View>
-              ))}
+                );
+              })}
             </View>
           )}
         </View>
@@ -456,7 +527,6 @@ export default function Payments() {
               overflow: "hidden",
             }}
           >
-            {/* Header */}
             <View
               style={{
                 paddingHorizontal: 24,
@@ -466,13 +536,12 @@ export default function Payments() {
                 alignItems: "center",
               }}
             >
-              <Text style={{ fontSize: 18, fontWeight: "900" }}>Szczegóły płatności</Text>
+              <Text style={{ fontSize: 20, fontWeight: "700" }}>Szczegóły płatności</Text>
               <Pressable onPress={() => setShowPaymentDetail(false)}>
                 <Text style={{ fontSize: 22, color: "#999" }}>✕</Text>
               </Pressable>
             </View>
 
-            {/* Scroll */}
             <ScrollView
               style={{ flex: 1 }}
               showsVerticalScrollIndicator={false}
@@ -481,7 +550,7 @@ export default function Payments() {
               contentContainerStyle={{
                 paddingHorizontal: 24,
                 paddingBottom: insets.bottom + 24,
-                gap: 20,
+                gap: 10,
               }}
             >
               {preview?.items?.map((item: any, idx: number) => {
@@ -490,77 +559,77 @@ export default function Payments() {
                   <View
                     key={idx}
                     style={{
-                      backgroundColor: "#f9f9f9",
-                      borderRadius: 16,
+                      backgroundColor: "#f5f5f5",
+                      borderRadius: 12,
                       padding: 16,
                       gap: 10,
                     }}
                   >
-                    {/* Nagłówek: provider + cena łączna */}
-                    {/* Nagłówek: provider + cena łączna */}
-<View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
-  <View style={{ flex: 1 }}>
-    <Text style={{ fontSize: 16, fontWeight: "800", color: "#000" }}>{item.providerName}</Text>
-    <Text style={{ fontSize: 13, color: "#666", marginTop: 2 }}>
-      {item.pendingPlanName ?? item.planName}
-    </Text>
-  </View>
-  <Text style={{ fontSize: 17, fontWeight: "900", color: "#000" }}>{item.toPay.toFixed(2)} zł</Text>
-</View>
+                    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 16, fontWeight: "700", color: "#000" }}>{item.providerName}</Text>
+                        <Text style={{ fontSize: 12, fontWeight: "400",color: "#666", marginTop: 2 }}>
+                          {item.pendingPlanName ?? item.planName}
+                        </Text>
+                      </View>
+                      <Text style={{ fontSize: 17, fontWeight: "700", color: "#000" }}>
+                        {item.toPay.toFixed(2)} zł
+                      </Text>
+                    </View>
 
-{/* Okres */}
-<View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-  <Text style={{ fontSize: 11, color: "#999", fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5 }}>
-    Okres
-  </Text>
-  <Text style={{ fontSize: 12, color: "#333", fontWeight: "600" }}>
-    {formatPeriod(item.periodFrom, item.periodTo)}
-  </Text>
-</View>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              
+                      <Text style={{ fontSize: 12, color: "#666", fontWeight: "500" }}>
+                        {formatPeriod(item.periodFrom, item.periodTo)}
+                      </Text>
+                    </View>
 
-{/* Rozbicie dla upgrade */}
-{item.chargeType === "upgrade_addon" && item.pendingCharge > 0 && (
-  <View style={{ gap: 6, borderTopWidth: 1, borderTopColor: "#eee", paddingTop: 8 }}>
-    {item.planName && item.pendingPlanName && (
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 2 }}>
-        <Text style={{ fontSize: 12, color: "#555" }}>{item.planName}</Text>
-        <Text style={{ fontSize: 12, color: "#999" }}>→</Text>
-        <Text style={{ fontSize: 12, color: "#555", fontWeight: "700" }}>{item.pendingPlanName}</Text>
-      </View>
-    )}
-    <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-      <Text style={{ fontSize: 12, color: "#555" }}>
-        Subskrypcja ({item.pendingPlanName ?? item.planName})
-      </Text>
-      <Text style={{ fontSize: 12, fontWeight: "600", color: "#555" }}>{item.pricePLN.toFixed(2)} zł</Text>
-    </View>
-    <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-      <Text style={{ fontSize: 12, color: "#f59e0b" }}>Dopłata za zmianę planu</Text>
-      <Text style={{ fontSize: 12, fontWeight: "600", color: "#f59e0b" }}>
-        +{item.pendingCharge.toFixed(2)} zł
-      </Text>
-    </View>
-  </View>
-)}
+                    {item.chargeType === "upgrade_addon" && item.pendingCharge > 0 && (
+                      <View style={{ gap: 6, borderTopWidth: 1, borderTopColor: "#eee", paddingTop: 8 }}>
+                        {item.planName && item.pendingPlanName && (
+                          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                            <Text style={{ fontSize: 12, color: "#555" }}>{item.planName}</Text>
+                            <Text style={{ fontSize: 12, color: "#999" }}>→</Text>
+                            <Text style={{ fontSize: 12, color: "#555", fontWeight: "700" }}>
+                              {item.pendingPlanName}
+                            </Text>
+                          </View>
+                        )}
+                        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                          <Text style={{ fontSize: 12, color: "#555" }}>
+                            Subskrypcja ({item.pendingPlanName ?? item.planName})
+                          </Text>
+                          <Text style={{ fontSize: 12, fontWeight: "600", color: "#555" }}>
+                            {item.pricePLN.toFixed(2)} zł
+                          </Text>
+                        </View>
+                        <View style={{ flexDirection: "row", justifyContent: "space-between",  }}>
+                          <Text style={{ fontSize: 12, color: "#f59e0b" }}>Dopłata za zmianę planu</Text>
+                          <Text style={{ fontSize: 12, fontWeight: "600", color: "#f59e0b" }}>
+                            +{item.pendingCharge.toFixed(2)} zł
+                          </Text>
+                        </View>
+                      </View>
+                    )}
 
-{/* Rozbicie dla downgrade */}
-{item.chargeType === "renewal" && item.pendingPlanName && (
-  <View style={{ gap: 6, borderTopWidth: 1, borderTopColor: "#eee", paddingTop: 8 }}>
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 2 }}>
-      <Text style={{ fontSize: 12, color: "#555" }}>{item.planName}</Text>
-      <Text style={{ fontSize: 12, color: "#999" }}>→</Text>
-      <Text style={{ fontSize: 12, color: "#555", fontWeight: "700" }}>{item.pendingPlanName}</Text>
-    </View>
-    <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-      <Text style={{ fontSize: 12, color: "#555" }}>
-        Subskrypcja ({item.pendingPlanName})
-      </Text>
-      <Text style={{ fontSize: 12, fontWeight: "600", color: "#555" }}>{item.pricePLN.toFixed(2)} zł</Text>
-    </View>
-  </View>
-)}
+                    {item.chargeType === "renewal" && item.pendingPlanName && (
+                      <View style={{ gap: 6, borderTopWidth: 1, borderTopColor: "#eee", paddingTop: 8 }}>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                          <Text style={{ fontSize: 12, color: "#555" }}>{item.planName}</Text>
+                          <Text style={{ fontSize: 12, color: "#999" }}>→</Text>
+                          <Text style={{ fontSize: 12, color: "#555", fontWeight: "700" }}>
+                            {item.pendingPlanName}
+                          </Text>
+                        </View>
+                        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                          <Text style={{ fontSize: 12, color: "#555" }}>Subskrypcja ({item.pendingPlanName})</Text>
+                          <Text style={{ fontSize: 12, fontWeight: "600", color: "#555" }}>
+                            {item.pricePLN.toFixed(2)} zł
+                          </Text>
+                        </View>
+                      </View>
+                    )}
 
-                    {/* Tag (np. upgrade_addon) */}
                     {tag && (
                       <View
                         style={{
@@ -583,12 +652,12 @@ export default function Payments() {
                   flexDirection: "row",
                   justifyContent: "space-between",
                   paddingTop: 4,
-                  borderTopWidth: 2,
+                  borderTopWidth: 1,
                   borderTopColor: "#000",
                 }}
               >
-                <Text style={{ fontSize: 17, fontWeight: "900" }}>Razem</Text>
-                <Text style={{ fontSize: 17, fontWeight: "900" }}>{preview?.totalToPay?.toFixed(2)} zł</Text>
+                <Text style={{ fontSize: 17, fontWeight: "800" }}>Razem</Text>
+                <Text style={{ fontSize: 17, fontWeight: "800" }}>{preview?.totalToPay?.toFixed(2)} zł</Text>
               </View>
             </ScrollView>
           </View>
@@ -599,7 +668,7 @@ export default function Payments() {
       <Modal visible={showReports} animationType="slide" transparent onRequestClose={() => setShowReports(false)}>
         <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
           <Pressable
-            style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+            style={[StyleSheet.absoluteFillObject, { backgroundColor: "rgba(0,0,0,0.5)" }]}
             onPress={() => setShowReports(false)}
           />
 
@@ -615,13 +684,13 @@ export default function Payments() {
             }}
           >
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-              <Text style={{ fontSize: 18, fontWeight: "900" }}>Raport miesięczny</Text>
+              <Text style={{ fontSize: 20, fontWeight: "700" }}>Podsumowanie</Text>
               <Pressable onPress={() => setShowReports(false)}>
                 <Text style={{ fontSize: 22, color: "#999" }}>✕</Text>
               </Pressable>
             </View>
 
-            <Text style={{ fontSize: 13, color: "#888", marginTop: -12 }}>
+            <Text style={{ fontSize: 12, color: "#666", marginTop: -12 }}>
               Podsumowanie subskrypcji i obejrzanych tytułów za ostatni okres rozliczeniowy.
             </Text>
 
@@ -630,17 +699,19 @@ export default function Payments() {
                 onPress={handleGenerateReport}
                 disabled={generatingReport || sendingEmail}
                 style={{
-                  backgroundColor: "#000",
-                  borderRadius: 12,
-                  padding: 14,
-                  alignItems: "center",
-                  opacity: generatingReport ? 0.6 : 1,
-                }}
+              paddingVertical: 16,
+              backgroundColor: "#000",
+              borderRadius: 12,
+              marginBottom: 12,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+
               >
                 {generatingReport ? (
                   <ActivityIndicator color="#fff" size="small" />
                 ) : (
-                  <Text style={{ color: "#fff", fontWeight: "700", fontSize: 14 }}>📄 Generuj raport</Text>
+                  <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>Raport</Text>
                 )}
               </Pressable>
 
@@ -648,19 +719,23 @@ export default function Payments() {
                 onPress={handleSendEmail}
                 disabled={generatingReport || sendingEmail}
                 style={{
-                  backgroundColor: "#f5f5f5",
-                  borderRadius: 12,
-                  padding: 14,
-                  alignItems: "center",
-                  borderWidth: 1,
-                  borderColor: "#e0e0e0",
-                  opacity: sendingEmail ? 0.6 : 1,
-                }}
+              padding: 14,
+              backgroundColor: "#f0f0f0",
+              borderRadius: 12,
+              alignItems: "center",
+              justifyContent: "center",
+              marginTop: -12,
+            }}
               >
                 {sendingEmail ? (
                   <ActivityIndicator color="#000" size="small" />
                 ) : (
-                  <Text style={{ color: "#000", fontWeight: "700", fontSize: 14 }}>✉️ Wyślij na {user?.email}</Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Ionicons name="mail" size={16} color="#333" />
+                  <Text style={{ color: "#333", fontWeight: "700", fontSize: 14 }}>
+                     Wyślij na {user?.email}
+                  </Text>
+                  </View>
                 )}
               </Pressable>
             </View>
@@ -693,39 +768,49 @@ export default function Payments() {
                       }}
                     >
                       <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 14, fontWeight: "700" }}>
-                          {formatPeriodLabel(report.periodFrom, report.periodTo)}
-                        </Text>
-                        <Text style={{ fontSize: 11, color: "#bbb", marginTop: 2 }}>
-                          {report.sentAt
-                            ? `✉️ Wysłano ${new Date(report.sentAt).toLocaleDateString("pl-PL")}`
-                            : "Nie wysłano"}
-                        </Text>
-                      </View>
+  <Text style={{ fontSize: 14, fontWeight: "700" }}>
+    {formatPeriodLabel(report.periodFrom, report.periodTo)}
+  </Text>
+
+  <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 }}>
+    <Ionicons
+      name="mail"
+      size={12}
+      color="#bbb"
+    />
+    <Text style={{ fontSize: 11, color: "#bbb" }}>
+      {report.sentAt
+        ? `Wysłano ${new Date(report.sentAt).toLocaleDateString("pl-PL")}`
+        : "Nie wysłano"}
+    </Text>
+  </View>
+</View>
 
                       <Pressable
-                        onPress={() => handleDownloadPDF(report.id, report.period)}
-                        disabled={downloadingId === report.id}
-                        style={{
-                          backgroundColor: "#f0f0f0",
-                          borderRadius: 8,
-                          paddingHorizontal: 14,
-                          paddingVertical: 8,
-                          marginLeft: 12,
-                        }}
-                      >
-                        {downloadingId === report.id ? (
-                          <ActivityIndicator size="small" color="#000" />
-                        ) : (
-                          <Text style={{ fontSize: 12, fontWeight: "700", color: "#000" }}>Pobierz PDF</Text>
-                        )}
-                      </Pressable>
+  onPress={() => handleDownloadPDF(report.id, report.period)}
+  disabled={downloadingId === report.id}
+  style={{
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    marginLeft: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  }}
+>
+  {downloadingId === report.id ? (
+    <ActivityIndicator size="small" color="#000" />
+  ) : (
+    <MaterialIcons name="file-download" size={20} color="#000" />
+  )}
+</Pressable>
                     </View>
                   ))}
                 </View>
               ) : (
                 <View style={{ alignItems: "center", paddingVertical: 20 }}>
-                  <Text style={{ fontSize: 13, color: "#bbb" }}>Brak wygenerowanych raportów</Text>
+                  <Text style={{ fontSize: 12, color: "#999" }}>Brak wygenerowanych raportów</Text>
                 </View>
               )}
             </ScrollView>

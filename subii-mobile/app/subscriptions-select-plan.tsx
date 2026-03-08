@@ -271,19 +271,19 @@ const description = getProviderDescription(providerCode);
 
         {/* Header */}
         <View style={{
-          padding: 20, paddingTop: insets.top + 16, backgroundColor: "#fff",
+          padding: 20, paddingTop: insets.top -15, backgroundColor: "#fff",
           borderBottomWidth: 1, borderBottomColor: "#eee"
         }}>
-          <Pressable onPress={() => router.back()} style={{ marginBottom: 16 }}>
-            <Text style={{ fontSize: 28 }}>←</Text>
+          <Pressable onPress={() => router.back()} style={{ marginBottom: 4 }}>
+            <Text style={{ fontSize: 24 }}>←</Text>
           </Pressable>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
             {logo && (
               <Image source={logo} style={{ width: 60, height: 60, resizeMode: "contain" }} />
             )}
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 24, fontWeight: "800" }}>{providerName}</Text>
-              <Text style={{ fontSize: 14, color: "#666", marginTop: 2 }}>
+              <Text style={{ fontSize: 24, fontWeight: "600" }}>{providerName}</Text>
+              <Text style={{ fontSize: 12, color: "#666", fontWeight:"400", marginTop: 2 }}>
                 {currentUserPlan ? "Zmień plan" : "Wybierz plan"} ({visiblePlans.length} dostępnych)
               </Text>
             </View>
@@ -291,10 +291,10 @@ const description = getProviderDescription(providerCode);
               onPress={() => setShowInfo(true)}
               style={{
                 width: 36, height: 36, borderRadius: 18,
-                backgroundColor: "#f0f0f0", justifyContent: "center", alignItems: "center"
+                backgroundColor: "#fff", justifyContent:"flex-start", alignItems: "center"
               }}
             >
-              <MaterialIcons name="info-outline" size={20} color="#000" />
+              <MaterialIcons name="info-outline" size={24} color="#666" />
             </Pressable>
           </View>
         </View>
@@ -308,15 +308,15 @@ const description = getProviderDescription(providerCode);
       flexDirection: "row",
       backgroundColor: "#f0f0f0",
       borderRadius: 12,
-      padding: 4,
+      padding: 2,
       marginBottom: 4,
     }}>
       <Pressable
         onPress={() => setActiveTab("monthly")}
         style={{
           flex: 1,
-          paddingVertical: 10,
-          borderRadius: 10,
+          paddingVertical: 8,
+          borderRadius: 12,
           alignItems: "center",
           backgroundColor: activeTab === "monthly" ? "#fff" : "transparent",
           shadowColor: activeTab === "monthly" ? "#000" : "transparent",
@@ -327,8 +327,8 @@ const description = getProviderDescription(providerCode);
       >
         <Text style={{
           fontSize: 14,
-          fontWeight: activeTab === "monthly" ? "800" : "500",
-          color: activeTab === "monthly" ? "#000" : "#888",
+          fontWeight: activeTab === "monthly" ? "700" : "500",
+          color: activeTab === "monthly" ? "#000" : "#666",
         }}>
           Miesięczne
         </Text>
@@ -338,8 +338,8 @@ const description = getProviderDescription(providerCode);
         onPress={() => setActiveTab("yearly")}
         style={{
           flex: 1,
-          paddingVertical: 10,
-          borderRadius: 10,
+          paddingVertical: 8,
+          borderRadius: 12,
           alignItems: "center",
           backgroundColor: activeTab === "yearly" ? "#fff" : "transparent",
           shadowColor: activeTab === "yearly" ? "#000" : "transparent",
@@ -350,16 +350,11 @@ const description = getProviderDescription(providerCode);
       >
         <Text style={{
           fontSize: 14,
-          fontWeight: activeTab === "yearly" ? "800" : "500",
-          color: activeTab === "yearly" ? "#000" : "#888",
+          fontWeight: activeTab === "yearly" ? "700" : "500",
+          color: activeTab === "yearly" ? "#000" : "#666",
         }}>
           Roczne
         </Text>
-        {activeTab !== "yearly" && (
-          <Text style={{ fontSize: 10, color: "#16a34a", fontWeight: "700", marginTop: 1 }}>
-            Oszczędzasz!
-          </Text>
-        )}
       </Pressable>
     </View>
   )}
@@ -405,9 +400,8 @@ const isPendingPlan = currentUserPlan?.pendingPlanId === planId;
                         flexDirection: "row", alignItems: "center", gap: 4,
                         borderWidth: 1, borderColor: "rgba(134,239,172,0.4)"
                       }}>
-                        <MaterialIcons name="check-circle" size={14} color="#16a34a" />
                         <Text style={{ color: "#16a34a", fontSize: 11, fontWeight: "700" }}>
-                          Bieżący plan
+                          BIEŻĄCY PLAN
                         </Text>
                       </View>
                     )}
@@ -431,9 +425,8 @@ const isPendingPlan = currentUserPlan?.pendingPlanId === planId;
                         flexDirection: "row", alignItems: "center", gap: 4,
                         borderWidth: 1, borderColor: "rgba(59,130,246,0.4)"
                       }}>
-                        <MaterialIcons name="schedule" size={14} color="#2563eb" />
                         <Text style={{ color: "#2563eb", fontSize: 11, fontWeight: "700" }}>
-                          W trakcie zmiany
+                          W TRAKCIE ZMIANY
                         </Text>
                       </View>
                     )}
@@ -475,51 +468,15 @@ const isPendingPlan = currentUserPlan?.pendingPlanId === planId;
               onPress={() => setShowCancelConfirm(true)}
               style={{
                 paddingVertical: 16, paddingHorizontal: 16,
-                backgroundColor: "#fff", borderRadius: 14,
-                borderWidth: 1.5, borderColor: "#fca5a5",
+                backgroundColor: "#000", borderRadius: 12,
                 alignItems: "center", justifyContent: "center",
               }}
             >
-              <Text style={{ color: "#dc2626", fontWeight: "800", fontSize: 15 }}>
+              <Text style={{ color: "#FFF", fontWeight: "700", fontSize: 15 }}>
                 Anuluj subskrypcję
               </Text>
             </Pressable>
           )}
-
-          {currentUserPlan?.status === "pending_cancellation" && (
-  <View style={{
-    marginTop: 8, padding: 16,
-    backgroundColor: "#fff5f5", borderRadius: 14,
-    borderWidth: 1.5, borderColor: "#fca5a5",
-    gap: 10,
-  }}>
-    <Text style={{ fontSize: 14, fontWeight: "800", color: "#dc2626" }}>
-      Subskrypcja została anulowana.
-    </Text>
-    <Text style={{ fontSize: 13, color: "#dc2626", lineHeight: 20 }}>
-      Dostęp do platformy wygaśnie{" "}
-      <Text style={{ fontWeight: "700" }}>
-        {currentUserPlan.activeUntil
-          ? new Date(currentUserPlan.activeUntil).toLocaleDateString("pl-PL")
-          : currentUserPlan.nextRenewalDate
-            ? new Date(currentUserPlan.nextRenewalDate).toLocaleDateString("pl-PL")
-            : "—"}
-      </Text>
-    </Text>
-    <Text
-      onPress={() => setShowReactivateConfirm(true)}
-      style={{
-        marginTop: 6,
-        fontSize: 14,
-        fontWeight: "700",
-        color: "#dc2626",
-        textAlign: "center",
-      }}
-    >
-      Włącz ponownie
-    </Text>
-  </View>
-)}
         </ScrollView>
 
         {/* ── MODAL: Dodanie nowej platformy ── */}
@@ -535,43 +492,78 @@ const isPendingPlan = currentUserPlan?.pendingPlanId === planId;
       backgroundColor: "#fff", borderTopLeftRadius: 24,
       borderTopRightRadius: 24, padding: 24
     }}>
-      <Text style={{ fontSize: 20, fontWeight: "800", marginBottom: 4 }}>
+      <Text style={{ fontSize: 20, fontWeight: "700", marginBottom: 6  }}>
         Potwierdź aktywację
       </Text>
-      <Text style={{ fontSize: 13, color: "#999", marginBottom: 20 }}>
+      <Text style={{ fontSize: 12, color: "#666", marginBottom: 16, fontWeight:"400" }}>
         {providerName} · {selectedPlan?.pricePLN?.toFixed(2)} zł
         {selectedPlan?.cycle === "yearly" ? "/rok" : "/mies"}
       </Text>
 
-      <Pressable
-        onPress={handleAddNow}
-        style={{ padding: 18, backgroundColor: "#000", borderRadius: 14, marginBottom: 12 }}
-      >
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
-          <MaterialIcons name="bolt" size={18} color="#fff" />
-          <Text style={{ color: "#fff", fontWeight: "800", fontSize: 16 }}>Zapłać teraz</Text>
-        </View>
-        <Text style={{ color: "rgba(255,255,255,0.75)", fontSize: 13, lineHeight: 20 }}>
-          Nowy plan zostanie aktywowany natychmiast. Dokonujesz jednorazowej opłaty w wysokości{" "}
-          <Text style={{ color: "#fff", fontWeight: "700" }}>
+      <View
+            style={{
+              padding: 16,
+              backgroundColor: "#f5f5f5",
+              borderRadius: 10,
+              marginBottom: 20,
+              borderWidth: 1,
+              borderColor: "#eee",
+              gap: 10,
+            }}
+          >
+            <Text style={{ fontSize: 12, color: "#666", lineHeight: 18 }}>
+          Nowy plan zostanie aktywowany natychmiast. Dokonujesz jednorazowej opłaty{" "}
+          <Text style={{ color: "#666", fontWeight: "700" }}>
             {selectedPlan?.pricePLN?.toFixed(2)} zł
           </Text>.{" "}
           Rozliczenie tej usługi w Subii rozpocznie się od kolejnego okresu.
         </Text>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10 }}>
-          <MaterialIcons name="lock" size={12} color="rgba(255,255,255,0.6)" />
-          <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 11 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6 }}>
+          <MaterialIcons name="lock" size={12} color="#666" />
+          <Text style={{ color: "#666", fontSize: 11 }}>
             Płatność obsługiwana przez Stripe · SSL
           </Text>
         </View>
-      </Pressable>
+          </View>
+          <Pressable
+            onPress={handleAddNow}
+            style={{
+              paddingVertical: 16,
+              backgroundColor: "#000",
+              borderRadius: 12,
+              marginBottom: 12,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <MaterialIcons name="bolt" size={18} color="#fff" />
+            <Text
+              style={{
+                color: "#fff",
+                textAlign: "center",
+                fontWeight: "700",
+                fontSize: 15,
+              }}
+            >
+              Zapłać teraz
+            </Text>
+             </View>
+          </Pressable>
+        
+        <Pressable
+            onPress={() => { setShowAddOptions(false); setSelectedPlan(null); setRenewalDay(null); }}
+            style={{
+              padding: 14,
+              backgroundColor: "#f0f0f0",
+              borderRadius: 12,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text style={{ fontWeight: "700", color: "#333", fontSize:14 }}>Anuluj</Text>
+          </Pressable>
 
-      <Pressable
-        onPress={() => { setShowAddOptions(false); setSelectedPlan(null); setRenewalDay(null); }}
-        style={{ padding: 14, backgroundColor: "#f0f0f0", borderRadius: 12, alignItems: "center" }}
-      >
-        <Text style={{ fontWeight: "600" }}>Anuluj</Text>
-      </Pressable>
     </View>
   </View>
 </Modal>
@@ -632,10 +624,12 @@ const newPlanStartStr = getRenewalDateStr(currentUserPlan?.nextRenewalDate);
                 return (
                   <>
                     {/* Nagłówek */}
-                    <Text style={{ fontSize: 20, fontWeight: "800", marginBottom: 4 }}>
+                    <Text style={{ fontSize: 20, fontWeight: "700", marginBottom: 6  }}>
                       Zmiana planu
                     </Text>
-                    <Text style={{ fontSize: 13, color: "#999", marginBottom: 16 }}>
+                    <Text style={{
+              fontSize: 12, color: "#666", marginBottom: 16, fontWeight:"400"
+            }}>
                       {formatPlanName(providerCode, oldPlan?.planName ?? "")} ({oldPrice.toFixed(2)} zł)
                       {"  →  "}
                       {formatPlanName(providerCode, selectedPlan?.planName ?? "")} ({newPrice.toFixed(2)} zł)
@@ -644,18 +638,23 @@ const newPlanStartStr = getRenewalDateStr(currentUserPlan?.nextRenewalDate);
                     {/* Co się zmienia */}
                     {changes.length > 0 && (
                       <View style={{
-                        backgroundColor: "#f9f9f9", borderRadius: 12,
-                        padding: 14, marginBottom: 14, gap: 8,
-                      }}>
-                        <Text style={{ fontSize: 13, fontWeight: "700", color: "#333", marginBottom: 2 }}>
+                padding: 16,
+                backgroundColor: "#fff",
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: "#eee",
+                marginBottom: 12,
+                gap: 10,
+              }}>
+                        <Text style={{ fontSize: 13, fontWeight: "700", color: "#666", marginBottom: 2 }}>
                           Co się zmienia:
                         </Text>
                         {changes.map((c, i) => (
                           <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                            <Text style={{ fontSize: 14, color: c.positive ? "#16a34a" : "#dc2626" }}>
+                            <Text style={{ fontSize: 13,fontWeight:"400", color: c.positive ? "#666" : "#666" }}>
                               {c.positive ? "✓" : "✕"}
                             </Text>
-                            <Text style={{ fontSize: 13, color: "#333" }}>{c.text}</Text>
+                            <Text style={{ fontSize: 13, color: "#666" }}>{c.text}</Text>
                           </View>
                         ))}
                       </View>
@@ -663,60 +662,90 @@ const newPlanStartStr = getRenewalDateStr(currentUserPlan?.nextRenewalDate);
 
                     {/* Info o płatności */}
                     <View style={{
-                      padding: 16,
-                      backgroundColor: isUpgrade ? "#fff5f0" : "#f0f9ff",
-                      borderRadius: 12, marginBottom: 20,
-                      borderWidth: 1,
-                      borderColor: isUpgrade ? "#fed7aa" : "#bae6fd",
-                    }}>
+                padding: 12,
+                backgroundColor: "#f5f5f5",
+                borderRadius: 10,
+                borderWidth: 1,
+                borderColor: "#eee",
+                marginBottom: 20,
+                gap:10,
+              }}>
                       {isUpgrade ? (
-                        <Text style={{ fontSize: 14, color: "#9a3412", lineHeight: 22 }}>
-                          Po zmianie planu korzystasz z nowej wersji natychmiast.{"\n\n"}
-                          Najbliższa płatność w Subii (
-                          <Text style={{ fontWeight: "700" }}>{billingDateStr}</Text>
-                          ) będzie w wysokości{" "}
-                          <Text style={{ fontWeight: "700" }}>{newPrice.toFixed(2)} zł</Text>
-                          {" "}oraz zostanie powiększona o proporcjonalny koszt podwyższenia za pozostałe{" "}
-                          <Text style={{ fontWeight: "700" }}>{daysLeft} dni</Text>
-                          {" "}(ok.{" "}
-                          <Text style={{ fontWeight: "700" }}>{upgradeDiff.toFixed(2)} zł</Text>
-                          ).{"\n\n"}
-                          Każda kolejna płatność będzie naliczana według nowej ceny.
-                        </Text>
-                      ) : (
- <Text style={{ fontSize: 14, color: "#0369a1", lineHeight: 22 }}>
+  <>
+    <Text style={{ fontSize: 12, color: "#666", lineHeight: 18, fontWeight: "400" }}>
+      Po zmianie planu korzystasz z nowej wersji natychmiast.
+    </Text>
+
+    <Text style={{ fontSize: 12, color: "#666", lineHeight: 18 }}>
+      Najbliższa płatność w Subii (
+      <Text style={{ fontWeight: "700" }}>{billingDateStr}</Text>
+      ) będzie w wysokości{" "}
+      <Text style={{ fontWeight: "700" }}>{newPrice.toFixed(2)} zł</Text>
+      {" "}oraz zostanie powiększona o proporcjonalny koszt podwyższenia za pozostałe dni.{" "}</Text>
+  
+
+    <Text style={{ fontSize: 12, color: "#666", lineHeight: 18 }}>
+      Każda kolejna płatność będzie naliczana według nowej ceny.
+    </Text>
+  </>
+) : (
+<>
+<Text style={{ fontSize: 12, color: "#666", lineHeight: 18 }}>
   Obecny plan obowiązuje do{" "}
-  <Text style={{ fontWeight: "700" }}>{currentPlanUntilStr}</Text>.{"\n\n"}
+  <Text style={{ fontWeight: "700" }}>{currentPlanUntilStr}</Text>.
+</Text>
+
+<Text style={{ fontSize: 12, color: "#666", lineHeight: 18, marginTop: 8 }}>
   Nowy plan{" "}
   <Text style={{ fontWeight: "700" }}>
     {formatPlanName(providerCode, selectedPlan?.planName ?? "")}
-  </Text>
-  {" "}zacznie obowiązywać od{" "}
-  <Text style={{ fontWeight: "700" }}>{newPlanStartStr}</Text>.{"\n\n"}
-                          Od tego momentu opłata w Subii będzie naliczana według nowej ceny{" "}
-                          <Text style={{ fontWeight: "700" }}>{newPrice.toFixed(2)} zł / mies</Text>.
-                        </Text>
-                      )}
+  </Text>{" "}
+  zacznie obowiązywać od{" "}
+  <Text style={{ fontWeight: "700" }}>{currentPlanUntilStr}</Text>.
+</Text>
+
+<Text style={{ fontSize: 12, color: "#666", lineHeight: 18, marginTop: 8 }}>
+  Od tego momentu opłata w Subii będzie naliczana według nowej ceny{" "}
+  <Text style={{ fontWeight: "700" }}>
+    {newPrice.toFixed(2)} zł / mies
+  </Text>.
+</Text>
+                    </>  )}
                     </View>
 
                     {/* Przyciski */}
                     <Pressable
                       onPress={handleChangePlanConfirm}
                       style={{
-                        padding: 18, backgroundColor: "#000",
-                        borderRadius: 14, marginBottom: 12, alignItems: "center",
-                      }}
+              paddingVertical: 16,
+              backgroundColor: "#000",
+              borderRadius: 12,
+              marginBottom: 12,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
                     >
-                      <Text style={{ color: "#fff", fontWeight: "800", fontSize: 16 }}>
+                      <Text style={{
+                color: "#fff",
+                textAlign: "center",
+                fontWeight: "700",
+                fontSize: 15,
+              }}>
                         Potwierdź zmianę planu
                       </Text>
                     </Pressable>
 
                     <Pressable
                       onPress={() => { setShowChangePlan(false); setSelectedPlan(null); }}
-                      style={{ padding: 14, backgroundColor: "#f0f0f0", borderRadius: 12, alignItems: "center" }}
+                      style={{
+              padding: 14,
+              backgroundColor: "#f0f0f0",
+              borderRadius: 12,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
                     >
-                      <Text style={{ fontWeight: "700", color: "#333" }}>Anuluj</Text>
+                      <Text style={{ fontWeight: "700", color: "#333", fontSize:14 }}>Anuluj</Text>
                     </Pressable>
                   </>
                 );
@@ -750,7 +779,7 @@ const newPlanStartStr = getRenewalDateStr(currentUserPlan?.nextRenewalDate);
                 {logo && (
                   <Image source={logo} style={{ width: 40, height: 40, resizeMode: "contain" }} />
                 )}
-                <Text style={{ fontSize: 20, fontWeight: "800", flex: 1 }}>{providerName}</Text>
+                <Text style={{ fontSize: 20, fontWeight: "700", flex: 1 }}>{providerName}</Text>
                 <Pressable onPress={() => setShowInfo(false)}>
                   <MaterialIcons name="close" size={24} color="#666" />
                 </Pressable>
@@ -758,9 +787,14 @@ const newPlanStartStr = getRenewalDateStr(currentUserPlan?.nextRenewalDate);
               <Text style={{ fontSize: 14, color: "#666", lineHeight: 22 }}>{description}</Text>
               <Pressable
                 onPress={() => setShowInfo(false)}
-                style={{ marginTop: 20, padding: 14, backgroundColor: "#f0f0f0", borderRadius: 10, alignItems: "center" }}
+                style={{ marginTop: 20, paddingVertical: 16, backgroundColor: "#000", borderRadius: 12, alignItems: "center" }}
               >
-                <Text style={{ fontWeight: "600", color: "#000" }}>Zamknij</Text>
+                <Text style={{
+                color: "#fff",
+                textAlign: "center",
+                fontWeight: "700",
+                fontSize: 15,
+              }}>Zamknij</Text>
               </Pressable>
             </Pressable>
           </Pressable>
@@ -775,115 +809,82 @@ const newPlanStartStr = getRenewalDateStr(currentUserPlan?.nextRenewalDate);
         >
           <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
             <View style={{
-              backgroundColor: "#fff", borderTopLeftRadius: 24,
-              borderTopRightRadius: 24, padding: 24
-            }}>
-              <Text style={{ fontSize: 20, fontWeight: "800", marginBottom: 4 }}>
-                Zrezygnować z {providerName}?
-              </Text>
-              <Text style={{ fontSize: 13, color: "#999", marginBottom: 20 }}>
+            backgroundColor: "#fff",
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            padding: 24,
+          }}>
+              <Text style={{ fontSize: 20, fontWeight: "700", marginBottom: 6 }}>
+            Czy na pewno chcesz zrezygnować z {providerName}?
+          </Text>
+              <Text style={{ fontSize: 12, color: "#666", marginBottom: 16, fontWeight:"400" }}>
                 {currentUserPlan?.plan?.planName} · {(currentUserPlan?.priceOverridePLN || currentUserPlan?.plan?.pricePLN || 0).toFixed(2)} zł/mies
               </Text>
 
-              <View style={{
-                padding: 16, backgroundColor: "#fff5f5", borderRadius: 12,
-                marginBottom: 20, borderWidth: 1, borderColor: "#fca5a5"
-              }}>
-                <Text style={{ fontSize: 14, color: "#dc2626", lineHeight: 24 }}>
-                  {"• "}Dostęp do {providerName} zachowasz do{" "}
-<Text style={{ fontWeight: "700" }}>
-  {getRenewalMinusOne(currentUserPlan?.nextRenewalDate)}
-</Text>
-                  {"\n• "}Przy następnej płatności zbiorczej ta platforma{" "}
-                  <Text style={{ fontWeight: "700" }}>nie zostanie doliczona</Text>
-                  {"\n• "}Po tym dniu subskrypcja wygaśnie automatycznie
-                </Text>
-              </View>
+
+              <View
+            style={{
+              padding: 16,
+              backgroundColor: "#f5f5f5",
+              borderRadius: 10,
+              marginBottom: 20,
+              borderWidth: 1,
+              borderColor: "#eee",
+              gap: 10,
+            }}
+          >
+            <Text style={{ fontSize: 12, color: "#666", lineHeight: 18 }}>
+              Dostęp pozostanie aktywny do{" "}
+              <Text style={{ fontWeight: "800" }}>{getRenewalMinusOne(currentUserPlan?.nextRenewalDate)} </Text>.
+            </Text>
+
+            <Text style={{ fontSize: 12, color: "#666", lineHeight: 18 }}>
+              Po tej dacie subskrypcja wygaśnie automatycznie.
+            </Text>
+
+            <Text style={{ fontSize: 12, color: "#666", lineHeight: 18 }}>
+              Opłata za kolejny okres nie zostanie pobrana.
+            </Text>
+          </View>
 
               <Pressable
-                onPress={handleCancelSubscription}
-                style={{
-                  padding: 18, backgroundColor: "#dc2626",
-                  borderRadius: 14, marginBottom: 12
-                }}
-              >
-                <Text style={{ color: "#fff", textAlign: "center", fontWeight: "700", fontSize: 16 }}>
-                  Tak, rezygnuję
-                </Text>
-              </Pressable>
+            onPress={handleCancelSubscription}
+            style={{
+              paddingVertical: 16,
+              backgroundColor: "#000",
+              borderRadius: 12,
+              marginBottom: 12,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text
+              style={{
+                color: "#fff",
+                textAlign: "center",
+                fontWeight: "700",
+                fontSize: 15,
+              }}
+            >
+              Potwierdź rezygnację
+            </Text>
+          </Pressable>
 
               <Pressable
-                onPress={() => setShowCancelConfirm(false)}
-                style={{ padding: 14, backgroundColor: "#f0f0f0", borderRadius: 12, alignItems: "center" }}
-              >
-                <Text style={{ fontWeight: "600" }}>Anuluj</Text>
-              </Pressable>
+            onPress={() => setShowCancelConfirm(false)}
+            style={{
+              padding: 14,
+              backgroundColor: "#f0f0f0",
+              borderRadius: 12,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text style={{ fontWeight: "700", color: "#333", fontSize:14 }}>Anuluj</Text>
+          </Pressable>
             </View>
           </View>
         </Modal>
-{/* MODAL: Reaktywacja */}
-<Modal
-  visible={showReactivateConfirm}
-  transparent
-  animationType="slide"
-  onRequestClose={() => setShowReactivateConfirm(false)}
->
-  <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
-    <View style={{
-      backgroundColor: "#fff",
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
-      padding: 24,
-    }}>
-      <Text style={{ fontSize: 20, fontWeight: "800", marginBottom: 6 }}>
-        Aktywować subskrypcję {providerName}?
-      </Text>
-      <Text style={{ fontSize: 13, color: "#666", lineHeight: 18, marginBottom: 20 }}>
-        Subskrypcja zostanie ponownie aktywowana. Dostęp pozostanie bez przerwy.
-      </Text>
-
-      <View style={{
-        padding: 16, backgroundColor: "#fff",
-        borderRadius: 12, borderWidth: 1,
-        borderColor: "#eee", gap: 10, marginBottom: 20,
-      }}>
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <Text style={{ fontSize: 14, color: "#666" }}>Najbliższe odnowienie</Text>
-          <Text style={{ fontSize: 14, fontWeight: "800", color: "#000" }}>
-            {currentUserPlan?.nextRenewalDate
-              ? new Date(currentUserPlan.nextRenewalDate).toLocaleDateString("pl-PL")
-              : "—"}
-          </Text>
-        </View>
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <Text style={{ fontSize: 14, color: "#666" }}>Kwota</Text>
-          <Text style={{ fontSize: 14, fontWeight: "600", color: "#333" }}>
-            {(currentUserPlan?.priceOverridePLN || currentUserPlan?.plan?.pricePLN || 0).toFixed(2)} zł / {currentUserPlan?.plan?.cycle === "yearly" ? "rok" : "mies."}
-          </Text>
-        </View>
-      </View>
-
-      <Pressable
-        onPress={handleReactivateConfirm}
-        style={{
-          padding: 18, backgroundColor: "#000",
-          borderRadius: 14, marginBottom: 12,
-        }}
-      >
-        <Text style={{ color: "#fff", textAlign: "center", fontWeight: "800", fontSize: 16 }}>
-          Aktywuj subskrypcję
-        </Text>
-      </Pressable>
-
-      <Pressable
-        onPress={() => setShowReactivateConfirm(false)}
-        style={{ padding: 14, backgroundColor: "#f0f0f0", borderRadius: 12, alignItems: "center" }}
-      >
-        <Text style={{ fontWeight: "700", color: "#333" }}>Anuluj</Text>
-      </Pressable>
-    </View>
-  </View>
-</Modal>
 
 {/* Modal płatności */}
         <PaymentModal

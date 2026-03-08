@@ -2,12 +2,14 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   View, Text, Image, Pressable, ScrollView,
-  ActivityIndicator, TouchableOpacity,
+  ActivityIndicator, TouchableOpacity, Modal,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { api, subscriptionsApi } from "../../src/lib/api";
 import { getProviderLogo, getProviderName } from "../../src/lib/provider-logos";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
 
 const OFFER_TYPE_LABELS: Record<string, string> = {
   subscription: "W abonamencie",
@@ -33,6 +35,8 @@ export default function TitleScreen() {
   const [seasonsLoading, setSeasonsLoading] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [selectedRating, setSelectedRating] = useState(0);
+  const [showFullOverview, setShowFullOverview] = useState(false);
+const [showEpisodesModal, setShowEpisodesModal] = useState(false);
 
   useEffect(() => {
     loadAll();
@@ -331,24 +335,53 @@ export default function TitleScreen() {
     <View style={{ flex: 1, backgroundColor: "#f5f5f5" }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
 
-        {/* Plakat */}
+        {/* ========== PLAKAT (wyższy) ========== */}
         <View style={{ position: "relative" }}>
           {details.backdrop_path ? (
             <Image
               source={{ uri: `https://image.tmdb.org/t/p/w780${details.backdrop_path}` }}
-              style={{ width: "100%", height: 220 }}
+              style={{ width: "100%", height: 300 }}
             />
           ) : details.poster_path ? (
             <Image
               source={{ uri: `https://image.tmdb.org/t/p/w780${details.poster_path}` }}
-              style={{ width: "100%", height: 220 }}
+              style={{ width: "100%", height: 300 }}
             />
           ) : (
-            <View style={{ width: "100%", height: 220, backgroundColor: "#222", justifyContent: "center", alignItems: "center" }}>
-              <Text style={{ fontSize: 64 }}>🎬</Text>
-            </View>
+    <View
+      style={{
+        width: "100%",
+        height: 300,
+        backgroundColor: "#222",
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+    >
+      <Ionicons name="film-outline" size={64} color="#999" />
+      
+    </View>
+
+
+
           )}
 
+          {/* Gradient na dole plakatu */}
+<LinearGradient
+  colors={["transparent", "rgba(0,0,0,0.8)"]}
+  style={{
+    position: "absolute", bottom: 0, left: 0, right: 0,
+    paddingHorizontal: 20,
+    paddingTop: 120,
+    paddingBottom: 14,
+    justifyContent: "flex-end",
+  }}
+>
+  <Text style={{ fontSize: 24, fontWeight: "700", color: "#fff", lineHeight: 30 }}>
+    {title}
+  </Text>
+</LinearGradient>
+
+          {/* Przycisk cofania */}
           <Pressable
             onPress={() => router.back()}
             style={{
@@ -365,6 +398,7 @@ export default function TitleScreen() {
             <Text style={{ color: "#fff", fontSize: 18 }}>←</Text>
           </Pressable>
 
+          {/* Przycisk ulubionych */}
           <Pressable
             onPress={toggleFavorite}
             style={{
@@ -386,125 +420,166 @@ export default function TitleScreen() {
           </Pressable>
         </View>
 
-        <View style={{ padding: 20, gap: 16 }}>
+        <View style={{ paddingHorizontal: 20, paddingBottom: 20, gap: 15 }}>
 
-          {/* Tytuł + meta */}
-          <View style={{ gap: 6 }}>
-            <Text style={{ fontSize: 26, fontWeight: "900", color: "#000", lineHeight: 32 }}>
-              {title}
-            </Text>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
-              {year && <Text style={{ fontSize: 13, color: "#666" }}>{year}</Text>}
+          {/* ========== WIERSZ: meta (lewo) + akcja (prawo) ========== */}
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 15 }}>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, alignItems: "center", flex: 1 }}>
+              {year && <Text style={{ fontSize: 12, color: "#666",fontWeight:"400" }}>{year}</Text>}
               {runtime && (
                 <>
                   <Text style={{ color: "#ccc" }}>·</Text>
-                  <Text style={{ fontSize: 13, color: "#666" }}>{runtime}</Text>
+                  <Text style={{ fontSize: 12, color: "#666", fontWeight:"400" }}>{runtime}</Text>
                 </>
               )}
               {genres ? (
                 <>
                   <Text style={{ color: "#ccc" }}>·</Text>
-                  <Text style={{ fontSize: 13, color: "#666" }}>{genres}</Text>
+                  <Text style={{ fontSize: 12, color: "#666",fontWeight:"400" }}>{genres}</Text>
                 </>
               ) : null}
             </View>
+
+            {/* Film: checkbox | Serial: ikona menu odcinków */}
+            {isMovie ? (
+  <TouchableOpacity
+    onPress={toggleMovieWatched}
+    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+    style={{
+      width: 28, height: 28,
+      borderRadius:20,
+      borderWidth: 2,
+      borderColor: userTitleState.watched ? "transparent" : "#ccc",
+      backgroundColor: userTitleState.watched ? "rgba(103, 209, 142, 0.39)" : "transparent",
+      justifyContent: "center",
+      alignItems: "center",
+    }}
+  >
+    {userTitleState.watched && (
+      <MaterialIcons name="check" size={18} color="#1b8241" />
+    )}
+  </TouchableOpacity>
+) : (
+              <TouchableOpacity
+                onPress={() => setShowEpisodesModal(true)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <MaterialIcons name="menu" size={24} color="#000" />
+              </TouchableOpacity>
+            )}
           </View>
-          {/* Checkbox "Obejrzane" — tylko dla filmów */}
-          {isMovie && (
-            <TouchableOpacity
-              onPress={toggleMovieWatched}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 10,
-                backgroundColor: userTitleState.watched ? "#000" : "#fff",
-                borderRadius: 12,
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                shadowColor: "#000",
-                shadowOpacity: 0.07,
-                shadowRadius: 4,
-                elevation: 2,
-              }}
-            >
-              <MaterialIcons
-                name={userTitleState.watched ? "check-box" : "check-box-outline-blank"}
-                size={22}
-                color={userTitleState.watched ? "#fff" : "#000"}
-              />
-              <Text style={{
-                fontSize: 14,
-                fontWeight: "700",
-                color: userTitleState.watched ? "#fff" : "#000",
-              }}>
-                {userTitleState.watched ? "Obejrzane ✓" : "Oznacz jako obejrzane"}
-              </Text>
-            </TouchableOpacity>
-          )}
 
-          {/* Oceny */}
-          {(ratings?.imdbRating || ratings?.rtScore || details.vote_average > 0) && (
-            <View style={{ flexDirection: "row", gap: 10, flexWrap: "wrap" }}>
-              {details.vote_average > 0 && (
-                <View style={{
-                  backgroundColor: "#fff", borderRadius: 10, paddingHorizontal: 12,
-                  paddingVertical: 8, alignItems: "center",
-                  shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
-                }}>
-                  <Text style={{ fontSize: 11, color: "#999", marginBottom: 2 }}>TMDB</Text>
-                  <Text style={{ fontSize: 16, fontWeight: "800", color: "#000" }}>
-                    ⭐ {details.vote_average.toFixed(1)}
-                  </Text>
-                </View>
-              )}
-              {ratings?.imdbRating && ratings.imdbRating !== "N/A" && (
-                <View style={{
-                  backgroundColor: "#fff", borderRadius: 10, paddingHorizontal: 12,
-                  paddingVertical: 8, alignItems: "center",
-                  shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
-                }}>
-                  <Text style={{ fontSize: 11, color: "#999", marginBottom: 2 }}>IMDb</Text>
-                  <Text style={{ fontSize: 16, fontWeight: "800", color: "#f59e0b" }}>
-                    {ratings.imdbRating}
-                  </Text>
-                </View>
-              )}
-              {ratings?.rtScore && ratings.rtScore !== "N/A" && (
-                <View style={{
-                  backgroundColor: "#fff", borderRadius: 10, paddingHorizontal: 12,
-                  paddingVertical: 8, alignItems: "center",
-                  shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
-                }}>
-                  <Text style={{ fontSize: 11, color: "#999", marginBottom: 2 }}>Rotten Tomatoes</Text>
-                  <Text style={{ fontSize: 16, fontWeight: "800", color: "#dc2626" }}>
-                    🍅 {ratings.rtScore}
-                  </Text>
-                </View>
-              )}
-            </View>
-          )}
+          {/* ========== INFORMACJE — jeden kafelek ========== */}
+<View style={{
+  backgroundColor: "#fff", borderRadius: 12, padding: 16,
+  gap: 5,
+  shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
+}}>
+  {/* Nagłówek */}
+  <Text style={{ fontSize: 16, fontWeight: "700", color: "#000" }}>
+    {isMovie ? "Informacje o filmie" : "Informacje o serialu"}
+  </Text>
 
-          {/* Opis */}
-          {details.overview ? (
-            <View style={{ backgroundColor: "#fff", borderRadius: 14, padding: 16 }}>
-              <Text style={{ fontSize: 14, fontWeight: "700", color: "#000", marginBottom: 8 }}>
-                Opis
-              </Text>
-              <Text style={{ fontSize: 14, color: "#555", lineHeight: 22 }}>
-                {details.overview}
-              </Text>
-            </View>
-          ) : null}
+  {/* Oceny */}
+{(ratings?.imdbRating || ratings?.rtScore || details.vote_average > 0) && (
+  <View
+    style={{
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 14,
+      flexWrap: "wrap",
+    }}
+  >
 
-          {/* Gdzie obejrzeć */}
-<View>
-  <Text style={{ fontSize: 16, fontWeight: "800", color: "#000", marginBottom: 10 }}>
+    {/* TMDB */}
+    {details.vote_average > 0 && (
+      <>
+        <View style={{ alignItems: "center" }}>
+          <Text style={{ fontSize: 9, color: "#999", marginBottom: 2 }}>
+            TMDB
+          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <MaterialIcons name="star" size={14} color="#999" />
+            <Text style={{ fontSize: 13, fontWeight: "700", color: "#999" }}>
+              {details.vote_average.toFixed(1)}
+            </Text>
+          </View>
+        </View>
+
+        {(ratings?.imdbRating || ratings?.rtScore) && (
+          <Text style={{ color: "#ccc", fontSize: 20 }}>|</Text>
+        )}
+      </>
+    )}
+
+    {/* IMDb */}
+    {ratings?.imdbRating && ratings.imdbRating !== "N/A" && (
+      <>
+        <View style={{ alignItems: "center" }}>
+          <Text style={{ fontSize: 9, color: "#999", marginBottom: 2 }}>
+            IMDb
+          </Text>
+          <Text style={{ fontSize: 13, fontWeight: "700", color: "#999" }}>
+            {ratings.imdbRating}
+          </Text>
+        </View>
+
+        {ratings?.rtScore && ratings.rtScore !== "N/A" && (
+          <Text style={{ color: "#ccc", fontSize: 20 }}>|</Text>
+        )}
+      </>
+    )}
+
+    {/* Rotten Tomatoes */}
+    {ratings?.rtScore && ratings.rtScore !== "N/A" && (
+      <View style={{ alignItems: "center" }}>
+        <Text style={{ fontSize: 9, color: "#999", marginBottom: 2 }}>
+          Rotten Tomatoes
+        </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+          <MaterialIcons name="local-fire-department" size={14} color="#999" />
+          <Text style={{ fontSize: 13, fontWeight: "700", color: "#999" }}>
+            {ratings.rtScore}
+          </Text>
+        </View>
+      </View>
+    )}
+  </View>
+)}
+
+  {/* Opis */}
+  {details.overview ? (
+    <View>
+      <Text
+        style={{ fontSize: 13, color: "#666", lineHeight: 22,fontWeight:"400" }}
+        numberOfLines={showFullOverview ? undefined : 3}
+      >
+        {details.overview}
+      </Text>
+      {details.overview.length > 120 && (
+        <Pressable onPress={() => setShowFullOverview(!showFullOverview)}style={{ alignSelf: "flex-end", marginTop: 6 }}>
+          <Text style={{ fontSize: 13, fontWeight: "600", color: "#333", marginTop: 6 }}>
+            {showFullOverview ? "Zwiń" : "Więcej"}
+          </Text>
+        </Pressable>
+      )}
+    </View>
+  ) : null}
+</View>
+
+          {/* ========== GDZIE OBEJRZEĆ — bez zmian ========== */}
+          <View style={{
+  backgroundColor: "#fff", borderRadius: 12, padding: 16,
+  gap: 12,
+  shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
+}}>
+  <Text style={{ fontSize: 16, fontWeight: "700", color: "#000" }}>
     Gdzie obejrzeć
   </Text>
 
   {availability.length === 0 ? (
-    <View style={{ backgroundColor: "#fff", borderRadius: 14, padding: 20, alignItems: "center" }}>
-      <Text style={{ fontSize: 14, color: "#999" }}>
+    <View style={{ paddingVertical: 10, alignItems: "center" }}>
+      <Text style={{ fontSize: 13, color: "#999", fontWeight:"400" }}>
         Brak danych o dostępności w Polsce
       </Text>
     </View>
@@ -517,10 +592,10 @@ export default function TitleScreen() {
         const canSubscribe = !isOwned && !!providerCode;
 
         const typeLabel: Record<string, string> = {
-          subscription: "W abonamencie",
-          rent:         "Do wypożyczenia",
-          buy:          "Do kupienia",
-          free:         "Bezpłatnie",
+          subscription: "Abonament",
+          rent: "Wypożycz",
+          buy: "Wykup",
+          free: "Bezpłatnie",
         };
 
         const cheapestPlan = s.cheapestPlan;
@@ -535,93 +610,68 @@ export default function TitleScreen() {
             }}
             style={({ pressed }) => ({
               backgroundColor: "#fff",
-              borderRadius: 14,
-              padding: 14,
+              borderRadius: 6,
+              padding: 1,
               flexDirection: "row",
               alignItems: "center",
               gap: 12,
-              shadowColor: "#000",
-              shadowOpacity: 0.05,
-              shadowRadius: 4,
-              elevation: 2,
-              borderWidth: isOwned ? 1.5 : canSubscribe ? 1 : 0,
-              borderColor: isOwned
-                ? "rgba(134,239,172,0.6)"
-                : canSubscribe
-                ? "#e0e0e0"
-                : "transparent",
-              opacity: pressed ? 0.85 : 1,
             })}
           >
-            {/* Logo platformy — bez nazwy tekstowej */}
             <View style={{
-              width: 52,
-              height: 52,
-              borderRadius: 12,
-              backgroundColor: "#f5f5f5",
-              justifyContent: "center",
-              alignItems: "center",
+              width: 70, height: 70, borderRadius: 10,
+              backgroundColor: "#fff",
+              justifyContent: "center", alignItems: "center",
               overflow: "hidden",
             }}>
-              {logo ? (
-                <Image
-                  source={logo}
-                  style={{ width: 44, height: 44, resizeMode: "contain" }}
-                />
-              ) : (
-                <Text style={{ fontSize: 22 }}>🎬</Text>
-              )}
+              {logo && (
+  <Image source={logo} style={{ width: 60, height: 60, resizeMode: "contain" }} />
+)}
             </View>
 
-            {/* Środek — typ + plan + cena */}
             <View style={{ flex: 1, gap: 3 }}>
-              <Text style={{ fontSize: 13, color: "#999", fontWeight: "500" }}>
+              <Text style={{ fontSize: 12, color: "#999", fontWeight: "400" }}>
                 {typeLabel[s.type] || s.type}
               </Text>
-
               {s.type === "subscription" && cheapestPlan ? (
                 <>
-                  <Text style={{ fontSize: 15, fontWeight: "700", color: "#000" }}>
+                  <Text style={{ fontSize: 15, fontWeight: "600", color: "#000" }}>
                     {cheapestPlan.planName}
                   </Text>
-                  <Text style={{ fontSize: 13, color: "#555" }}>
+                  <Text style={{ fontSize: 13, color: "#666" }}>
                     {cheapestPlan.pricePLN % 1 === 0
                       ? `${cheapestPlan.pricePLN} zł/mies.`
                       : `${cheapestPlan.pricePLN.toFixed(2)} zł/mies.`}
                   </Text>
                 </>
               ) : s.type === "rent" || s.type === "buy" ? (
-                <Text style={{ fontSize: 15, fontWeight: "700", color: "#000" }}>
+                <Text style={{ fontSize: 15, fontWeight: "600", color: "#000" }}>
                   {getProviderName(providerCode)}
                 </Text>
+                
               ) : null}
             </View>
 
-            {/* Prawy badge — masz dostęp / wykup */}
             <View>
               {isOwned ? (
-                <View style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 4,
-                  backgroundColor: "rgba(134,239,172,0.15)",
-                  paddingHorizontal: 10,
-                  paddingVertical: 5,
-                  borderRadius: 20,
-                }}>
-                  <Text style={{ fontSize: 12, color: "#16a34a", fontWeight: "700" }}>
-                    ✓ Masz dostęp
-                  </Text>
-                </View>
-              ) : canSubscribe ? (
+  <View
+    style={{
+      width: 28,
+      height: 28,
+      borderRadius: 999,
+      backgroundColor: "rgba(103, 209, 142, 0.39)",
+      justifyContent: "center",
+      alignItems: "center",
+    }}
+  >
+    <Ionicons name="checkmark" size={18} color="#1b8241" />
+  </View>
+) : canSubscribe ? (
                 <View style={{
                   backgroundColor: "#000",
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  borderRadius: 20,
+                  paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
                 }}>
-                  <Text style={{ fontSize: 12, color: "#fff", fontWeight: "700" }}>
-                    Wykup dostęp
+                  <Text style={{ fontSize: 12, color: "#fff", fontWeight: "600" }}>
+                    Wykup
                   </Text>
                 </View>
               ) : null}
@@ -633,219 +683,398 @@ export default function TitleScreen() {
   )}
 </View>
 
-          {/* Obsada */}
-          {details.credits?.cast?.length > 0 && (
-            <View>
-              <Text style={{ fontSize: 16, fontWeight: "800", color: "#000", marginBottom: 10 }}>
-                Obsada
-              </Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: 14 }}
-              >
-                {details.credits.cast.slice(0, 10).map((actor: any) => (
-                  <Pressable
-                    key={actor.id}
-                    onPress={() => router.push({
-                      pathname: "/person/[personId]",
-                      params: { personId: String(actor.id) },
-                    } as any)}
-                    style={{ alignItems: "center", width: 72 }}
-                  >
-                    {actor.profile_path ? (
-                      <Image
-                        source={{ uri: `https://image.tmdb.org/t/p/w185${actor.profile_path}` }}
-                        style={{ width: 64, height: 64, borderRadius: 32, marginBottom: 6 }}
-                      />
-                    ) : (
-                      <View style={{
-                        width: 64, height: 64, borderRadius: 32,
-                        backgroundColor: "#e0e0e0", marginBottom: 6,
-                        justifyContent: "center", alignItems: "center",
-                      }}>
-                        <Text style={{ fontSize: 26 }}>👤</Text>
-                      </View>
-                    )}
-                    <Text
-                      style={{ fontSize: 11, fontWeight: "600", color: "#000", textAlign: "center" }}
-                      numberOfLines={2}
-                    >
-                      {actor.name}
-                    </Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
+          {/* ========== OBSADA ========== */}
+{details.credits?.cast?.length > 0 && (
+  <View
+    style={{
+      backgroundColor: "#fff",
+      borderRadius: 12,
+      padding: 16,
+      gap: 12,
+      shadowColor: "#000",
+      shadowOpacity: 0.06,
+      shadowRadius: 4,
+      elevation: 2,
+    }}
+  >
+    <Text style={{ fontSize: 16, fontWeight: "700", color: "#000" }}>
+      Obsada
+    </Text>
+
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ gap: 14 }}
+    >
+      {details.credits.cast.slice(0, 10).map((actor: any) => (
+        <Pressable
+          key={actor.id}
+          onPress={() =>
+            router.push({
+              pathname: "/person/[personId]",
+              params: { personId: String(actor.id) },
+            } as any)
+          }
+          style={{ alignItems: "center", width: 72 }}
+        >
+          {actor.profile_path ? (
+            <Image
+              source={{
+                uri: `https://image.tmdb.org/t/p/w185${actor.profile_path}`,
+              }}
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 32,
+                marginBottom: 6,
+              }}
+            />
+          ) : (
+            <View
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 32,
+                backgroundColor: "#e0e0e0",
+                marginBottom: 6,
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <Ionicons name="person" size={28} color="#777" />
             </View>
           )}
 
-          {/* Reżyser */}
-          {details.credits?.crew?.length > 0 && (() => {
-            const director = details.credits.crew.find((c: any) => c.job === "Director");
-            if (!director) return null;
-            return (
-              <View style={{ backgroundColor: "#fff", borderRadius: 14, padding: 16 }}>
-                <Text style={{ fontSize: 14, fontWeight: "700", color: "#000", marginBottom: 4 }}>
-                  Reżyseria
-                </Text>
-                <Text style={{ fontSize: 13, color: "#666" }}>{director.name}</Text>
+          <Text
+            style={{
+              fontSize: 11,
+              fontWeight: "500",
+              color: "#000",
+              textAlign: "center",
+            }}
+            numberOfLines={2}
+          >
+            {actor.name}
+          </Text>
+        </Pressable>
+      ))}
+    </ScrollView>
+  </View>
+)}
+
+         {/* ========== REŻYSERIA ========== */}
+{details.credits?.crew?.length > 0 && (() => {
+  const directors = details.credits.crew.filter((c: any) => c.job === "Director");
+  if (directors.length === 0) return null;
+  return (
+    <View style={{
+      backgroundColor: "#fff", borderRadius: 12, padding: 16,
+      gap: 12,
+      shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
+    }}>
+      <Text style={{ fontSize: 16, fontWeight: "700", color: "#000" }}>
+        Reżyseria
+      </Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: 14 }}
+      >
+        {directors.map((director: any) => (
+          <Pressable
+            key={director.id}
+            onPress={() => router.push({
+              pathname: "/person/[personId]",
+              params: { personId: String(director.id) },
+            } as any)}
+            style={{ alignItems: "center", width: 72 }}
+          >
+            {director.profile_path ? (
+              <Image
+                source={{ uri: `https://image.tmdb.org/t/p/w185${director.profile_path}` }}
+                style={{ width: 64, height: 64, borderRadius: 32, marginBottom: 6 }}
+              />
+            ) : (
+              <View style={{
+                width: 64, height: 64, borderRadius: 32,
+                backgroundColor: "#e0e0e0", marginBottom: 6,
+                justifyContent: "center", alignItems: "center",
+              }}>
+                <Ionicons name="person" size={28} color="#666" />
               </View>
-            );
-          })()}
-          {/* Sekcja sezonów — tylko dla seriali */}
-          {!isMovie && (
-            <View style={{ gap: 8 }}>
-              <Text style={{ fontSize: 16, fontWeight: "800", color: "#000" }}>
-                Odcinki
-              </Text>
-              {seasonsLoading ? (
-                <ActivityIndicator size="small" color="#000" />
-              ) : (
-                seasons.map((season) => (
-                  <View key={season.seasonNumber} style={{
-                    backgroundColor: "#fff",
-                    borderRadius: 14,
-                    overflow: "hidden",
-                    shadowColor: "#000",
-                    shadowOpacity: 0.06,
-                    shadowRadius: 4,
-                    elevation: 2,
-                  }}>
-                    <TouchableOpacity
-                      onPress={() => toggleExpanded(season.seasonNumber)}
-                      style={{ flexDirection: "row", alignItems: "center", padding: 14, gap: 10 }}
-                    >
-                      <TouchableOpacity
-                        onPress={(e) => { e.stopPropagation(); toggleSeason(season); }}
-                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                      >
-                        <MaterialIcons
-                          name={isSeasonWatched(season) ? "check-box" : "check-box-outline-blank"}
-                          size={22}
-                          color="#000"
-                        />
-                      </TouchableOpacity>
-                      <Text style={{ flex: 1, fontSize: 15, fontWeight: "700", color: "#000" }}>
-                        {season.name || `Sezon ${season.seasonNumber}`}
-                      </Text>
-                      <Text style={{ fontSize: 12, color: "#999" }}>
-                        {season.episodes.filter((ep: any) =>
-                          isEpisodeWatched(season.seasonNumber, ep.episodeNumber)
-                        ).length}/{season.episodes.length}
-                      </Text>
-                      <MaterialIcons
-                        name={expandedSeasons.includes(season.seasonNumber) ? "expand-less" : "expand-more"}
-                        size={22}
-                        color="#999"
-                      />
-                    </TouchableOpacity>
-
-                    {expandedSeasons.includes(season.seasonNumber) && (
-                      <View style={{ borderTopWidth: 1, borderTopColor: "#f0f0f0" }}>
-                        {season.episodes.map((episode: any) => (
-                          <TouchableOpacity
-                            key={episode.episodeNumber}
-                            onPress={() => toggleEpisode(season, episode)}
-                            style={{
-                              flexDirection: "row",
-                              alignItems: "center",
-                              paddingVertical: 10,
-                              paddingHorizontal: 14,
-                              gap: 10,
-                              borderBottomWidth: 1,
-                              borderBottomColor: "#f9f9f9",
-                            }}
-                          >
-                            <MaterialIcons
-                              name={isEpisodeWatched(season.seasonNumber, episode.episodeNumber)
-                                ? "check-box"
-                                : "check-box-outline-blank"}
-                              size={20}
-                              color={isEpisodeWatched(season.seasonNumber, episode.episodeNumber)
-                                ? "#000"
-                                : "#bbb"}
-                            />
-                            <View style={{ flex: 1 }}>
-                              <Text
-                                style={{ fontSize: 13, fontWeight: "600", color: "#000" }}
-                                numberOfLines={1}
-                              >
-                                {episode.episodeNumber}. {episode.name}
-                              </Text>
-                              {episode.runtime ? (
-                                <Text style={{ fontSize: 11, color: "#999", marginTop: 1 }}>
-                                  {episode.runtime} min
-                                </Text>
-                              ) : null}
-                            </View>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                    )}
-                  </View>
-                ))
-              )}
-            </View>
-          )}
+            )}
+            <Text
+              style={{ fontSize: 11, fontWeight: "500", color: "#000", textAlign: "center" }}
+              numberOfLines={2}
+            >
+              {director.name}
+            </Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+    </View>
+  );
+})()}
 
         </View>
       </ScrollView>
-      {/* Modal oceny */}
-      {showRatingModal && (
-        <View style={{
-          position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: "rgba(0,0,0,0.5)",
-          justifyContent: "center", alignItems: "center",
-          zIndex: 999,
-        }}>
+
+      {/* ========== MODAL OCENY — bez zmian ========== */}
+{showRatingModal && (
+  <View
+    style={{
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: "rgba(0,0,0,0.5)",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 999,
+    }}
+  >
+    <View
+      style={{
+        backgroundColor: "#fff",
+        borderRadius: 20,
+        padding: 28,
+        marginHorizontal: 30,
+        width: "85%",
+        alignItems: "center",
+        gap: 16,
+      }}
+    >
+      <Text
+        style={{
+          fontSize: 18,
+          fontWeight: "700",
+          color: "#000",
+          textAlign: "center",
+        }}
+      >
+        Jak oceniasz ten tytuł?
+      </Text>
+
+      <Text
+        style={{
+          fontSize: 13,
+          color: "#999",
+          textAlign: "center",
+          fontWeight: "400",
+        }}
+      >
+        Twoja ocena pomoże nam polecić Ci lepsze tytuły
+      </Text>
+
+      {/* GWIAZDKI */}
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Pressable key={star} onPress={() => setSelectedRating(star)}>
+            <Ionicons
+              name={star <= selectedRating ? "star" : "star-outline"}
+              size={34}
+              color={star <= selectedRating ? "#f59e0b" : "#ccc"}
+            />
+          </Pressable>
+        ))}
+      </View>
+
+      <View style={{ flexDirection: "row", gap: 10, width: "100%" }}>
+        <Pressable
+          onPress={() => setShowRatingModal(false)}
+          style={{
+            flex: 1,
+            paddingVertical: 12,
+            borderRadius: 12,
+            backgroundColor: "#f0f0f0",
+            alignItems: "center",
+          }}
+        >
+          <Text style={{ fontSize: 14, fontWeight: "700", color: "#333" }}>
+            Pomiń
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => selectedRating > 0 && submitRating(selectedRating)}
+          style={{
+            flex: 1,
+            paddingVertical: 12,
+            borderRadius: 12,
+            backgroundColor: selectedRating > 0 ? "#000" : "#ccc",
+            alignItems: "center",
+          }}
+        >
+          <Text style={{ fontSize: 14, fontWeight: "700", color: "#fff" }}>
+            Zapisz
+          </Text>
+        </Pressable>
+      </View>
+    </View>
+  </View>
+)}
+
+      {/* ========== MODAL ODCINKÓW — tylko seriale ========== */}
+      <Modal
+        visible={showEpisodesModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowEpisodesModal(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: "#f5f5f5" }}>
+          {/* Nagłówek modalu */}
           <View style={{
-            backgroundColor: "#fff", borderRadius: 20,
-            padding: 28, marginHorizontal: 30, width: "85%",
-            alignItems: "center", gap: 16,
+            flexDirection: "row", alignItems: "center",
+            paddingTop: insets.top -15, paddingBottom: 16, paddingHorizontal: 20,
+            backgroundColor: "#fff",
+            borderBottomWidth: 1, borderBottomColor: "#f0f0f0",
           }}>
-            <Text style={{ fontSize: 18, fontWeight: "900", color: "#000", textAlign: "center" }}>
-              Jak oceniasz ten tytuł?
+            <Pressable onPress={() => setShowEpisodesModal(false)} style={{ padding: 4 }}>
+               <Text style={{ fontSize: 24 }}>←</Text>
+            </Pressable>
+            <Text style={{ fontSize:24, fontWeight: "600", color: "#000", marginLeft: 12 }}>
+              Odcinki
             </Text>
-            <Text style={{ fontSize: 13, color: "#999", textAlign: "center" }}>
-              Twoja ocena pomoże nam polecić Ci lepsze tytuły
-            </Text>
-
-            {/* Gwiazdki */}
-            <View style={{ flexDirection: "row", gap: 8 }}>
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Pressable key={star} onPress={() => setSelectedRating(star)}>
-                  <Text style={{ fontSize: 36 }}>
-                    {star <= selectedRating ? "⭐" : "☆"}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-
-            {/* Przyciski */}
-            <View style={{ flexDirection: "row", gap: 10, width: "100%" }}>
-              <Pressable
-                onPress={() => setShowRatingModal(false)}
-                style={{
-                  flex: 1, paddingVertical: 12, borderRadius: 10,
-                  backgroundColor: "#f0f0f0", alignItems: "center",
-                }}
-              >
-                <Text style={{ fontSize: 14, fontWeight: "700", color: "#666" }}>Pomiń</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => selectedRating > 0 && submitRating(selectedRating)}
-                style={{
-                  flex: 1, paddingVertical: 12, borderRadius: 10,
-                  backgroundColor: selectedRating > 0 ? "#000" : "#ccc",
-                  alignItems: "center",
-                }}
-              >
-                <Text style={{ fontSize: 14, fontWeight: "700", color: "#fff" }}>Zapisz</Text>
-              </Pressable>
-            </View>
           </View>
+
+          {/* Lista sezonów */}
+          <ScrollView contentContainerStyle={{ padding: 16, gap: 10 }}>
+  {seasonsLoading ? (
+    <ActivityIndicator size="large" color="#000" style={{ marginTop: 40 }} />
+  ) : (
+    seasons.map((season) => (
+      <View
+        key={season.seasonNumber}
+        style={{
+          backgroundColor: "#fff",
+          borderRadius: 12,
+          overflow: "hidden",
+          shadowColor: "#000",
+          shadowOpacity: 0.06,
+          shadowRadius: 4,
+          elevation: 2,
+        }}
+      >
+        <TouchableOpacity
+          onPress={() => toggleExpanded(season.seasonNumber)}
+          style={{ flexDirection: "row", alignItems: "center", padding: 14, gap: 10 }}
+        >
+          <TouchableOpacity
+            onPress={(e) => {
+              e.stopPropagation();
+              toggleSeason(season);
+            }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={{
+              width: 25,
+              height: 25,
+              borderRadius: 20,
+              borderWidth: 2,
+              borderColor: isSeasonWatched(season) ? "transparent" : "#ccc",
+              backgroundColor: isSeasonWatched(season)
+                ? "rgba(103, 209, 142, 0.39)"
+                : "transparent",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            {isSeasonWatched(season) && (
+              <MaterialIcons name="check" size={17} color="#1b8241" />
+            )}
+          </TouchableOpacity>
+
+          <Text style={{ flex: 1, fontSize: 17, fontWeight: "600", color: "#000" }}>
+            {season.name || `Sezon ${season.seasonNumber}`}
+          </Text>
+
+          <Text style={{ fontSize: 12, color: "#999" }}>
+            {
+              season.episodes.filter((ep: any) =>
+                isEpisodeWatched(season.seasonNumber, ep.episodeNumber)
+              ).length
+            }
+            /{season.episodes.length}
+          </Text>
+
+          <MaterialIcons
+            name={
+              expandedSeasons.includes(season.seasonNumber)
+                ? "expand-less"
+                : "expand-more"
+            }
+            size={22}
+            color="#999"
+          />
+        </TouchableOpacity>
+
+        {expandedSeasons.includes(season.seasonNumber) && (
+          <View style={{ borderTopWidth: 1, borderTopColor: "#f0f0f0" }}>
+            {season.episodes.map((episode: any) => (
+              <TouchableOpacity
+                key={episode.episodeNumber}
+                onPress={() => toggleEpisode(season, episode)}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingVertical: 10,
+                  paddingHorizontal: 14,
+                  gap: 10,
+                  borderBottomWidth: 1,
+                  borderBottomColor: "#f9f9f9",
+                }}
+              >
+                <View
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: 16,
+                    borderWidth: 2,
+                    borderColor: isEpisodeWatched(
+                      season.seasonNumber,
+                      episode.episodeNumber
+                    )
+                      ? "transparent"
+                      : "#ccc",
+                    backgroundColor: isEpisodeWatched(
+                      season.seasonNumber,
+                      episode.episodeNumber
+                    )
+                      ? "rgba(103, 209, 142, 0.39)"
+                      : "transparent",
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                >
+                  {isEpisodeWatched(season.seasonNumber, episode.episodeNumber) && (
+                    <MaterialIcons name="check" size={12} color="#1b8241" />
+                  )}
+                </View>
+
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{ fontSize: 13, fontWeight: "600", color: "#000" }}
+                    numberOfLines={1}
+                  >
+                    {episode.episodeNumber}. {episode.name}
+                  </Text>
+                  {episode.runtime ? (
+                    <Text style={{ fontSize: 11, color: "#999", marginTop: 1 }}>
+                      {episode.runtime} min
+                    </Text>
+                  ) : null}
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+      </View>
+    ))
+  )}
+</ScrollView>
         </View>
-      )}
+      </Modal>
+
     </View>
   );
 }

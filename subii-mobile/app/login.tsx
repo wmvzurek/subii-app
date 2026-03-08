@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { authApi } from "../src/lib/api";
 import { useAuth } from "../src/contexts/AuthContext";
+import { Ionicons } from "@expo/vector-icons";
 
 type Errors = {
   email?: string;
@@ -48,6 +49,7 @@ export default function Login() {
   const [errors, setErrors] = useState<Errors>({});
   const [touched, setTouched] = useState<Touched>({});
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const validateField = useCallback(
     (field: keyof Errors) => {
@@ -86,11 +88,11 @@ export default function Login() {
 
     setLoading(true);
     try {
-const res = await authApi.login(form.email, form.password);
+      const res = await authApi.login(form.email, form.password);
       await login(res.token, res.user);
     } catch (error: any) {
-const msg = error.response?.data?.error || "Błąd logowania";
-Alert.alert("Błąd", msg);
+      const msg = error.response?.data?.error || "Błąd logowania";
+      Alert.alert("Błąd", msg);
     } finally {
       setLoading(false);
     }
@@ -99,105 +101,217 @@ Alert.alert("Błąd", msg);
   const showEmailError = canShowError("email") && !!errors.email;
   const showPasswordError = canShowError("password") && !!errors.password;
 
+  // ====== STYLE (tylko UI) ======
+  const BG = "#fff";
+  const MUTED = "#666";
+  const BLACK = "#252729";
+  const BORDER = "#ddd";
+  const INPUT_BG = "#f9f9f9";
+  const ERROR = "#e44343";
+
+  // ====== FONTS (Inter) ======
+  const FONT_LIGHT = "Inter_300Light";
+  const FONT_REGULAR = "Inter_400Regular";
+  const FONT_SEMI = "Inter_600SemiBold";
+  const FONT_BOLD = "Inter_700Bold";
+
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={{ flex: 1, backgroundColor: BG }}
+    >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, padding: 24, justifyContent: "center", gap: 20, backgroundColor: "#fff" }}
+          contentContainerStyle={{
+            flexGrow: 1,
+            paddingHorizontal: 24,
+            paddingTop: 32,
+            paddingBottom: 28,
+            justifyContent: "center",
+            backgroundColor: BG,
+          }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={{ alignItems: "center", marginBottom: 32 }}>
-            <Text style={{ fontSize: 36, fontWeight: "900", marginBottom: 8 }}>Subii</Text>
-            <Text style={{ fontSize: 16, color: "#666" }}>Zarządzaj swoimi subskrypcjami</Text>
+          {/* HEADER */}
+          <View style={{ alignItems: "center", marginBottom: 28 }}>
+            <Text
+              style={{
+                fontSize: 40,
+                letterSpacing: 9,
+                color: BLACK,
+                fontFamily: FONT_LIGHT, // było fontWeight: "300"
+                marginBottom: 10,
+              }}
+            >
+              Subii
+            </Text>
+
+            <Text
+              style={{
+                fontSize: 14,
+                color: MUTED,
+                fontFamily: FONT_LIGHT, // było fontWeight: "300"
+              }}
+            >
+              Zarządzaj swoimi subskrypcjami
+            </Text>
           </View>
 
-          <View style={{ gap: 16 }}>
+          {/* CARD-LESS FORM (minimal) */}
+          <View style={{ gap: 12 }}>
             {/* EMAIL */}
-            <View style={{ gap: 8 }}>
-              <Text style={{ fontWeight: "600", fontSize: 14 }}>Email</Text>
+            <View style={{ gap: 6 }}>
               <TextInput
                 value={form.email}
                 onChangeText={(v) => setForm((p) => ({ ...p, email: v }))}
                 onBlur={() => touchAndValidate("email")}
-                placeholder="twoj@email.com"
+                placeholder="Email"
+                placeholderTextColor="#9a9a9a"
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
                 returnKeyType="next"
                 style={{
                   borderWidth: 1,
-                  borderColor: showEmailError ? "#ff4444" : "#ddd",
-                  borderRadius: 12,
-                  padding: 16,
-                  fontSize: 16,
-                  backgroundColor: "#f9f9f9",
+                  borderColor: showEmailError ? ERROR : BORDER,
+                  borderRadius: 10,
+                  paddingVertical: 14,
+                  paddingHorizontal: 14,
+                  fontSize: 14,
+                  backgroundColor: INPUT_BG,
+                  color: BLACK,
+                  fontFamily: FONT_LIGHT, // było fontWeight: "300"
                 }}
               />
-              {showEmailError ? <Text style={{ color: "#ff4444", fontSize: 12 }}>{errors.email}</Text> : null}
-            </View>
-
-            {/* PASSWORD */}
-            <View style={{ gap: 8 }}>
-              <Text style={{ fontWeight: "600", fontSize: 14 }}>Hasło</Text>
-              <TextInput
-                value={form.password}
-                onChangeText={(v) => setForm((p) => ({ ...p, password: v }))}
-                onBlur={() => touchAndValidate("password")}
-                placeholder="••••••••"
-                secureTextEntry
-                autoCapitalize="none"
-                returnKeyType="done"
-                onSubmitEditing={handleLogin}
-                style={{
-                  borderWidth: 1,
-                  borderColor: showPasswordError ? "#ff4444" : "#ddd",
-                  borderRadius: 12,
-                  padding: 16,
-                  fontSize: 16,
-                  backgroundColor: "#f9f9f9",
-                }}
-              />
-              {showPasswordError ? (
-                <Text style={{ color: "#ff4444", fontSize: 12 }}>{errors.password}</Text>
+              {showEmailError ? (
+                <Text style={{ color: ERROR, fontSize: 12, fontFamily: FONT_REGULAR }}>
+                  {errors.email}
+                </Text>
               ) : null}
             </View>
 
+            {/* PASSWORD */}
+            <View style={{ gap: 6 }}>
+              <View style={{ position: "relative" }}>
+                <TextInput
+                  value={form.password}
+                  onChangeText={(v) => setForm((p) => ({ ...p, password: v }))}
+                  onBlur={() => touchAndValidate("password")}
+                  placeholder="Hasło"
+                  placeholderTextColor="#9a9a9a"
+                  secureTextEntry={!showConfirm}
+                  autoCapitalize="none"
+                  returnKeyType="done"
+                  onSubmitEditing={handleLogin}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: showPasswordError ? ERROR : BORDER,
+                    borderRadius: 10,
+                    paddingVertical: 14,
+                    paddingHorizontal: 14,
+                    paddingRight: 44,
+                    fontSize: 14,
+                    backgroundColor: INPUT_BG,
+                    color: BLACK,
+                    fontFamily: FONT_LIGHT, // było fontWeight: "300"
+                  }}
+                />
+
+                <Pressable
+                  onPress={() => setShowConfirm((v) => !v)}
+                  hitSlop={10}
+                  style={{
+                    position: "absolute",
+                    right: 12,
+                    top: 0,
+                    bottom: 0,
+                    justifyContent: "center",
+                  }}
+                >
+                  <Ionicons
+                    name={showConfirm ? "eye-off-outline" : "eye-outline"}
+                    size={20}
+                    color="#9a9a9a"
+                  />
+                </Pressable>
+              </View>
+
+              {showPasswordError ? (
+                <Text style={{ color: ERROR, fontSize: 12, fontFamily: FONT_REGULAR }}>
+                  {errors.password}
+                </Text>
+              ) : null}
+            </View>
+
+            {/* BUTTON */}
             <Pressable
               onPress={handleLogin}
               disabled={loading}
               style={{
-                backgroundColor: "#000",
-                padding: 18,
+                backgroundColor: BLACK,
+                paddingVertical: 16,
                 borderRadius: 12,
-                marginTop: 8,
+                marginTop: 6,
                 opacity: loading ? 0.6 : 1,
               }}
             >
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={{ color: "#fff", textAlign: "center", fontWeight: "700", fontSize: 16 }}>
+                <Text
+                  style={{
+                    color: "#fff",
+                    textAlign: "center",
+                    fontFamily: FONT_BOLD, // było fontWeight: "700"
+                    fontSize: 15,
+                  }}
+                >
                   Zaloguj się
                 </Text>
               )}
             </Pressable>
 
+            {/* FORGOT */}
             <Pressable
-  onPress={() => router.push("/forgot-password" as any)}
-  style={{ alignItems: "center", marginTop: 16 }}
->
-  <Text style={{ fontSize: 14, color: "#666" }}>
-    Nie pamiętasz hasła?{" "}
-    <Text style={{ color: "#000", fontWeight: "700" }}>Resetuj</Text>
-  </Text>
-</Pressable>
-          </View>
+              onPress={() => router.push("/forgot-password" as any)}
+              style={{ alignItems: "center", marginTop: 14 }}
+            >
+              <Text style={{ fontSize: 13, color: MUTED, fontFamily: FONT_LIGHT }}>
+                Nie pamiętasz hasła?{" "}
+                <Text style={{ color: BLACK, fontFamily: FONT_SEMI }}>
+                  Resetuj
+                </Text>
+              </Text>
+            </Pressable>
 
-          <View style={{ marginTop: 24, alignItems: "center" }}>
-            <Text style={{ color: "#666", marginBottom: 12 }}>Nie masz jeszcze konta?</Text>
-            <Pressable onPress={() => router.push("/register" as any)}>
-              <Text style={{ color: "#000", fontWeight: "700", fontSize: 16 }}>Zarejestruj się</Text>
+            {/* DIVIDER */}
+            <View
+              style={{
+                marginTop: 18,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 12,
+              }}
+            >
+              <View style={{ flex: 1, height: 1, backgroundColor: "#e6e6e6" }} />
+              <Text style={{ color: "#9a9a9a", fontSize: 12, fontFamily: FONT_LIGHT }}>
+                lub
+              </Text>
+              <View style={{ flex: 1, height: 1, backgroundColor: "#e6e6e6" }} />
+            </View>
+
+            {/* SIGN UP */}
+            <Pressable
+              onPress={() => router.push("/register" as any)}
+              style={{ alignItems: "center", marginTop: 14 }}
+            >
+              <Text style={{ fontSize: 13, color: MUTED, fontFamily: FONT_LIGHT }}>
+                Nie masz jeszcze konta?{" "}
+                <Text style={{ color: BLACK, fontFamily: FONT_SEMI }}>
+                  Zarejestruj się
+                </Text>
+              </Text>
             </Pressable>
           </View>
         </ScrollView>

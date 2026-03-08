@@ -140,7 +140,7 @@ function getErrors(
   if (!dobText.trim()) newErrors.dateOfBirth = "Podaj datę urodzenia";
   else {
     const parsed = parseDateDMY(dobText);
-    if (!parsed) newErrors.dateOfBirth = "Wpisz datę w formacie DD-MM-YYYY (np. 01-01-2000)";
+    if (!parsed) newErrors.dateOfBirth = "Wpisz datę w formacie DD-MM-YYYY";
     else if (validateAge(parsed) < 13) newErrors.dateOfBirth = "Musisz mieć minimum 13 lat";
   }
 
@@ -157,8 +157,34 @@ export default function Register() {
   const { login } = useAuth();
   const insets = useSafeAreaInsets();
 
+  // ====== STYLE (tylko UI) ======
+  const BG = "#fff";
+  const MUTED = "#666";
+  const BLACK = "#252729";
+  const BORDER = "#ddd";
+  const INPUT_BG = "#f9f9f9";
+  const ERROR = "#e44343";
+
+  // dodatkowe stałe (żeby też było „poukładane”)
+  const WHITE = "#fff";
+  const PLACEHOLDER = "#9a9a9a";
+  const PLACEHOLDER_2 = "#9ca3af";
+  const DIVIDER = "#e6e6e6";
+  const CARD_BORDER = "#eee";
+  const SUCCESS = "#47c073";
+
+  // ====== FONTS (Inter) ======
+  const FONT_LIGHT = "Inter_300Light";
+  const FONT_REG = "Inter_400Regular";
+  const FONT_MED = "Inter_500Medium";
+  const FONT_SEMI = "Inter_600SemiBold";
+  const FONT_BOLD = "Inter_700Bold";
+
   const [layoutH, setLayoutH] = useState(0);
   const [contentH, setContentH] = useState(0);
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // ---------- FORM STATE ----------
   const [form, setForm] = useState({
@@ -343,17 +369,17 @@ export default function Register() {
       await login(res.token, res.user);
 
       Alert.alert(
-  "Konto utworzone! 📧",
-  "Na podany adres email wysłaliśmy wiadomość z linkiem weryfikacyjnym. Sprawdź swoją skrzynkę.",
-  [{ text: "OK", onPress: () => router.replace("/(tabs)" as any) }]
-);
+        "Konto utworzone!",
+        "Na podany adres email wysłano wiadomość z linkiem weryfikacyjnym. Sprawdź swoją skrzynkę.",
+        [{ text: "OK", onPress: () => router.replace("/(tabs)" as any) }]
+      );
     } catch (error: any) {
       const msg = error.response?.data?.error || "Błąd rejestracji";
       Alert.alert("Błąd", msg);
     } finally {
       setLoading(false);
     }
-  }, [dobText, form, login]);
+  }, [dobText, form, login, router]);
 
   // ---------- PASSWORD REQUIREMENTS UI ----------
   const passwordChecks = useMemo(() => {
@@ -382,11 +408,11 @@ export default function Register() {
         keyboardDismissMode="interactive"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
-          padding: 24,
-          paddingTop: insets.top + 10,
+          paddingHorizontal: 24,
+          paddingTop: insets.top + 16,
           paddingBottom: effectiveBottomPadding,
-          gap: 16,
-          backgroundColor: "#fff",
+          gap: 14,
+          backgroundColor: BG,
           flexGrow: 1,
         }}
         onLayout={(e) => setLayoutH(e.nativeEvent.layout.height)}
@@ -412,7 +438,7 @@ export default function Register() {
         {/* Header */}
         <View
           style={{
-            marginBottom: 24,
+            marginBottom: 10,
             justifyContent: "center",
             alignItems: "center",
             position: "relative",
@@ -430,22 +456,28 @@ export default function Register() {
             }}
             hitSlop={10}
           >
-            <Text style={{ fontSize: 26 }}>←</Text>
+            <Text style={{ fontSize: 26, color: BLACK, fontFamily: FONT_LIGHT }}>←</Text>
           </Pressable>
 
           <Text
             style={{
-              fontSize: 32,
-              fontWeight: "900",
-              textAlign: "center",
-              lineHeight: 38,
-              marginBottom: 4,
+              fontSize: 25,
+              color: BLACK,
+              marginBottom: 8,
+              fontFamily: FONT_LIGHT, // zamiast fontWeight: "300"
             }}
           >
-            Utwórz konto
+            Utwórz konto Subii
           </Text>
 
-          <Text style={{ fontSize: 16, color: "#666", textAlign: "center" }}>
+          <Text
+            style={{
+              fontSize: 14,
+              color: MUTED,
+              textAlign: "center",
+              fontFamily: FONT_LIGHT, // zamiast fontWeight: "300"
+            }}
+          >
             Zacznij zarządzać swoimi subskrypcjami
           </Text>
         </View>
@@ -463,6 +495,8 @@ export default function Register() {
           blurOnSubmit={false}
           onSubmitEditing={() => lastNameRef.current?.focus()}
           error={touched.firstName ? errors.firstName : undefined}
+          colors={{ BLACK, MUTED, BORDER, INPUT_BG, ERROR, PLACEHOLDER }}
+          fonts={{ FONT_LIGHT, FONT_REG, FONT_MED, FONT_SEMI, FONT_BOLD }}
         />
 
         <InputField
@@ -478,6 +512,8 @@ export default function Register() {
           blurOnSubmit={false}
           onSubmitEditing={() => emailRef.current?.focus()}
           error={touched.lastName ? errors.lastName : undefined}
+          colors={{ BLACK, MUTED, BORDER, INPUT_BG, ERROR, PLACEHOLDER }}
+          fonts={{ FONT_LIGHT, FONT_REG, FONT_MED, FONT_SEMI, FONT_BOLD }}
         />
 
         <InputField
@@ -494,6 +530,8 @@ export default function Register() {
           blurOnSubmit={false}
           onSubmitEditing={() => phoneRef.current?.focus()}
           error={touched.email ? errors.email : undefined}
+          colors={{ BLACK, MUTED, BORDER, INPUT_BG, ERROR, PLACEHOLDER }}
+          fonts={{ FONT_LIGHT, FONT_REG, FONT_MED, FONT_SEMI, FONT_BOLD }}
         />
 
         <InputField
@@ -510,11 +548,15 @@ export default function Register() {
           blurOnSubmit={false}
           onSubmitEditing={() => dobRef.current?.focus()}
           error={touched.phone ? errors.phone : undefined}
+          colors={{ BLACK, MUTED, BORDER, INPUT_BG, ERROR, PLACEHOLDER }}
+          fonts={{ FONT_LIGHT, FONT_REG, FONT_MED, FONT_SEMI, FONT_BOLD }}
         />
 
         {/* DOB */}
-        <View style={{ gap: 8 }}>
-          <Text style={{ fontWeight: "600", fontSize: 14 }}>Data urodzenia *</Text>
+        <View style={{ gap: 6 }}>
+          <Text style={{ fontSize: 13, color: MUTED, fontFamily: FONT_MED }}>
+            Data urodzenia *
+          </Text>
 
           {showDatePicker && (
             <View style={{ marginBottom: 8 }}>
@@ -535,11 +577,11 @@ export default function Register() {
               flexDirection: "row",
               alignItems: "center",
               borderWidth: 1,
-              borderColor: touched.dateOfBirth && errors.dateOfBirth ? "#ff4444" : "#ddd",
-              borderRadius: 12,
-              backgroundColor: "#f9f9f9",
+              borderColor: touched.dateOfBirth && errors.dateOfBirth ? ERROR : BORDER,
+              borderRadius: 10,
+              backgroundColor: INPUT_BG,
               paddingHorizontal: 12,
-              height: 56,
+              height: 52,
             }}
           >
             <TextInput
@@ -549,16 +591,17 @@ export default function Register() {
               onFocus={() => setPendingAndScroll(dobRef, 24)}
               onBlur={() => touchAndValidate("dateOfBirth")}
               placeholder="DD-MM-YYYY"
-              placeholderTextColor="#9ca3af"
+              placeholderTextColor={PLACEHOLDER_2}
               keyboardType="numbers-and-punctuation"
               returnKeyType="next"
               blurOnSubmit={false}
               onSubmitEditing={() => passwordRef.current?.focus()}
               style={{
                 flex: 1,
-                fontSize: 16,
+                fontSize: 14,
                 paddingVertical: 0,
-                color: dobText ? "#000" : "#9ca3af",
+                color: dobText ? BLACK : PLACEHOLDER_2,
+                fontFamily: FONT_LIGHT, // zamiast fontWeight: "300"
               }}
               onEndEditing={() => {
                 const parsed = parseDateDMY(dobText);
@@ -577,34 +620,70 @@ export default function Register() {
               style={{ paddingLeft: 10, paddingVertical: 8 }}
               hitSlop={10}
             >
-              <Ionicons name="calendar-outline" size={22} color="#9ca3af" />
+              <Ionicons name="calendar-outline" size={22} color={PLACEHOLDER_2} />
             </Pressable>
           </View>
 
           {touched.dateOfBirth && errors.dateOfBirth ? (
-            <Text style={{ color: "#ff4444", fontSize: 12 }}>{errors.dateOfBirth}</Text>
+            <Text style={{ color: ERROR, fontSize: 12, fontFamily: FONT_REG }}>
+              {errors.dateOfBirth}
+            </Text>
           ) : null}
         </View>
 
-        <InputField
-          ref={passwordRef}
-          label="Hasło *"
-          value={form.password}
-          onChangeText={(v: string) => setForm((p) => ({ ...p, password: v }))}
-          onFocus={() => setPendingAndScroll(passwordRef, 24)}
-          onBlur={() => touchAndValidate("password")}
-          secureTextEntry
-          autoCapitalize="none"
-          placeholder="••••••••"
-          returnKeyType="next"
-          blurOnSubmit={false}
-          onSubmitEditing={() => confirmPasswordRef.current?.focus()}
-          // ❌ Nie pokazujemy komunikatu pod inputem, bo pokazujemy X/✓ w wymaganiach
-          error={undefined}
-        />
+        {/* PASSWORD + EYE */}
+        <View style={{ position: "relative" }}>
+          <InputField
+            ref={passwordRef}
+            label="Hasło *"
+            value={form.password}
+            onChangeText={(v: string) => setForm((p) => ({ ...p, password: v }))}
+            onFocus={() => setPendingAndScroll(passwordRef, 24)}
+            onBlur={() => touchAndValidate("password")}
+            secureTextEntry={!showPassword}
+            autoCapitalize="none"
+            placeholder="••••••••"
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onSubmitEditing={() => confirmPasswordRef.current?.focus()}
+            // ❌ Nie pokazujemy komunikatu pod inputem, bo pokazujemy X/✓ w wymaganiach
+            error={undefined}
+            colors={{ BLACK, MUTED, BORDER, INPUT_BG, ERROR, PLACEHOLDER }}
+            fonts={{ FONT_LIGHT, FONT_REG, FONT_MED, FONT_SEMI, FONT_BOLD }}
+            style={{ paddingRight: 44 }}
+          />
 
-        <View style={{ backgroundColor: "#f9f9f9", padding: 12, borderRadius: 8, marginTop: -8 }}>
-          <Text style={{ fontSize: 12, fontWeight: "600", marginBottom: 8, color: "#333" }}>
+          <Pressable
+            onPress={() => setShowPassword((v) => !v)}
+            hitSlop={10}
+            style={{
+              position: "absolute",
+              right: 14,
+              top: 0,
+              bottom: 0,
+              paddingTop: 19, // 13 (label) + 6 (gap)
+              justifyContent: "center",
+            }}
+          >
+            <Ionicons
+              name={showPassword ? "eye-off-outline" : "eye-outline"}
+              size={20}
+              color={PLACEHOLDER}
+            />
+          </Pressable>
+        </View>
+
+        <View
+          style={{
+            backgroundColor: INPUT_BG,
+            padding: 12,
+            borderRadius: 10,
+            marginTop: -6,
+            borderWidth: 1,
+            borderColor: CARD_BORDER,
+          }}
+        >
+          <Text style={{ fontSize: 12, marginBottom: 8, color: BLACK, fontFamily: FONT_SEMI }}>
             Hasło musi zawierać:
           </Text>
 
@@ -612,70 +691,138 @@ export default function Register() {
             met={passwordChecks.hasMinLength}
             text="Min. 8 znaków"
             showFail={showPasswordFails && !passwordChecks.hasMinLength}
+            muted={MUTED}
+            error={ERROR}
+            success={SUCCESS}
+            fontReg={FONT_REG}
+            fontSemi={FONT_SEMI}
           />
           <PasswordRequirement
             met={passwordChecks.hasUpperCase}
             text="Wielką literę (A-Z)"
             showFail={showPasswordFails && !passwordChecks.hasUpperCase}
+            muted={MUTED}
+            error={ERROR}
+            success={SUCCESS}
+            fontReg={FONT_REG}
+            fontSemi={FONT_SEMI}
           />
           <PasswordRequirement
             met={passwordChecks.hasLowerCase}
             text="Małą literę (a-z)"
             showFail={showPasswordFails && !passwordChecks.hasLowerCase}
+            muted={MUTED}
+            error={ERROR}
+            success={SUCCESS}
+            fontReg={FONT_REG}
+            fontSemi={FONT_SEMI}
           />
           <PasswordRequirement
             met={passwordChecks.hasNumber}
             text="Min. 1 cyfrę (0-9)"
             showFail={showPasswordFails && !passwordChecks.hasNumber}
+            muted={MUTED}
+            error={ERROR}
+            success={SUCCESS}
+            fontReg={FONT_REG}
+            fontSemi={FONT_SEMI}
           />
           <PasswordRequirement
             met={passwordChecks.hasSpecialChar}
             text="Znak specjalny (!@#$%^&*...)"
             showFail={showPasswordFails && !passwordChecks.hasSpecialChar}
+            muted={MUTED}
+            error={ERROR}
+            success={SUCCESS}
+            fontReg={FONT_REG}
+            fontSemi={FONT_SEMI}
           />
         </View>
 
-        <InputField
-          ref={confirmPasswordRef}
-          label="Powtórz hasło *"
-          value={form.confirmPassword}
-          onChangeText={(v: string) => setForm((p) => ({ ...p, confirmPassword: v }))}
-          onFocus={() => setPendingAndScroll(confirmPasswordRef, 24)}
-          onBlur={() => touchAndValidate("confirmPassword")}
-          secureTextEntry
-          autoCapitalize="none"
-          placeholder="••••••••"
-          returnKeyType="done"
-          onSubmitEditing={handleRegister}
-          error={touched.confirmPassword ? errors.confirmPassword : undefined}
-        />
+        {/* CONFIRM PASSWORD + EYE */}
+        <View style={{ position: "relative" }}>
+          <InputField
+            ref={confirmPasswordRef}
+            label="Powtórz hasło *"
+            value={form.confirmPassword}
+            onChangeText={(v: string) => setForm((p) => ({ ...p, confirmPassword: v }))}
+            onFocus={() => setPendingAndScroll(confirmPasswordRef, 24)}
+            onBlur={() => touchAndValidate("confirmPassword")}
+            secureTextEntry={!showConfirmPassword}
+            autoCapitalize="none"
+            placeholder="••••••••"
+            returnKeyType="done"
+            onSubmitEditing={handleRegister}
+            error={touched.confirmPassword ? errors.confirmPassword : undefined}
+            colors={{ BLACK, MUTED, BORDER, INPUT_BG, ERROR, PLACEHOLDER }}
+            fonts={{ FONT_LIGHT, FONT_REG, FONT_MED, FONT_SEMI, FONT_BOLD }}
+            style={{ paddingRight: 44 }}
+          />
+
+          <Pressable
+            onPress={() => setShowConfirmPassword((v) => !v)}
+            hitSlop={10}
+            style={{
+              position: "absolute",
+              right: 14,
+              top: 0,
+              bottom: 0,
+              paddingTop: 19,
+              justifyContent: "center",
+            }}
+          >
+            <Ionicons
+              name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
+              size={20}
+              color={PLACEHOLDER}
+            />
+          </Pressable>
+        </View>
 
         <Pressable
           onPress={handleRegister}
           disabled={loading}
           style={{
-            backgroundColor: "#000",
-            padding: 18,
+            backgroundColor: BLACK,
+            paddingVertical: 16,
             borderRadius: 12,
-            marginTop: 16,
+            marginTop: 6,
             opacity: loading ? 0.6 : 1,
           }}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={WHITE} />
           ) : (
-            <Text style={{ color: "#fff", textAlign: "center", fontWeight: "700", fontSize: 16 }}>
+            <Text
+              style={{
+                color: WHITE,
+                textAlign: "center",
+                fontFamily: FONT_BOLD, // zamiast fontWeight: "700"
+                fontSize: 15,
+              }}
+            >
               Zarejestruj się
             </Text>
           )}
         </Pressable>
 
-        <View style={{ marginTop: 24, marginBottom: 12, alignItems: "center" }}>
-          <Text style={{ color: "#666", marginBottom: 12 }}>Masz już konto?</Text>
-          <Pressable onPress={() => router.back()}>
-            <Text style={{ color: "#000", fontWeight: "700", fontSize: 16 }}>Zaloguj się</Text>
-          </Pressable>
+        {/* Divider + login link */}
+        <View style={{ marginTop: 18, flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <View style={{ flex: 1, height: 1, backgroundColor: DIVIDER }} />
+          <Text style={{ color: PLACEHOLDER, fontSize: 12, fontFamily: FONT_LIGHT }}>
+            lub
+          </Text>
+          <View style={{ flex: 1, height: 1, backgroundColor: DIVIDER }} />
         </View>
+
+        <Pressable onPress={() => router.back()} style={{ alignItems: "center", marginTop: 14, marginBottom: 8 }}>
+          <Text style={{ fontSize: 13, color: MUTED, fontFamily: FONT_LIGHT }}>
+            Masz już konto?{" "}
+            <Text style={{ color: BLACK, fontFamily: FONT_SEMI }}>
+              Zaloguj się
+            </Text>
+          </Text>
+        </Pressable>
       </ScrollView>
     </TouchableWithoutFeedback>
   );
@@ -686,18 +833,28 @@ function PasswordRequirement({
   met,
   text,
   showFail,
+  muted,
+  error,
+  success,
+  fontReg,
+  fontSemi,
 }: {
   met: boolean;
   text: string;
   showFail: boolean;
+  muted: string;
+  error: string;
+  success: string;
+  fontReg: string;
+  fontSemi: string;
 }) {
   const icon = met ? "✓" : showFail ? "✕" : "•";
-  const color = met ? "#22c55e" : showFail ? "#ef4444" : "#666";
+  const color = met ? success : showFail ? error : muted;
 
   return (
     <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
-      <Text style={{ fontSize: 14, marginRight: 8, color }}>{icon}</Text>
-      <Text style={{ fontSize: 12, color, fontWeight: met ? "600" : "400" }}>
+      <Text style={{ fontSize: 14, marginRight: 8, color, fontFamily: fontReg }}>{icon}</Text>
+      <Text style={{ fontSize: 12, color, fontFamily: met ? fontSemi : fontReg }}>
         {text}
       </Text>
     </View>
@@ -705,23 +862,45 @@ function PasswordRequirement({
 }
 
 // ---------- UI: InputField ----------
-const InputField = forwardRef<TextInput, any>(({ label, error, ...props }, ref) => {
+const InputField = forwardRef<TextInput, any>(({ label, error, colors, fonts, style, ...props }, ref) => {
+  const BLACK = colors?.BLACK ?? "#252729";
+  const MUTED = colors?.MUTED ?? "#666";
+  const BORDER = colors?.BORDER ?? "#ddd";
+  const INPUT_BG = colors?.INPUT_BG ?? "#f9f9f9";
+  const ERROR = colors?.ERROR ?? "#ff4444";
+  const PLACEHOLDER = colors?.PLACEHOLDER ?? "#9a9a9a";
+
+  const FONT_LIGHT = fonts?.FONT_LIGHT ?? "Inter_300Light";
+  const FONT_REG = fonts?.FONT_REG ?? "Inter_400Regular";
+  const FONT_MED = fonts?.FONT_MED ?? "Inter_500Medium";
+
   return (
-    <View style={{ gap: 8 }}>
-      <Text style={{ fontWeight: "600", fontSize: 14 }}>{label}</Text>
+    <View style={{ gap: 6 }}>
+      <Text style={{ fontSize: 13, color: MUTED, fontFamily: FONT_MED }}>
+        {label}
+      </Text>
+
       <TextInput
         ref={ref}
         {...props}
-        style={{
-          borderWidth: 1,
-          borderColor: error ? "#ff4444" : "#ddd",
-          borderRadius: 12,
-          padding: 16,
-          fontSize: 16,
-          backgroundColor: "#f9f9f9",
-        }}
+        placeholderTextColor={PLACEHOLDER}
+        style={[
+          {
+            borderWidth: 1,
+            borderColor: error ? ERROR : BORDER,
+            borderRadius: 10,
+            paddingVertical: 14,
+            paddingHorizontal: 14,
+            fontSize: 14,
+            backgroundColor: INPUT_BG,
+            color: BLACK,
+            fontFamily: FONT_LIGHT,
+          },
+          style,
+        ]}
       />
-      {error ? <Text style={{ color: "#ff4444", fontSize: 12 }}>{error}</Text> : null}
+
+      {error ? <Text style={{ color: ERROR, fontSize: 12, fontFamily: FONT_REG }}>{error}</Text> : null}
     </View>
   );
 });

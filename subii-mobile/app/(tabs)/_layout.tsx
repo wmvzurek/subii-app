@@ -1,6 +1,9 @@
 import { Tabs } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from "@expo/vector-icons";
+
+
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
@@ -8,7 +11,7 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#000',
+        tabBarActiveTintColor: '#252729',
         tabBarInactiveTintColor: '#999',
         headerShown: false,
         tabBarShowLabel: false,
@@ -49,7 +52,7 @@ export default function TabLayout() {
         name="wallet"
         options={{
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="receipt-long" size={30} color={color} />
+            <Ionicons name="card" size={28} color={color} />
           ),
         }}
       />
@@ -57,7 +60,7 @@ export default function TabLayout() {
         name="profile"
         options={{
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="person" size={30} color={color} />
+            <Ionicons name="person" size={25} color={color} />
           ),
         }}
       />

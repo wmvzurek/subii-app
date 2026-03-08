@@ -14,6 +14,8 @@ import {
 import { useRouter } from "expo-router";
 import { api } from "../../src/lib/api";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { MaterialIcons } from "@expo/vector-icons";
 
 type SearchCategory = "movie" | "tv" | "person";
 
@@ -39,6 +41,7 @@ export default function Search() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isFocused, setIsFocused] = useState(false);
 
   useEffect(() => {
     loadDiscovery();
@@ -113,49 +116,55 @@ const loadDiscovery = async () => {
         paddingHorizontal: 20,
         paddingBottom: 16,
       }}>
-        <Text style={{ fontSize: 28, fontWeight: "800", marginBottom: 12 }}>
+        <Text style={{ fontSize: 28, fontWeight: "600", marginBottom: 12 }}>
           Wyszukaj
         </Text>
 
         {/* Pole wyszukiwania */}
         <View style={{
-          flexDirection: "row",
-          alignItems: "center",
-          backgroundColor: "#f0f0f0",
-          borderRadius: 12,
-          paddingHorizontal: 14,
-          gap: 8,
-        }}>
-          <Text style={{ fontSize: 16, color: "#999" }}>🔍</Text>
-          <TextInput
-            value={q}
-            onChangeText={handleChange}
-            onSubmitEditing={handleSubmit}
-            placeholder="Szukaj filmów i seriali…"
-            placeholderTextColor="#aaa"
-            returnKeyType="search"
-            style={{
-              flex: 1,
-              paddingVertical: 12,
-              fontSize: 15,
-              color: "#000",
-            }}
-          />
+  flexDirection: "row",
+  alignItems: "center",
+  backgroundColor: "#f0f0f0",
+  borderRadius: 12,
+  paddingHorizontal: 14,
+  gap: 8,
+}}>
+  <Ionicons name="search" size={18} color="#999" />
+
+  <TextInput
+    value={q}
+    onChangeText={handleChange}
+    onSubmitEditing={handleSubmit}
+    onFocus={() => setIsFocused(true)}
+    onBlur={() => setIsFocused(false)}
+    placeholder="Szukaj filmów i seriali…"
+    placeholderTextColor="#9a9a9a"
+    returnKeyType="search"
+    style={{
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: 12,
+      fontSize: 14,
+      color: "#000",
+      fontWeight:"400",
+    }}
+  />
           {q.length > 0 && (
             <Pressable onPress={() => { setQ(""); setItems([]); }}>
-              <Text style={{ fontSize: 16, color: "#aaa" }}>✕</Text>
+              <Text style={{ fontSize: 14, color: "#9a9a9a" }}>✕</Text>
             </Pressable>
           )}
         </View>
 
-        {/* Tagi kategorii */}
-        <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
-          {CATEGORIES.map((cat) => (
+        {/* Tagi kategorii — widoczne po kliknięciu w pole wyszukiwania */}
+{(isFocused || q.length > 0) && (
+<View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
+  {CATEGORIES.map((cat) => (
             <Pressable
               key={cat.key}
               onPress={() => handleCategoryChange(cat.key)}
               style={{
-                paddingHorizontal: 16,
+                paddingHorizontal: 20,
                 paddingVertical: 7,
                 borderRadius: 20,
                 backgroundColor: category === cat.key ? "#000" : "#f0f0f0",
@@ -163,88 +172,250 @@ const loadDiscovery = async () => {
             >
               <Text style={{
                 fontSize: 13,
-                fontWeight: "600",
-                color: category === cat.key ? "#fff" : "#666",
+                fontWeight: "500",
+                color: category === cat.key ? "#fff" : "#9a9a9a",
               }}>
                 {cat.label}
               </Text>
             </Pressable>
-          ))}
+         ))}
         </View>
+        )}
       </View>
 
-      {/* Discovery — widoczne tylko gdy brak wyszukiwania */}
-      {q.length === 0 && (
-        <ScrollView showsVerticalScrollIndicator={false}>
+      {/* Discovery — widoczne tylko gdy brak wyszukiwania i pole nieaktywne */}
+{q.length === 0 && !isFocused && (
+        <ScrollView
+  showsVerticalScrollIndicator={false}
+  contentContainerStyle={{ paddingTop: 16, paddingBottom: 16 }}
+>
 
           {/* Rekomendowane dla Ciebie */}
-          {recommended.length > 0 && (
-            <View style={{ marginBottom: 24 }}>
-              <Text style={{ fontSize: 16, fontWeight: "800", color: "#000", paddingHorizontal: 16, marginBottom: 12 }}>
-                Rekomendowane dla Ciebie
-              </Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
-                {recommended.map((item) => (
-                  <Pressable
-                    key={item.id}
-                    onPress={() => router.push({ pathname: "/titles/[tmdbId]", params: { tmdbId: String(item.id), mediaType: item.mediaType === "tv" ? "tv" : "movie" } } as any)}
-                    style={{ width: 110 }}
-                  >
-                    {item.posterUrl ? (
-                      <Image source={{ uri: item.posterUrl }} style={{ width: 110, height: 160, borderRadius: 10 }} />
-                    ) : (
-                      <View style={{ width: 110, height: 160, borderRadius: 10, backgroundColor: "#e0e0e0", justifyContent: "center", alignItems: "center" }}>
-                        <Text style={{ fontSize: 30 }}>{item.mediaType === "movie" ? "🎬" : "📺"}</Text>
-                      </View>
-                    )}
-                    <Text style={{ fontSize: 12, fontWeight: "600", color: "#000", marginTop: 6 }} numberOfLines={2}>
-                      {item.title}
-                    </Text>
-                    {item.year && (
-                      <Text style={{ fontSize: 11, color: "#999" }}>{item.year}</Text>
-                    )}
-                  </Pressable>
-                ))}
-              </ScrollView>
+{recommended.length > 0 && (
+  <View style={{ marginBottom: 24 }}>
+    <Text
+      style={{
+        fontSize: 16,
+        fontWeight: "600",
+        color: "#000",
+        paddingHorizontal: 16,
+        marginBottom: 12,
+      }}
+    >
+      Rekomendowane dla Ciebie
+    </Text>
+
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}
+    >
+      {recommended.map((item) => (
+        <Pressable
+          key={item.id}
+          onPress={() =>
+            router.push({
+              pathname: "/titles/[tmdbId]",
+              params: {
+                tmdbId: String(item.id),
+                mediaType: item.mediaType === "tv" ? "tv" : "movie",
+              },
+            } as any)
+          }
+          style={{ width: 138 }}
+        >
+          {item.posterUrl ? (
+            <Image
+              source={{ uri: item.posterUrl }}
+              style={{
+                width: 138,
+                height: 200,
+                borderRadius: 10,
+              }}
+            />
+          ) : (
+            <View
+              style={{
+                width: 138,
+                height: 200,
+                borderRadius: 10,
+                backgroundColor: "#e0e0e0",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <Ionicons
+                name={item.mediaType === "movie" ? "film-outline" : "tv-outline"}
+                size={36}
+                color="#999"
+              />
             </View>
           )}
 
-          {/* Nowości */}
-          {newTitles.length > 0 && (
-            <View style={{ marginBottom: 24 }}>
-              <Text style={{ fontSize: 16, fontWeight: "800", color: "#000", paddingHorizontal: 16, marginBottom: 12 }}>
-                Nowości
-              </Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
-                {newTitles.map((item) => (
-                  <Pressable
-                    key={item.id}
-                    onPress={() => router.push({ pathname: "/titles/[tmdbId]", params: { tmdbId: String(item.id), mediaType: item.mediaType === "tv" ? "tv" : "movie" } } as any)}
-                    style={{ width: 110 }}
-                  >
-                    {item.posterUrl ? (
-                      <Image source={{ uri: item.posterUrl }} style={{ width: 110, height: 160, borderRadius: 10 }} />
-                    ) : (
-                      <View style={{ width: 110, height: 160, borderRadius: 10, backgroundColor: "#e0e0e0", justifyContent: "center", alignItems: "center" }}>
-                        <Text style={{ fontSize: 30 }}>{item.mediaType === "movie" ? "🎬" : "📺"}</Text>
-                      </View>
-                    )}
-                    <Text style={{ fontSize: 12, fontWeight: "600", color: "#000", marginTop: 6 }} numberOfLines={2}>
-                      {item.title}
-                    </Text>
-                    {item.year && (
-                      <Text style={{ fontSize: 11, color: "#999" }}>{item.year}</Text>
-                    )}
-                  </Pressable>
-                ))}
-              </ScrollView>
+          <Text
+            style={{
+              fontSize: 11,
+              fontWeight: "700",
+              color: "#000",
+              marginTop: 6,
+              minHeight: 30,
+            }}
+            numberOfLines={2}
+          >
+            {item.title}
+          </Text>
+
+          <View
+            style={{
+              width: 130,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginTop: -15,
+            }}
+          >
+            {item.year ? (
+              <Text style={{ fontSize: 11, color: "#999" }}>{item.year}</Text>
+            ) : (
+              <View />
+            )}
+
+            {item.rating > 0 && (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                <MaterialIcons name="star" size={12} color="#999" />
+                <Text
+                  style={{
+                    fontSize: 10,
+                    color: "#999",
+                    fontWeight: "600",
+                  }}
+                >
+                  {item.rating.toFixed(1)}
+                </Text>
+              </View>
+            )}
+          </View>
+        </Pressable>
+      ))}
+    </ScrollView>
+  </View>
+)}
+
+{/* Nowości */}
+{newTitles.length > 0 && (
+  <View style={{ marginBottom: 24 }}>
+    <Text
+      style={{
+        fontSize: 16,
+        fontWeight: "600",
+        color: "#000",
+        paddingHorizontal: 16,
+        marginBottom: 12,
+      }}
+    >
+      Nowości
+    </Text>
+
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}
+    >
+      {newTitles.map((item) => (
+        <Pressable
+          key={item.id}
+          onPress={() =>
+            router.push({
+              pathname: "/titles/[tmdbId]",
+              params: {
+                tmdbId: String(item.id),
+                mediaType: item.mediaType === "tv" ? "tv" : "movie",
+              },
+            } as any)
+          }
+          style={{ width: 138 }}
+        >
+          {item.posterUrl ? (
+            <Image
+              source={{ uri: item.posterUrl }}
+              style={{
+                width: 138,
+                height: 200,
+                borderRadius: 10,
+              }}
+            />
+          ) : (
+            <View
+              style={{
+                width: 138,
+                height: 200,
+                borderRadius: 10,
+                backgroundColor: "#e0e0e0",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <Ionicons
+                name={item.mediaType === "movie" ? "film-outline" : "tv-outline"}
+                size={36}
+                color="#999"
+              />
             </View>
           )}
+
+          <Text
+            style={{
+              fontSize: 11,
+              fontWeight: "700",
+              color: "#000",
+              marginTop: 6,
+              minHeight: 30,
+            }}
+            numberOfLines={2}
+          >
+            {item.title}
+          </Text>
+
+          <View
+            style={{
+              width: 130,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginTop: -15,
+            }}
+          >
+            {item.year ? (
+              <Text style={{ fontSize: 11, color: "#999" }}>{item.year}</Text>
+            ) : (
+              <View />
+            )}
+
+            {item.rating > 0 && (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                <MaterialIcons name="star" size={12} color="#999" />
+                <Text
+                  style={{
+                    fontSize: 10,
+                    color: "#999",
+                    fontWeight: "600",
+                  }}
+                >
+                  {item.rating.toFixed(1)}
+                </Text>
+              </View>
+            )}
+          </View>
+        </Pressable>
+      ))}
+    </ScrollView>
+  </View>
+)}
 
           {/* Pusty stan gdy brak rekomendacji */}
           {recommended.length === 0 && newTitles.length === 0 && (
             <View style={{ paddingTop: 60, alignItems: "center" }}>
-              <Text style={{ fontSize: 14, color: "#999", textAlign: "center", paddingHorizontal: 40 }}>
+              <Text style={{ fontSize: 14,fontWeight:"400", color: "#999", textAlign: "center", paddingHorizontal: 40 }}>
                 Oceń kilka tytułów żeby zobaczyć rekomendacje
               </Text>
             </View>
@@ -263,7 +434,7 @@ const loadDiscovery = async () => {
       {/* Pusta lista */}
       {!loading && q.length > 0 && items.length === 0 && (
         <View style={{ paddingTop: 60, alignItems: "center" }}>
-          <Text style={{ fontSize: 16, color: "#999" }}>
+          <Text style={{ fontSize: 16,fontWeight:"400", color: "#999" }}>
             Brak wyników dla „{q}"
           </Text>
         </View>
@@ -274,7 +445,7 @@ const loadDiscovery = async () => {
         <FlatList
           data={items}
           keyExtractor={(item) => String(item.id)}
-          contentContainerStyle={{ padding: 16, gap: 10 }}
+          contentContainerStyle={{ padding: 16, gap: 10,borderRadius: 12, }}
           keyboardShouldPersistTaps="handled"
           renderItem={({ item }) => (
             <Pressable
@@ -293,7 +464,7 @@ const loadDiscovery = async () => {
               }}
               style={{
                 backgroundColor: "#fff",
-                borderRadius: 14,
+                borderRadius: 12,
                 flexDirection: "row",
                 overflow: "hidden",
                 shadowColor: "#000",
@@ -310,51 +481,56 @@ const loadDiscovery = async () => {
                   style={{ width: 70, height: 100 }}
                 />
               ) : (
-                <View style={{
-                  width: 70, height: 100,
-                  backgroundColor: "#f0f0f0",
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}>
-                  <Text style={{ fontSize: 28 }}>
-                    {category === "person" ? "👤" : "🎬"}
-                  </Text>
-                </View>
+                <View
+  style={{
+    width: 70,
+    height: 100,
+    backgroundColor: "#fff",
+    justifyContent: "center",
+    alignItems: "center",
+  }}
+>
+  <Ionicons
+  name={category === "person" ? "person" : "film-outline"}
+  size={30}
+  color="#999"
+/>
+</View>
               )}
 
               {/* Info */}
               <View style={{ flex: 1, padding: 12, justifyContent: "center", gap: 4 }}>
-                <Text style={{ fontSize: 15, fontWeight: "700", color: "#000" }} numberOfLines={2}>
+                <Text style={{ fontSize: 15, fontWeight: "600", color: "#000" }} numberOfLines={2}>
                   {item.title || item.name}
                 </Text>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   {(item.release_date || item.first_air_date) && (
-                    <Text style={{ fontSize: 12, color: "#999" }}>
+                    <Text style={{ fontSize: 12,fontWeight:"400", color: "#999" }}>
                       {new Date(item.release_date || item.first_air_date).getFullYear()}
                     </Text>
                   )}
                   {item.known_for_department && (
                     <Text style={{
-                      fontSize: 11, color: "#fff",
-                      backgroundColor: "#000",
-                      paddingHorizontal: 6, paddingVertical: 2,
-                      borderRadius: 4, fontWeight: "600"
+                      fontSize: 11, color: "#999",  fontWeight: "600"
                     }}>
                       {item.known_for_department}
                     </Text>
                   )}
                   {item.vote_average > 0 && (
-                    <Text style={{ fontSize: 12, color: "#f59e0b", fontWeight: "700" }}>
-                      ⭐ {item.vote_average.toFixed(1)}
+                     <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                    <MaterialIcons name="star" size={12} color="#999" />
+                    <Text style={{ fontSize: 12, color: "#999", fontWeight: "600" }}>
+                     {item.vote_average.toFixed(1)}
                     </Text>
+                    </View>
                   )}
                 </View>
                 {item.overview ? (
-                  <Text style={{ fontSize: 12, color: "#666", lineHeight: 17 }} numberOfLines={2}>
+                  <Text style={{ fontSize: 12, color: "#666",fontWeight:"400", lineHeight: 17 }} numberOfLines={2}>
                     {item.overview}
                   </Text>
                 ) : item.known_for ? (
-                  <Text style={{ fontSize: 12, color: "#666", lineHeight: 17 }} numberOfLines={2}>
+                  <Text style={{ fontSize: 12, color: "#666",fontWeight:"400", lineHeight: 17 }} numberOfLines={2}>
                     Znany z: {item.known_for.slice(0, 2).map((k: any) => k.title || k.name).join(", ")}
                   </Text>
                 ) : null}
