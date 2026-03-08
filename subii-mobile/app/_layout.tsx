@@ -113,22 +113,6 @@ export default function RootLayout() {
   }}
 />
 <Stack.Screen
-  name="terms"
-  options={{
-    headerShown: false,
-    presentation: "card",
-    animation: "slide_from_right",
-  }}
-/>
-<Stack.Screen
-  name="help"
-  options={{
-    headerShown: false,
-    presentation: "card",
-    animation: "slide_from_right",
-  }}
-/>
-<Stack.Screen
   name="forgot-password"
   options={{
     headerShown: false,
