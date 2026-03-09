@@ -168,7 +168,6 @@ async function main() {
       console.log("Disney+ subscription already exists");
     }
   }
-  // ── Historia płatności ──
   const netflixSub = await prisma.subscription.findFirst({
     where: { userId: user.id, providerCode: "netflix" },
   });
