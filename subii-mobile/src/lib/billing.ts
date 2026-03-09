@@ -1,7 +1,3 @@
-/**
- * Zwraca datę najbliższej płatności zbiorczej która obejmuje daną datę odnowienia.
- * Jeśli renewalDate nie podano — zwraca najbliższy billingDay.
- */
 export function getNextBillingDateStr(
   billingDay: number | undefined,
   renewalDate?: string
@@ -37,7 +33,6 @@ export function getNextBillingDateStr(
     }
   }
 
-  // Fallback — najbliższy billingDay
   const candidate = new Date(today.getFullYear(), today.getMonth(), billingDay);
   if (candidate <= today) candidate.setMonth(candidate.getMonth() + 1);
   return candidate.toLocaleDateString("pl-PL");

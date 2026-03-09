@@ -38,28 +38,20 @@ export function formatPlanName(providerCode: string, planName: string): string {
 export const providerDescriptions: Record<string, string> = {
   netflix:
     "Największa platforma streamingowa świata z oryginalnym contentem.",
-
   hbo_max:
     "Platforma premium łącząca produkcje HBO, Warner Bros. i DC z treściami TVN.",
-
   disney_plus:
     "Dom dla produkcji Disney, Marvel, Star Wars, Pixara i National Geographic.",
-
   canal_plus:
     "Polska platforma z bogatą biblioteką filmów, seriali i sportu na żywo. Liga Mistrzów, Premier League i oryginalne produkcje",
-
   prime_video:
     "Najtańszy dostęp do globalnej biblioteki filmów i seriali Amazon Original.",
-
   apple_tv:
     "Ekskluzywne produkcje Apple Original w jakości 4K z Dolby Atmos.",
-
   skyshowtime:
     "Platforma łącząca katalogi Paramount, Peacock, Sky i Showtime.",
-
   polsat_box_go:
     "Polska platforma z serialami i programami Polsatu oraz pakietem sportowym. Liga Europy, Bundesliga i Formuła 1 w jednym miejscu.",
-
   player:
     "Serwis grupy TVN Warner Bros. Discovery z polskimi serialami i programami.",
 };

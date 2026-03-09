@@ -101,7 +101,6 @@ export default function Login() {
   const showEmailError = canShowError("email") && !!errors.email;
   const showPasswordError = canShowError("password") && !!errors.password;
 
-  // ====== STYLE (tylko UI) ======
   const BG = "#fff";
   const MUTED = "#666";
   const BLACK = "#252729";
@@ -109,7 +108,6 @@ export default function Login() {
   const INPUT_BG = "#f9f9f9";
   const ERROR = "#e44343";
 
-  // ====== FONTS (Inter) ======
   const FONT_LIGHT = "Inter_300Light";
   const FONT_REGULAR = "Inter_400Regular";
   const FONT_SEMI = "Inter_600SemiBold";
@@ -133,14 +131,13 @@ export default function Login() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* HEADER */}
           <View style={{ alignItems: "center", marginBottom: 28 }}>
             <Text
               style={{
                 fontSize: 40,
                 letterSpacing: 9,
                 color: BLACK,
-                fontFamily: FONT_LIGHT, // było fontWeight: "300"
+                fontFamily: FONT_LIGHT,
                 marginBottom: 10,
               }}
             >
@@ -151,16 +148,14 @@ export default function Login() {
               style={{
                 fontSize: 14,
                 color: MUTED,
-                fontFamily: FONT_LIGHT, // było fontWeight: "300"
+                fontFamily: FONT_LIGHT,
               }}
             >
               Zarządzaj swoimi subskrypcjami
             </Text>
           </View>
 
-          {/* CARD-LESS FORM (minimal) */}
           <View style={{ gap: 12 }}>
-            {/* EMAIL */}
             <View style={{ gap: 6 }}>
               <TextInput
                 value={form.email}
@@ -181,7 +176,7 @@ export default function Login() {
                   fontSize: 14,
                   backgroundColor: INPUT_BG,
                   color: BLACK,
-                  fontFamily: FONT_LIGHT, // było fontWeight: "300"
+                  fontFamily: FONT_LIGHT,
                 }}
               />
               {showEmailError ? (
@@ -191,7 +186,6 @@ export default function Login() {
               ) : null}
             </View>
 
-            {/* PASSWORD */}
             <View style={{ gap: 6 }}>
               <View style={{ position: "relative" }}>
                 <TextInput
@@ -214,7 +208,7 @@ export default function Login() {
                     fontSize: 14,
                     backgroundColor: INPUT_BG,
                     color: BLACK,
-                    fontFamily: FONT_LIGHT, // było fontWeight: "300"
+                    fontFamily: FONT_LIGHT,
                   }}
                 />
 
@@ -244,7 +238,6 @@ export default function Login() {
               ) : null}
             </View>
 
-            {/* BUTTON */}
             <Pressable
               onPress={handleLogin}
               disabled={loading}
@@ -263,7 +256,7 @@ export default function Login() {
                   style={{
                     color: "#fff",
                     textAlign: "center",
-                    fontFamily: FONT_BOLD, // było fontWeight: "700"
+                    fontFamily: FONT_BOLD,
                     fontSize: 15,
                   }}
                 >
@@ -272,7 +265,6 @@ export default function Login() {
               )}
             </Pressable>
 
-            {/* FORGOT */}
             <Pressable
               onPress={() => router.push("/forgot-password" as any)}
               style={{ alignItems: "center", marginTop: 14 }}
@@ -285,7 +277,6 @@ export default function Login() {
               </Text>
             </Pressable>
 
-            {/* DIVIDER */}
             <View
               style={{
                 marginTop: 18,
@@ -301,7 +292,6 @@ export default function Login() {
               <View style={{ flex: 1, height: 1, backgroundColor: "#e6e6e6" }} />
             </View>
 
-            {/* SIGN UP */}
             <Pressable
               onPress={() => router.push("/register" as any)}
               style={{ alignItems: "center", marginTop: 14 }}

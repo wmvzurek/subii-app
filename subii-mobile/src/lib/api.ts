@@ -1,9 +1,8 @@
-// src/lib/api.ts
 import axios from "axios";
 import { storage } from "./storage";
 import { router } from "expo-router";
 
-export const BASE_URL = "http://192.168.1.114:3000"; // ZMIEŃ NA SWOJE IP
+export const BASE_URL = "http://192.168.1.114:3000";
 
 export const api = axios.create({
   baseURL: BASE_URL,
@@ -18,7 +17,6 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
-
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -27,14 +25,11 @@ api.interceptors.response.use(
       const isRegisterRequest = error.config?.url?.includes("/api/auth/register");
 
       if (!isLoginRequest && !isRegisterRequest) {
-        // Sprawdź czy token w ogóle istnieje — jeśli tak, to wygasł
         const token = await storage.getToken();
         await storage.clearAuth();
 
         if (token) {
-          // Token istniał ale wygasł / został unieważniony — poinformuj użytkownika
           router.replace("/login" as any);
-          // Małe opóźnienie żeby router zdążył zmienić ekran
           setTimeout(() => {
             const { Alert } = require("react-native");
             Alert.alert(
@@ -70,8 +65,8 @@ export const authApi = {
     password: string;
     firstName: string;
     lastName: string;
-    phone: string; // ← Nie jest już opcjonalny
-    dateOfBirth: string; // ← DODAJ TO (format YYYY-MM-DD)
+    phone: string;
+    dateOfBirth: string;
   }) {
     const res = await api.post("/api/auth/register", data);
     return res.data;
@@ -86,7 +81,7 @@ export const authApi = {
     const res = await api.get("/api/auth/me");
     return res.data.user;
   }
-};  
+};
 
 export const subscriptionsApi = {
   async getAll() {
@@ -94,20 +89,14 @@ export const subscriptionsApi = {
     return res.data;
   },
 
-
-
-  // ← DODAJ TĘ FUNKCJĘ
   async getActiveProviderCodes(): Promise<string[]> {
     const res = await api.get("/api/subscriptions");
     const now = new Date();
     const active = (res.data.subscriptions || [])
       .filter((s: any) => {
-        // Aktywna subskrypcja
-        if (s.status === 'active') return true;
-        // W trakcie zmiany planu — user nadal ma dostęp
-        if (s.status === 'pending_change') return true;
-        // Anulowana ale jeszcze nie wygasła
-        if (s.status === 'pending_cancellation') {
+        if (s.status === "active") return true;
+        if (s.status === "pending_change") return true;
+        if (s.status === "pending_cancellation") {
           const expiresAt = s.activeUntil ? new Date(s.activeUntil) : null;
           return expiresAt ? expiresAt > now : true;
         }
@@ -118,26 +107,25 @@ export const subscriptionsApi = {
     return active;
   },
 
- async create(data: {
-  planId: number;
-  paymentOption: "now" | "next_billing";
-  priceOverridePLN?: number;
-}) {
+  async create(data: {
+    planId: number;
+    paymentOption: "now" | "next_billing";
+    priceOverridePLN?: number;
+  }) {
     const res = await api.post("/api/subscriptions", data);
     return res.data;
   },
 
   async delete(id: number) {
-  const res = await api.delete(`/api/subscriptions/${id}`);
-  return res.data;
-},
+    const res = await api.delete(`/api/subscriptions/${id}`);
+    return res.data;
+  },
 
   async update(id: number, data: any) {
     const res = await api.patch(`/api/subscriptions/${id}`, data);
     return res.data;
   }
 };
-
 
 export const reportsApi = {
   generate: () => api.post("/api/reports/generate"),

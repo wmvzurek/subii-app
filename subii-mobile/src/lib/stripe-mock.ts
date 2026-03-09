@@ -1,4 +1,3 @@
-// Mock dla Expo Go - Stripe nie działa bez native build
 export const StripeProvider = ({ children }: any) => children;
 export const useStripe = () => ({
   confirmSetupIntent: async () => ({ error: { message: "Stripe niedostępny w trybie Expo Go" } }),

@@ -20,6 +20,18 @@ import { authApi } from "../src/lib/api";
 import { useAuth } from "../src/contexts/AuthContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import {
+  useFonts,
+  Inter_100Thin,
+  Inter_200ExtraLight,
+  Inter_300Light,
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+  Inter_800ExtraBold,
+  Inter_900Black,
+} from "@expo-google-fonts/inter";
 
 type Errors = {
   firstName?: string;
@@ -27,7 +39,7 @@ type Errors = {
   email?: string;
   phone?: string;
   dateOfBirth?: string;
-  password?: string; // nadal walidujemy, tylko nie wyświetlamy tego komunikatu pod inputem
+  password?: string;
   confirmPassword?: string;
 };
 
@@ -41,13 +53,11 @@ type Touched = {
   confirmPassword?: boolean;
 };
 
-/** ---------- REGEXY (poza komponentem) ---------- */
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE = /^[0-9]{9}$/;
 const DOB_RE = /^(\d{2})-(\d{2})-(\d{4})$/;
 const SPECIAL_RE = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/;
 
-/** ---------- HELPERY (poza komponentem) ---------- */
 function validateEmail(email: string) {
   return EMAIL_RE.test(email);
 }
@@ -70,7 +80,8 @@ function validateAge(date: Date) {
   const today = new Date();
   const age = today.getFullYear() - date.getFullYear();
   const monthDiff = today.getMonth() - date.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < date.getDate())) return age - 1;
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < date.getDate()))
+    return age - 1;
   return age;
 }
 
@@ -95,7 +106,12 @@ function parseDateDMY(text: string) {
   if (dd < 1 || dd > 31) return null;
 
   const d = new Date(yyyy, mm - 1, dd);
-  if (d.getFullYear() !== yyyy || d.getMonth() !== mm - 1 || d.getDate() !== dd) return null;
+  if (
+    d.getFullYear() !== yyyy ||
+    d.getMonth() !== mm - 1 ||
+    d.getDate() !== dd
+  )
+    return null;
 
   const today = new Date();
   if (d > today) return null;
@@ -115,7 +131,6 @@ function allTouchedTrue(): Touched {
   };
 }
 
-/** Jedno źródło prawdy walidacji */
 function getErrors(
   form: {
     firstName: string;
@@ -135,19 +150,22 @@ function getErrors(
   if (!validateEmail(form.email)) newErrors.email = "Nieprawidłowy adres email";
 
   if (!form.phone) newErrors.phone = "Numer telefonu jest obowiązkowy";
-  else if (!validatePhone(form.phone)) newErrors.phone = "Numer telefonu musi mieć 9 cyfr";
+  else if (!validatePhone(form.phone))
+    newErrors.phone = "Numer telefonu musi mieć 9 cyfr";
 
   if (!dobText.trim()) newErrors.dateOfBirth = "Podaj datę urodzenia";
   else {
     const parsed = parseDateDMY(dobText);
     if (!parsed) newErrors.dateOfBirth = "Wpisz datę w formacie DD-MM-YYYY";
-    else if (validateAge(parsed) < 13) newErrors.dateOfBirth = "Musisz mieć minimum 13 lat";
+    else if (validateAge(parsed) < 13)
+      newErrors.dateOfBirth = "Musisz mieć minimum 13 lat";
   }
 
   const pe = validatePassword(form.password);
-  if (pe) newErrors.password = pe; // walidacja zostaje (blokuje submit)
+  if (pe) newErrors.password = pe;
 
-  if (form.password !== form.confirmPassword) newErrors.confirmPassword = "Hasła nie są identyczne";
+  if (form.password !== form.confirmPassword)
+    newErrors.confirmPassword = "Hasła nie są identyczne";
 
   return newErrors;
 }
@@ -157,23 +175,31 @@ export default function Register() {
   const { login } = useAuth();
   const insets = useSafeAreaInsets();
 
-  // ====== STYLE (tylko UI) ======
+  const [fontsLoaded] = useFonts({
+    Inter_100Thin,
+    Inter_200ExtraLight,
+    Inter_300Light,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    Inter_800ExtraBold,
+    Inter_900Black,
+  });
+
   const BG = "#fff";
-  const MUTED = "#666";
+  const WHITE = "#fff";
   const BLACK = "#252729";
+  const MUTED = "#666";
   const BORDER = "#ddd";
   const INPUT_BG = "#f9f9f9";
   const ERROR = "#e44343";
-
-  // dodatkowe stałe (żeby też było „poukładane”)
-  const WHITE = "#fff";
   const PLACEHOLDER = "#9a9a9a";
   const PLACEHOLDER_2 = "#9ca3af";
   const DIVIDER = "#e6e6e6";
   const CARD_BORDER = "#eee";
   const SUCCESS = "#47c073";
 
-  // ====== FONTS (Inter) ======
   const FONT_LIGHT = "Inter_300Light";
   const FONT_REG = "Inter_400Regular";
   const FONT_MED = "Inter_500Medium";
@@ -186,7 +212,6 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // ---------- FORM STATE ----------
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -203,13 +228,9 @@ export default function Register() {
 
   const [errors, setErrors] = useState<Errors>({});
   const [touched, setTouched] = useState<Touched>({});
-
-  // ✅ czy użytkownik próbował już submitować (żeby pokazać czerwone X w warunkach hasła)
   const [submitAttempted, setSubmitAttempted] = useState(false);
 
-  // ---------- REFS ----------
   const scrollRef = useRef<ScrollView>(null);
-
   const firstNameRef = useRef<TextInput>(null);
   const lastNameRef = useRef<TextInput>(null);
   const emailRef = useRef<TextInput>(null);
@@ -219,27 +240,19 @@ export default function Register() {
   const confirmPasswordRef = useRef<TextInput>(null);
 
   const scrollYRef = useRef(0);
-
-  // HARD CLAMP
   const isClampingRef = useRef(false);
-
-  // Pending focus
   const pendingFocusRef = useRef<React.RefObject<TextInput> | null>(null);
   const pendingGapRef = useRef(24);
 
-  // ---------- KEYBOARD HEIGHT ----------
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const keyboardHeightRef = useRef(0);
 
-  // “niewidoczny” zapas na dole, kiedy klawiatura jest otwarta
   const baseBottomPadding = 12 + insets.bottom;
-  const keyboardPadding = keyboardHeight > 0 ? keyboardHeight + 24 : 0; // +24 = 24px nad klawiaturą
+  const keyboardPadding = keyboardHeight > 0 ? keyboardHeight + 24 : 0;
   const effectiveBottomPadding = baseBottomPadding + keyboardPadding;
 
-  // maxScrollY liczymy z aktualnych wysokości (contentH uwzględnia paddingBottom)
   const maxScrollY = Math.max(0, contentH - layoutH);
 
-  // ---------- SCROLL TO INPUT ----------
   const scrollToInputStable = useCallback(
     (ref: React.RefObject<TextInput>, gap = 24) => {
       const input = ref.current;
@@ -251,11 +264,8 @@ export default function Register() {
 
       UIManager.measureInWindow(node, (_x, y, _w, h) => {
         const screenH = Dimensions.get("window").height;
-
-        // bierzemy height z refa (pewny, natychmiastowy)
         const kbH = keyboardHeightRef.current;
         const keyboardTop = kbH > 0 ? screenH - kbH : screenH;
-
         const inputBottom = y + h;
         const overflow = inputBottom - (keyboardTop - gap);
 
@@ -270,8 +280,10 @@ export default function Register() {
   );
 
   useEffect(() => {
-    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const showEvent =
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent =
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
 
     const showSub = Keyboard.addListener(showEvent as any, (e: any) => {
       const h = e?.endCoordinates?.height ?? 0;
@@ -281,7 +293,10 @@ export default function Register() {
       if (pendingFocusRef.current) {
         requestAnimationFrame(() => {
           setTimeout(() => {
-            scrollToInputStable(pendingFocusRef.current!, pendingGapRef.current);
+            scrollToInputStable(
+              pendingFocusRef.current!,
+              pendingGapRef.current
+            );
           }, 30);
         });
       }
@@ -329,7 +344,6 @@ export default function Register() {
     [validateField]
   );
 
-  // ---------- DATE PICKER ----------
   const handleDateChange = useCallback(
     (_event: any, selectedDate?: Date) => {
       setShowDatePicker(Platform.OS === "ios");
@@ -343,7 +357,6 @@ export default function Register() {
     [validateField]
   );
 
-  // ---------- SUBMIT ----------
   const handleRegister = useCallback(async () => {
     setSubmitAttempted(true);
     setTouched(allTouchedTrue());
@@ -381,7 +394,6 @@ export default function Register() {
     }
   }, [dobText, form, login, router]);
 
-  // ---------- PASSWORD REQUIREMENTS UI ----------
   const passwordChecks = useMemo(() => {
     const pwd = form.password;
     return {
@@ -393,7 +405,6 @@ export default function Register() {
     };
   }, [form.password]);
 
-  // pokazujemy czerwone X dopiero jeśli user dotknął hasła albo próbował submit
   const showPasswordFails = submitAttempted || !!touched.password;
 
   return (
@@ -421,7 +432,6 @@ export default function Register() {
           const y = e.nativeEvent.contentOffset.y;
           scrollYRef.current = y;
 
-          // HARD CLAMP
           if (isClampingRef.current) return;
           const clamped = Math.min(Math.max(0, y), maxScrollY);
 
@@ -435,7 +445,6 @@ export default function Register() {
         }}
         scrollEventThrottle={16}
       >
-        {/* Header */}
         <View
           style={{
             marginBottom: 10,
@@ -456,7 +465,9 @@ export default function Register() {
             }}
             hitSlop={10}
           >
-            <Text style={{ fontSize: 26, color: BLACK, fontFamily: FONT_LIGHT }}>←</Text>
+            <Text style={{ fontSize: 26, color: BLACK, fontFamily: FONT_LIGHT }}>
+              ←
+            </Text>
           </Pressable>
 
           <Text
@@ -464,7 +475,7 @@ export default function Register() {
               fontSize: 25,
               color: BLACK,
               marginBottom: 8,
-              fontFamily: FONT_LIGHT, // zamiast fontWeight: "300"
+              fontFamily: FONT_LIGHT,
             }}
           >
             Utwórz konto Subii
@@ -475,7 +486,7 @@ export default function Register() {
               fontSize: 14,
               color: MUTED,
               textAlign: "center",
-              fontFamily: FONT_LIGHT, // zamiast fontWeight: "300"
+              fontFamily: FONT_LIGHT,
             }}
           >
             Zacznij zarządzać swoimi subskrypcjami
@@ -552,7 +563,6 @@ export default function Register() {
           fonts={{ FONT_LIGHT, FONT_REG, FONT_MED, FONT_SEMI, FONT_BOLD }}
         />
 
-        {/* DOB */}
         <View style={{ gap: 6 }}>
           <Text style={{ fontSize: 13, color: MUTED, fontFamily: FONT_MED }}>
             Data urodzenia *
@@ -577,7 +587,8 @@ export default function Register() {
               flexDirection: "row",
               alignItems: "center",
               borderWidth: 1,
-              borderColor: touched.dateOfBirth && errors.dateOfBirth ? ERROR : BORDER,
+              borderColor:
+                touched.dateOfBirth && errors.dateOfBirth ? ERROR : BORDER,
               borderRadius: 10,
               backgroundColor: INPUT_BG,
               paddingHorizontal: 12,
@@ -601,7 +612,7 @@ export default function Register() {
                 fontSize: 14,
                 paddingVertical: 0,
                 color: dobText ? BLACK : PLACEHOLDER_2,
-                fontFamily: FONT_LIGHT, // zamiast fontWeight: "300"
+                fontFamily: FONT_LIGHT,
               }}
               onEndEditing={() => {
                 const parsed = parseDateDMY(dobText);
@@ -620,7 +631,11 @@ export default function Register() {
               style={{ paddingLeft: 10, paddingVertical: 8 }}
               hitSlop={10}
             >
-              <Ionicons name="calendar-outline" size={22} color={PLACEHOLDER_2} />
+              <Ionicons
+                name="calendar-outline"
+                size={22}
+                color={PLACEHOLDER_2}
+              />
             </Pressable>
           </View>
 
@@ -631,13 +646,14 @@ export default function Register() {
           ) : null}
         </View>
 
-        {/* PASSWORD + EYE */}
         <View style={{ position: "relative" }}>
           <InputField
             ref={passwordRef}
             label="Hasło *"
             value={form.password}
-            onChangeText={(v: string) => setForm((p) => ({ ...p, password: v }))}
+            onChangeText={(v: string) =>
+              setForm((p) => ({ ...p, password: v }))
+            }
             onFocus={() => setPendingAndScroll(passwordRef, 24)}
             onBlur={() => touchAndValidate("password")}
             secureTextEntry={!showPassword}
@@ -646,7 +662,6 @@ export default function Register() {
             returnKeyType="next"
             blurOnSubmit={false}
             onSubmitEditing={() => confirmPasswordRef.current?.focus()}
-            // ❌ Nie pokazujemy komunikatu pod inputem, bo pokazujemy X/✓ w wymaganiach
             error={undefined}
             colors={{ BLACK, MUTED, BORDER, INPUT_BG, ERROR, PLACEHOLDER }}
             fonts={{ FONT_LIGHT, FONT_REG, FONT_MED, FONT_SEMI, FONT_BOLD }}
@@ -661,7 +676,7 @@ export default function Register() {
               right: 14,
               top: 0,
               bottom: 0,
-              paddingTop: 19, // 13 (label) + 6 (gap)
+              paddingTop: 19,
               justifyContent: "center",
             }}
           >
@@ -683,7 +698,14 @@ export default function Register() {
             borderColor: CARD_BORDER,
           }}
         >
-          <Text style={{ fontSize: 12, marginBottom: 8, color: BLACK, fontFamily: FONT_SEMI }}>
+          <Text
+            style={{
+              fontSize: 12,
+              marginBottom: 8,
+              color: BLACK,
+              fontFamily: FONT_SEMI,
+            }}
+          >
             Hasło musi zawierać:
           </Text>
 
@@ -739,13 +761,14 @@ export default function Register() {
           />
         </View>
 
-        {/* CONFIRM PASSWORD + EYE */}
         <View style={{ position: "relative" }}>
           <InputField
             ref={confirmPasswordRef}
             label="Powtórz hasło *"
             value={form.confirmPassword}
-            onChangeText={(v: string) => setForm((p) => ({ ...p, confirmPassword: v }))}
+            onChangeText={(v: string) =>
+              setForm((p) => ({ ...p, confirmPassword: v }))
+            }
             onFocus={() => setPendingAndScroll(confirmPasswordRef, 24)}
             onBlur={() => touchAndValidate("confirmPassword")}
             secureTextEntry={!showConfirmPassword}
@@ -753,7 +776,9 @@ export default function Register() {
             placeholder="••••••••"
             returnKeyType="done"
             onSubmitEditing={handleRegister}
-            error={touched.confirmPassword ? errors.confirmPassword : undefined}
+            error={
+              touched.confirmPassword ? errors.confirmPassword : undefined
+            }
             colors={{ BLACK, MUTED, BORDER, INPUT_BG, ERROR, PLACEHOLDER }}
             fonts={{ FONT_LIGHT, FONT_REG, FONT_MED, FONT_SEMI, FONT_BOLD }}
             style={{ paddingRight: 44 }}
@@ -797,7 +822,7 @@ export default function Register() {
               style={{
                 color: WHITE,
                 textAlign: "center",
-                fontFamily: FONT_BOLD, // zamiast fontWeight: "700"
+                fontFamily: FONT_BOLD,
                 fontSize: 15,
               }}
             >
@@ -806,16 +831,35 @@ export default function Register() {
           )}
         </Pressable>
 
-        {/* Divider + login link */}
-        <View style={{ marginTop: 18, flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <View
+          style={{
+            marginTop: 18,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 12,
+          }}
+        >
           <View style={{ flex: 1, height: 1, backgroundColor: DIVIDER }} />
-          <Text style={{ color: PLACEHOLDER, fontSize: 12, fontFamily: FONT_LIGHT }}>
+          <Text
+            style={{
+              color: PLACEHOLDER,
+              fontSize: 12,
+              fontFamily: FONT_LIGHT,
+            }}
+          >
             lub
           </Text>
           <View style={{ flex: 1, height: 1, backgroundColor: DIVIDER }} />
         </View>
 
-        <Pressable onPress={() => router.back()} style={{ alignItems: "center", marginTop: 14, marginBottom: 8 }}>
+        <Pressable
+          onPress={() => router.back()}
+          style={{
+            alignItems: "center",
+            marginTop: 14,
+            marginBottom: 8,
+          }}
+        >
           <Text style={{ fontSize: 13, color: MUTED, fontFamily: FONT_LIGHT }}>
             Masz już konto?{" "}
             <Text style={{ color: BLACK, fontFamily: FONT_SEMI }}>
@@ -828,7 +872,6 @@ export default function Register() {
   );
 }
 
-// ---------- UI: PasswordRequirement (✓ / ✕ / •) ----------
 function PasswordRequirement({
   met,
   text,
@@ -853,55 +896,66 @@ function PasswordRequirement({
 
   return (
     <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
-      <Text style={{ fontSize: 14, marginRight: 8, color, fontFamily: fontReg }}>{icon}</Text>
-      <Text style={{ fontSize: 12, color, fontFamily: met ? fontSemi : fontReg }}>
+      <Text
+        style={{ fontSize: 14, marginRight: 8, color, fontFamily: fontReg }}
+      >
+        {icon}
+      </Text>
+      <Text
+        style={{ fontSize: 12, color, fontFamily: met ? fontSemi : fontReg }}
+      >
         {text}
       </Text>
     </View>
   );
 }
 
-// ---------- UI: InputField ----------
-const InputField = forwardRef<TextInput, any>(({ label, error, colors, fonts, style, ...props }, ref) => {
-  const BLACK = colors?.BLACK ?? "#252729";
-  const MUTED = colors?.MUTED ?? "#666";
-  const BORDER = colors?.BORDER ?? "#ddd";
-  const INPUT_BG = colors?.INPUT_BG ?? "#f9f9f9";
-  const ERROR = colors?.ERROR ?? "#ff4444";
-  const PLACEHOLDER = colors?.PLACEHOLDER ?? "#9a9a9a";
+const InputField = forwardRef<TextInput, any>(
+  ({ label, error, colors, fonts, style, ...props }, ref) => {
+    const BLACK = colors?.BLACK ?? "#252729";
+    const MUTED = colors?.MUTED ?? "#666";
+    const BORDER = colors?.BORDER ?? "#ddd";
+    const INPUT_BG = colors?.INPUT_BG ?? "#f9f9f9";
+    const ERROR = colors?.ERROR ?? "#ff4444";
+    const PLACEHOLDER = colors?.PLACEHOLDER ?? "#9a9a9a";
 
-  const FONT_LIGHT = fonts?.FONT_LIGHT ?? "Inter_300Light";
-  const FONT_REG = fonts?.FONT_REG ?? "Inter_400Regular";
-  const FONT_MED = fonts?.FONT_MED ?? "Inter_500Medium";
+    const FONT_LIGHT = fonts?.FONT_LIGHT ?? "Inter_300Light";
+    const FONT_REG = fonts?.FONT_REG ?? "Inter_400Regular";
+    const FONT_MED = fonts?.FONT_MED ?? "Inter_500Medium";
 
-  return (
-    <View style={{ gap: 6 }}>
-      <Text style={{ fontSize: 13, color: MUTED, fontFamily: FONT_MED }}>
-        {label}
-      </Text>
+    return (
+      <View style={{ gap: 6 }}>
+        <Text style={{ fontSize: 13, color: MUTED, fontFamily: FONT_MED }}>
+          {label}
+        </Text>
 
-      <TextInput
-        ref={ref}
-        {...props}
-        placeholderTextColor={PLACEHOLDER}
-        style={[
-          {
-            borderWidth: 1,
-            borderColor: error ? ERROR : BORDER,
-            borderRadius: 10,
-            paddingVertical: 14,
-            paddingHorizontal: 14,
-            fontSize: 14,
-            backgroundColor: INPUT_BG,
-            color: BLACK,
-            fontFamily: FONT_LIGHT,
-          },
-          style,
-        ]}
-      />
+        <TextInput
+          ref={ref}
+          {...props}
+          placeholderTextColor={PLACEHOLDER}
+          style={[
+            {
+              borderWidth: 1,
+              borderColor: error ? ERROR : BORDER,
+              borderRadius: 10,
+              paddingVertical: 14,
+              paddingHorizontal: 14,
+              fontSize: 14,
+              backgroundColor: INPUT_BG,
+              color: BLACK,
+              fontFamily: FONT_LIGHT,
+            },
+            style,
+          ]}
+        />
 
-      {error ? <Text style={{ color: ERROR, fontSize: 12, fontFamily: FONT_REG }}>{error}</Text> : null}
-    </View>
-  );
-});
+        {error ? (
+          <Text style={{ color: ERROR, fontSize: 12, fontFamily: FONT_REG }}>
+            {error}
+          </Text>
+        ) : null}
+      </View>
+    );
+  }
+);
 InputField.displayName = "InputField";

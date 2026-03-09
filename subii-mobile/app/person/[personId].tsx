@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -8,10 +8,11 @@ import {
   Pressable,
   ActivityIndicator,
 } from "react-native";
-import { api } from "../../src/lib/api";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+
+import { api } from "../../src/lib/api";
 
 export default function PersonScreen() {
   const { personId } = useLocalSearchParams<{ personId: string }>();
@@ -22,20 +23,38 @@ export default function PersonScreen() {
   const [loading, setLoading] = useState(true);
   const [showFullBio, setShowFullBio] = useState(false);
 
-  useEffect(() => {
-    loadPerson();
-  }, [personId]);
+  const BG = "#f5f5f5";
+  const WHITE = "#fff";
+  const BLACK = "#252729";
+  const MUTED = "#666";
+  const LIGHT_MUTED = "#999";
+  const DARK_PLACEHOLDER = "#222";
+  const OVERLAY = "rgba(0,0,0,0.5)";
+  const OVERLAY_GRADIENT = "rgba(0,0,0,0.8)";
 
-  const loadPerson = async () => {
+  const FONT_THIN = "Inter_100Thin";
+  const FONT_EXTRA_LIGHT = "Inter_200ExtraLight";
+  const FONT_LIGHT = "Inter_300Light";
+  const FONT_REGULAR = "Inter_400Regular";
+  const FONT_MEDIUM = "Inter_500Medium";
+  const FONT_SEMI = "Inter_600SemiBold";
+  const FONT_BOLD = "Inter_700Bold";
+  const FONT_EXTRA_BOLD = "Inter_800ExtraBold";
+  const FONT_BLACK = "Inter_900Black";
+
+  const loadPerson = useCallback(async () => {
     try {
       const res = await api.get(`/api/person/${personId}`);
       setDetails(res.data);
     } catch {
-      // błąd
     } finally {
       setLoading(false);
     }
-  };
+  }, [personId]);
+
+  useEffect(() => {
+    loadPerson();
+  }, [loadPerson]);
 
   if (loading) {
     return (
@@ -44,18 +63,32 @@ export default function PersonScreen() {
           flex: 1,
           justifyContent: "center",
           alignItems: "center",
-          backgroundColor: "#f5f5f5",
+          backgroundColor: BG,
         }}
       >
-        <ActivityIndicator size="large" color="#000" />
+        <ActivityIndicator size="large" color={BLACK} />
       </View>
     );
   }
 
   if (!details) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <Text style={{ color: "#999" }}>Nie znaleziono osoby</Text>
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: BG,
+        }}
+      >
+        <Text
+          style={{
+            color: LIGHT_MUTED,
+            fontFamily: FONT_REGULAR,
+          }}
+        >
+          Nie znaleziono osoby
+        </Text>
       </View>
     );
   }
@@ -89,10 +122,9 @@ export default function PersonScreen() {
   const bio = details.biography || "";
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#f5f5f5" }}>
+    <View style={{ flex: 1, backgroundColor: BG }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-        {/* Header ze zdjęciem */}
-        <View style={{ backgroundColor: "#fff", paddingBottom: 24 }}>
+        <View style={{ backgroundColor: WHITE, paddingBottom: 24 }}>
           <View style={{ position: "relative" }}>
             {details.profile_path ? (
               <Image
@@ -106,17 +138,17 @@ export default function PersonScreen() {
                 style={{
                   width: "100%",
                   height: 300,
-                  backgroundColor: "#222",
+                  backgroundColor: DARK_PLACEHOLDER,
                   justifyContent: "center",
                   alignItems: "center",
                 }}
               >
-                <Ionicons name="person" size={80} color="#999" />
+                <Ionicons name="person" size={80} color={LIGHT_MUTED} />
               </View>
             )}
 
             <LinearGradient
-              colors={["transparent", "rgba(0,0,0,0.8)"]}
+              colors={["transparent", OVERLAY_GRADIENT]}
               style={{
                 position: "absolute",
                 bottom: 0,
@@ -128,18 +160,29 @@ export default function PersonScreen() {
                 justifyContent: "flex-end",
               }}
             >
-              <Text style={{ fontSize: 24, fontWeight: "700", color: "#fff" }}>
+              <Text
+                style={{
+                  fontSize: 24,
+                  color: WHITE,
+                  fontFamily: FONT_BOLD,
+                }}
+              >
                 {details.name}
               </Text>
 
               {details.known_for_department && (
-                <Text style={{ color: "#fff", fontSize: 12, fontWeight: "400" }}>
+                <Text
+                  style={{
+                    color: WHITE,
+                    fontSize: 12,
+                    fontFamily: FONT_REGULAR,
+                  }}
+                >
                   {details.known_for_department}
                 </Text>
               )}
             </LinearGradient>
 
-            {/* Przycisk wstecz */}
             <Pressable
               onPress={() => router.back()}
               style={{
@@ -149,35 +192,49 @@ export default function PersonScreen() {
                 width: 36,
                 height: 36,
                 borderRadius: 18,
-                backgroundColor: "rgba(0,0,0,0.5)",
+                backgroundColor: OVERLAY,
                 justifyContent: "center",
                 alignItems: "center",
               }}
             >
-              <Text style={{ color: "#fff", fontSize: 18 }}>←</Text>
+              <Text
+                style={{
+                  color: WHITE,
+                  fontSize: 18,
+                  fontFamily: FONT_REGULAR,
+                }}
+              >
+                ←
+              </Text>
             </Pressable>
           </View>
 
           <View style={{ paddingHorizontal: 20, paddingTop: 24, gap: 8 }}>
-  <View
-  style={{
-    flexDirection: "column",
-    gap: 12,
-  }}
->
+            <View
+              style={{
+                flexDirection: "column",
+                gap: 12,
+              }}
+            >
               {birthDate && (
                 <View>
                   <Text
                     style={{
                       fontSize: 12,
-                      color: "#666",
+                      color: MUTED,
                       marginBottom: 2,
-                      fontWeight: "400",
+                      fontFamily: FONT_REGULAR,
                     }}
                   >
                     Data urodzenia
                   </Text>
-                  <Text style={{ fontSize: 16, fontWeight: "500", color: "#000" }}>
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      color: BLACK,
+                      fontFamily: FONT_MEDIUM,
+                    }}
+                  >
                     {birthDate} {age ? `(${age} lat)` : ""}
                   </Text>
                 </View>
@@ -188,14 +245,20 @@ export default function PersonScreen() {
                   <Text
                     style={{
                       fontSize: 12,
-                      color: "#666",
+                      color: MUTED,
                       marginBottom: 2,
-                      fontWeight: "400",
+                      fontFamily: FONT_REGULAR,
                     }}
                   >
                     Data śmierci
                   </Text>
-                  <Text style={{ fontSize: 16, fontWeight: "500", color: "#000" }}>
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      color: BLACK,
+                      fontFamily: FONT_MEDIUM,
+                    }}
+                  >
                     {deathDate}
                   </Text>
                 </View>
@@ -206,14 +269,20 @@ export default function PersonScreen() {
                   <Text
                     style={{
                       fontSize: 12,
-                      color: "#666",
+                      color: MUTED,
                       marginBottom: 2,
-                      fontWeight: "400",
+                      fontFamily: FONT_REGULAR,
                     }}
                   >
                     Miejsce urodzenia
                   </Text>
-                  <Text style={{ fontSize: 16, fontWeight: "500", color: "#000" }}>
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      color: BLACK,
+                      fontFamily: FONT_MEDIUM,
+                    }}
+                  >
                     {details.place_of_birth}
                   </Text>
                 </View>
@@ -223,22 +292,32 @@ export default function PersonScreen() {
         </View>
 
         <View style={{ padding: 20, gap: 16 }}>
-          {/* Biografia */}
           {bio ? (
-            <View style={{ backgroundColor: "#fff", borderRadius: 12, padding: 16 }}>
+            <View
+              style={{
+                backgroundColor: WHITE,
+                borderRadius: 12,
+                padding: 16,
+              }}
+            >
               <Text
                 style={{
                   fontSize: 16,
-                  fontWeight: "700",
-                  color: "#000",
+                  color: BLACK,
                   marginBottom: 8,
+                  fontFamily: FONT_BOLD,
                 }}
               >
                 Biografia
               </Text>
 
               <Text
-                style={{ fontSize: 13, color: "#666", lineHeight: 22 }}
+                style={{
+                  fontSize: 13,
+                  color: MUTED,
+                  lineHeight: 22,
+                  fontFamily: FONT_REGULAR,
+                }}
                 numberOfLines={showFullBio ? undefined : 3}
               >
                 {bio}
@@ -250,7 +329,11 @@ export default function PersonScreen() {
                   style={{ alignSelf: "flex-end", marginTop: 6 }}
                 >
                   <Text
-                    style={{ fontSize: 13, fontWeight: "600", color: "#000" }}
+                    style={{
+                      fontSize: 13,
+                      color: BLACK,
+                      fontFamily: FONT_SEMI,
+                    }}
                   >
                     {showFullBio ? "Zwiń" : "Więcej"}
                   </Text>
@@ -259,15 +342,14 @@ export default function PersonScreen() {
             </View>
           ) : null}
 
-          {/* Filmy */}
           <View
             style={{
-              backgroundColor: "#fff",
+              backgroundColor: WHITE,
               borderRadius: 12,
               padding: 16,
-              paddingBottom:4,
+              paddingBottom: 4,
               gap: 12,
-              shadowColor: "#000",
+              shadowColor: BLACK,
               shadowOpacity: 0.06,
               shadowRadius: 4,
               elevation: 2,
@@ -278,9 +360,9 @@ export default function PersonScreen() {
                 <Text
                   style={{
                     fontSize: 16,
-                    fontWeight: "700",
-                    color: "#000",
+                    color: BLACK,
                     marginBottom: 8,
+                    fontFamily: FONT_BOLD,
                   }}
                 >
                   Filmy ({movies.length})
@@ -302,10 +384,10 @@ export default function PersonScreen() {
                       }
                       style={{
                         width: 110,
-                        backgroundColor: "#fff",
+                        backgroundColor: WHITE,
                         borderRadius: 12,
                         overflow: "hidden",
-                        shadowColor: "#000",
+                        shadowColor: BLACK,
                         shadowOpacity: 0.07,
                         shadowRadius: 4,
                         elevation: 2,
@@ -317,16 +399,33 @@ export default function PersonScreen() {
                         }}
                         style={{ width: 110, height: 160 }}
                       />
-                      <View style={{ paddingTop: 8, paddingBottom: 10, paddingRight: 8, gap: 2 }}>
+                      <View
+                        style={{
+                          paddingTop: 8,
+                          paddingBottom: 10,
+                          paddingRight: 8,
+                          gap: 2,
+                        }}
+                      >
                         <Text
-                          style={{ fontSize: 11, fontWeight: "700", color: "#000" }}
+                          style={{
+                            fontSize: 11,
+                            color: BLACK,
+                            fontFamily: FONT_BOLD,
+                          }}
                           numberOfLines={2}
                         >
                           {movie.title}
                         </Text>
 
                         {movie.release_date && (
-                          <Text style={{ fontSize: 10, color: "#999" }}>
+                          <Text
+                            style={{
+                              fontSize: 10,
+                              color: LIGHT_MUTED,
+                              fontFamily: FONT_REGULAR,
+                            }}
+                          >
                             {new Date(movie.release_date).getFullYear()}
                           </Text>
                         )}
@@ -335,8 +434,9 @@ export default function PersonScreen() {
                           <Text
                             style={{
                               fontSize: 10,
-                              color: "#666",
+                              color: MUTED,
                               fontStyle: "italic",
+                              fontFamily: FONT_REGULAR,
                             }}
                             numberOfLines={1}
                           >
@@ -351,15 +451,14 @@ export default function PersonScreen() {
             )}
           </View>
 
-          {/* Seriale */}
           <View
             style={{
-              backgroundColor: "#fff",
+              backgroundColor: WHITE,
               borderRadius: 12,
               padding: 16,
-              paddingBottom:4,
+              paddingBottom: 4,
               gap: 12,
-              shadowColor: "#000",
+              shadowColor: BLACK,
               shadowOpacity: 0.06,
               shadowRadius: 4,
               elevation: 2,
@@ -370,9 +469,9 @@ export default function PersonScreen() {
                 <Text
                   style={{
                     fontSize: 16,
-                    fontWeight: "700",
-                    color: "#000",
+                    color: BLACK,
                     marginBottom: 10,
+                    fontFamily: FONT_BOLD,
                   }}
                 >
                   Seriale ({tvShows.length})
@@ -394,10 +493,10 @@ export default function PersonScreen() {
                       }
                       style={{
                         width: 110,
-                        backgroundColor: "#fff",
+                        backgroundColor: WHITE,
                         borderRadius: 12,
                         overflow: "hidden",
-                        shadowColor: "#000",
+                        shadowColor: BLACK,
                         shadowOpacity: 0.07,
                         shadowRadius: 4,
                         elevation: 2,
@@ -409,16 +508,33 @@ export default function PersonScreen() {
                         }}
                         style={{ width: 110, height: 160 }}
                       />
-                      <View style={{ paddingTop: 8, paddingBottom: 10, paddingRight: 8, gap: 2 }}>
+                      <View
+                        style={{
+                          paddingTop: 8,
+                          paddingBottom: 10,
+                          paddingRight: 8,
+                          gap: 2,
+                        }}
+                      >
                         <Text
-                          style={{ fontSize: 11, fontWeight: "700", color: "#000" }}
+                          style={{
+                            fontSize: 11,
+                            color: BLACK,
+                            fontFamily: FONT_BOLD,
+                          }}
                           numberOfLines={2}
                         >
                           {show.name}
                         </Text>
 
                         {show.first_air_date && (
-                          <Text style={{ fontSize: 10, color: "#999" }}>
+                          <Text
+                            style={{
+                              fontSize: 10,
+                              color: LIGHT_MUTED,
+                              fontFamily: FONT_REGULAR,
+                            }}
+                          >
                             {new Date(show.first_air_date).getFullYear()}
                           </Text>
                         )}
@@ -427,8 +543,9 @@ export default function PersonScreen() {
                           <Text
                             style={{
                               fontSize: 10,
-                              color: "#666",
+                              color: MUTED,
                               fontStyle: "italic",
+                              fontFamily: FONT_REGULAR,
                             }}
                             numberOfLines={1}
                           >

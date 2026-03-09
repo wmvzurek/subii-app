@@ -29,14 +29,12 @@ export default function ResetPassword() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [done, setDone] = useState(false);
 
-  // ====== STYLE (UI ONLY) ======
   const BG = "#fff";
   const MUTED = "#666";
   const BLACK = "#252729";
   const BORDER = "#ddd";
   const INPUT_BG = "#f9f9f9";
 
-  // dodatkowe stałe (porządek)
   const WHITE = "#fff";
   const PLACEHOLDER = "#9a9a9a";
   const SUCCESS = "#47c073";
@@ -44,7 +42,6 @@ export default function ResetPassword() {
   const OK_GREEN = "#16a34a";
   const BAD_RED = "#dc2626";
 
-  // ====== FONTS (Inter) ======
   const FONT_LIGHT = "Inter_300Light";
   const FONT_REG = "Inter_400Regular";
   const FONT_SEMI = "Inter_600SemiBold";
@@ -88,7 +85,6 @@ export default function ResetPassword() {
     }
   };
 
-  // ===== SUCCESS SCREEN =====
   if (done) {
     return (
       <View
@@ -158,7 +154,6 @@ export default function ResetPassword() {
     );
   }
 
-  // ===== MAIN SCREEN =====
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: BG }}
@@ -201,7 +196,6 @@ export default function ResetPassword() {
             Wpisz nowe hasło do swojego konta.
           </Text>
 
-          {/* NOWE HASŁO */}
           <View
             style={{
               borderWidth: 1,
@@ -238,7 +232,6 @@ export default function ResetPassword() {
             </Pressable>
           </View>
 
-          {/* WYMAGANIA */}
           {newPassword.length > 0 && (
             <View
               style={{
@@ -273,7 +266,6 @@ export default function ResetPassword() {
             </View>
           )}
 
-          {/* POWTÓRZ HASŁO */}
           <View
             style={{
               borderWidth: 1,

@@ -11,42 +11,40 @@ import {
   Alert,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
-import { api } from "../../src/lib/api";
-import { storage } from "../../src/lib/storage";
-import { getProviderLogo } from "../../src/lib/provider-logos";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
-/**
- * Funkcja pomocnicza obliczająca datę następnego odnowienia subskrypcji.
- *
- * Zasady działania:
- * - yearly → zwiększa rok od daty utworzenia aż wyliczona data będzie w przyszłości
- * - monthly → wyznacza najbliższy renewalDay w bieżącym lub kolejnym miesiącu
- */
+import { api } from "../../src/lib/api";
+import { storage } from "../../src/lib/storage";
+import { getProviderLogo } from "../../src/lib/provider-logos";
 
 export default function Home() {
   const router = useRouter();
-  const insets = useSafeAreaInsets(); // uwzględnia bezpieczne obszary (notch / dynamic island)
+  const insets = useSafeAreaInsets();
 
-  // Lista subskrypcji pobrana z backendu
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
-
-  // Stan obsługujący mechanizm pull-to-refresh
   const [refreshing, setRefreshing] = useState(false);
-
-  // Globalny stan ładowania ekranu
   const [loading, setLoading] = useState(true);
-
-  // ID aktualnie zalogowanego użytkownika
   const [userId, setUserId] = useState<number | null>(null);
-
-  // Dane użytkownika (np. informacje billingowe)
   const [userWithBilling, setUserWithBilling] = useState<any>(null);
-
   const [sendingVerification, setSendingVerification] = useState(false);
 
-  const handleResendVerification = async () => {
+  const BG = "#f5f5f5";
+  const WHITE = "#fff";
+  const BLACK = "#252729";
+  const MUTED = "#666";
+  const LIGHT_MUTED = "#999";
+  const BORDER_LIGHT = "#e6e6e6";
+  const WARNING_BG = "#fef3c7";
+  const WARNING_BORDER = "#fde68a";
+  const WARNING_ICON = "#d97706";
+  const WARNING_TEXT = "#92400e";
+
+  const FONT_REGULAR = "Inter_400Regular";
+  const FONT_SEMI = "Inter_600SemiBold";
+  const FONT_BOLD = "Inter_700Bold";
+ 
+  const handleResendVerification = useCallback(async () => {
     setSendingVerification(true);
     try {
       await api.post("/api/auth/resend-verification");
@@ -56,33 +54,9 @@ export default function Home() {
     } finally {
       setSendingVerification(false);
     }
-  };
-
-
-  /**
-   * useEffect uruchamiany przy pierwszym renderze komponentu.
-   * Pobiera użytkownika z lokalnego storage.
-   */
-  useEffect(() => {
-    loadUserId();
   }, []);
 
-
-  /**
-   * useFocusEffect wywoływany przy każdym powrocie na ekran.
-   * Pozwala odświeżyć dane np. po dodaniu nowej subskrypcji.
-   */
-  useFocusEffect(
-    useCallback(() => {
-      if (userId) loadSubscriptions();
-    }, [userId])
-  );
-
-  /**
-   * Pobiera dane użytkownika z AsyncStorage.
-   * Jeśli brak danych – następuje przekierowanie do logowania.
-   */
-  const loadUserId = async () => {
+  const loadUserId = useCallback(async () => {
     try {
       const user = await storage.getUser();
       if (user?.id) {
@@ -94,13 +68,9 @@ export default function Home() {
     } catch {
       router.replace("/login" as any);
     }
-  };
+  }, [router]);
 
-  /**
-   * Pobiera listę subskrypcji z backendowego API.
-   * W przypadku błędu 401 następuje wyczyszczenie sesji i wylogowanie.
-   */
-  const loadSubscriptions = async () => {
+  const loadSubscriptions = useCallback(async () => {
     try {
       const token = await storage.getToken();
       const user = await storage.getUser();
@@ -130,20 +100,30 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
 
-  /**
-   * Obsługa gestu pull-to-refresh.
-   */
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadSubscriptions();
     setRefreshing(false);
-  };
+  }, [loadSubscriptions]);
 
-  /**
-   * Widok ładowania wyświetlany do momentu pobrania danych.
-   */
+  useEffect(() => {
+    loadUserId();
+  }, [loadUserId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (userId) loadSubscriptions();
+    }, [userId, loadSubscriptions])
+  );
+
+  const totalMonthly = subscriptions.reduce((sum, s) => {
+    const price = s.priceOverridePLN || s.plan?.pricePLN || 0;
+    if (s.plan?.cycle === "yearly") return sum + price / 12;
+    return sum + price;
+  }, 0);
+
   if (loading) {
     return (
       <View
@@ -151,34 +131,21 @@ export default function Home() {
           flex: 1,
           justifyContent: "center",
           alignItems: "center",
-          backgroundColor: "#f5f5f5",
+          backgroundColor: BG,
         }}
       >
-        <ActivityIndicator size="large" color="#000" />
+        <ActivityIndicator size="large" color={BLACK} />
       </View>
     );
   }
 
-  /**
-   * Obliczenie łącznego kosztu miesięcznego.
-   * Subskrypcje roczne są przeliczane proporcjonalnie (price / 12).
-   */
-  const totalMonthly = subscriptions.reduce((sum, s) => {
-    const price = s.priceOverridePLN || s.plan?.pricePLN || 0;
-    if (s.plan?.cycle === "yearly") return sum + price / 12;
-    return sum + price;
-  }, 0);
-
   return (
-    <View style={{ flex: 1, backgroundColor: "#f5f5f5" }}>
-      
-      {/* ================= HEADER ================= */}
+    <View style={{ flex: 1, backgroundColor: BG }}>
       <View
         style={{
           padding: 20,
           paddingTop: insets.top + 10,
-          backgroundColor: "#fff",
-          
+          backgroundColor: WHITE,
         }}
       >
         <View
@@ -186,22 +153,30 @@ export default function Home() {
             flexDirection: "row",
             justifyContent: "space-between",
             alignItems: "center",
-            
           }}
         >
           <View style={{ gap: 10 }}>
-            {/* Tytuł sekcji */}
-            <Text style={{ fontSize: 28, fontFamily: "Inter_600SemiBold" }}>
+            <Text
+              style={{
+                fontSize: 28,
+                color: BLACK,
+                fontFamily: FONT_SEMI,
+              }}
+            >
               Moje subskrypcje
             </Text>
 
-            {/* Informacja o liczbie aktywnych subskrypcji i łącznym koszcie */}
-            <Text style={{ fontSize: 14, color: "#666", fontFamily: "Inter_400Regular" }}>
+            <Text
+              style={{
+                fontSize: 14,
+                color: MUTED,
+                fontFamily: FONT_REGULAR,
+              }}
+            >
               {subscriptions.length} aktywnych · {totalMonthly.toFixed(2)} zł/mies
             </Text>
           </View>
 
-          {/* Przycisk dodawania nowej subskrypcji */}
           <Pressable
             onPress={() => router.push("/subscriptions-add" as any)}
             hitSlop={10}
@@ -214,43 +189,42 @@ export default function Home() {
               opacity: pressed ? 0.6 : 1,
             })}
           >
-            <Ionicons name="add" size={26} color="#000" />
+            <Ionicons name="add" size={26} color={BLACK} />
           </Pressable>
         </View>
       </View>
 
-     {/* ================= BANER WERYFIKACJI ================= */}
-{userWithBilling && !userWithBilling.emailVerified && (
-  <Pressable
-    onPress={handleResendVerification}
-    style={({ pressed }) => ({
-      backgroundColor: "#fef3c7",
-      paddingVertical: 12,
-      paddingHorizontal: 20,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 10,
-      borderBottomWidth: 1,
-      borderBottomColor: "#fde68a",
-      opacity: pressed ? 0.85 : 1,
-    })}
-  >
-    <Ionicons name="warning-outline" size={20} color="#d97706" />
-    <Text
-      style={{
-        flex: 1,
-        fontSize: 11,
-        fontFamily: "Inter_600SemiBold",
-        color: "#92400e",
-      }}
-    >
-      Zweryfikuj adres e-mail, aby móc dodawać subskrypcje. Naciśnij, aby ponownie wysłać link weryfikacyjny.
-    </Text>
-  </Pressable>
-)}
+      {userWithBilling && !userWithBilling.emailVerified && (
+        <Pressable
+          onPress={handleResendVerification}
+          disabled={sendingVerification}
+          style={({ pressed }) => ({
+            backgroundColor: WARNING_BG,
+            paddingVertical: 12,
+            paddingHorizontal: 20,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 10,
+            borderBottomWidth: 1,
+            borderBottomColor: WARNING_BORDER,
+            opacity: pressed || sendingVerification ? 0.85 : 1,
+          })}
+        >
+          <Ionicons name="warning-outline" size={20} color={WARNING_ICON} />
+          <Text
+            style={{
+              flex: 1,
+              fontSize: 11,
+              color: WARNING_TEXT,
+              fontFamily: FONT_SEMI,
+            }}
+          >
+            Zweryfikuj adres e-mail, aby móc dodawać subskrypcje. Naciśnij, aby
+            ponownie wysłać link weryfikacyjny.
+          </Text>
+        </Pressable>
+      )}
 
-
-      {/* ================= TREŚĆ ================= */}
       {subscriptions.length === 0 ? (
         <ScrollView
           contentContainerStyle={{
@@ -263,23 +237,22 @@ export default function Home() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#000"
+              tintColor={BLACK}
             />
           }
         >
           <Text
             style={{
-              fontFamily:"Inter_400Regular", 
               fontSize: 14,
-              color: "#999",
+              color: LIGHT_MUTED,
               textAlign: "center",
               marginBottom: 16,
+              fontFamily: FONT_REGULAR,
             }}
           >
             Nie masz jeszcze żadnych subskrypcji.
           </Text>
 
-          {/* CTA do dodania pierwszej subskrypcji */}
           <Pressable
             onPress={() => router.push("/subscriptions-add" as any)}
             style={({ pressed }) => ({
@@ -289,19 +262,18 @@ export default function Home() {
               gap: 8,
               paddingVertical: 16,
               paddingHorizontal: 20,
-              backgroundColor: "#252729",
+              backgroundColor: BLACK,
               borderRadius: 12,
               opacity: pressed ? 0.85 : 1,
             })}
           >
-            <Ionicons name="add" size={18} color="#fff" />
+            <Ionicons name="add" size={18} color={WHITE} />
             <Text
               style={{
-                    color: "#fff",
-                    textAlign: "center",
-                    fontWeight: "700",
-                    fontSize: 14,
-                    fontFamily:"Inter_600SemiBold",
+                color: WHITE,
+                textAlign: "center",
+                fontSize: 14,
+                fontFamily: FONT_SEMI,
               }}
             >
               Dodaj subskrypcję
@@ -309,9 +281,6 @@ export default function Home() {
           </Pressable>
         </ScrollView>
       ) : (
-        /**
-         * Lista subskrypcji renderowana przez komponent FlatList.
-         */
         <FlatList
           data={subscriptions}
           numColumns={1}
@@ -320,20 +289,16 @@ export default function Home() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#000"
+              tintColor={BLACK}
             />
           }
           keyExtractor={(item) => String(item.id)}
           renderItem={({ item }) => {
-            // Pobranie logo dostawcy (np. Netflix, Disney+)
             const logo = getProviderLogo(item.providerCode);
 
-            // Status subskrypcji
             const isPendingChange = item.status === "pending_change";
             const isPendingCancellation = item.status === "pending_cancellation";
-            const isActive = item.status === "active";
 
-            // Dynamiczne kolory badge zależne od statusu
             const badgeBg = isPendingCancellation
               ? "rgba(239,68,68,0.15)"
               : isPendingChange
@@ -359,14 +324,12 @@ export default function Home() {
               : "AKTYWNA";
 
             const cycle = item.plan?.cycle || "monthly";
-const nextRenewalStr = item.nextRenewalDate
-  ? new Date(item.nextRenewalDate).toLocaleDateString("pl-PL")
-  : "—";
             const price = item.priceOverridePLN || item.plan?.pricePLN || 0;
 
-            /**
-             * Render pojedynczego kafelka subskrypcji.
-             */
+            const nextRenewalStr = item.nextRenewalDate
+              ? new Date(item.nextRenewalDate).toLocaleDateString("pl-PL")
+              : "—";
+
             return (
               <Pressable
                 onPress={() =>
@@ -374,9 +337,9 @@ const nextRenewalStr = item.nextRenewalDate
                 }
                 style={{
                   padding: 16,
-                  backgroundColor: "#fff",
+                  backgroundColor: WHITE,
                   borderRadius: 12,
-                  shadowColor: "#000",
+                  shadowColor: BLACK,
                   shadowOffset: { width: 0, height: 2 },
                   shadowOpacity: 0.08,
                   shadowRadius: 6,
@@ -385,7 +348,6 @@ const nextRenewalStr = item.nextRenewalDate
                   alignItems: "center",
                 }}
               >
-                {/* Logo dostawcy */}
                 {logo && (
                   <Image
                     source={logo}
@@ -398,10 +360,7 @@ const nextRenewalStr = item.nextRenewalDate
                   />
                 )}
 
-                {/* Środkowa sekcja z informacjami o subskrypcji */}
                 <View style={{ flex: 1 }}>
-                  
-                  {/* Nazwa dostawcy + badge statusu */}
                   <View
                     style={{
                       flexDirection: "row",
@@ -413,58 +372,58 @@ const nextRenewalStr = item.nextRenewalDate
                     <Text
                       style={{
                         fontSize: 17,
-                        fontWeight: "700",
-                        color: "#000",
+                        color: BLACK,
                         flex: 1,
                         marginRight: 10,
+                        fontFamily: FONT_BOLD,
                       }}
                       numberOfLines={1}
                     >
                       {item.provider?.name || item.providerCode}
                     </Text>
 
-                    {/* Status subskrypcji */}
                     <View
-  style={{
-    width: 90,
-    paddingVertical: 4,
-    backgroundColor: badgeBg,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: badgeBorder,
-    alignItems: "center",
-    justifyContent: "center",
-  }}
->
-  <Text
-    style={{
-      color: badgeColor,
-      fontSize: 9,
-      fontWeight: "700",
-    }}
-  >
-    {badgeText}
-  </Text>
-</View>
+                      style={{
+                        width: 90,
+                        paddingVertical: 4,
+                        backgroundColor: badgeBg,
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: badgeBorder,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: badgeColor,
+                          fontSize: 9,
+                          fontFamily: FONT_BOLD,
+                        }}
+                      >
+                        {badgeText}
+                      </Text>
+                    </View>
                   </View>
 
-                  {/* Nazwa planu + cykl rozliczeniowy */}
                   <Text
-                    style={{ fontSize: 12, color: "#666" }}
+                    style={{
+                      fontSize: 12,
+                      color: MUTED,
+                      fontFamily: FONT_REGULAR,
+                    }}
                     numberOfLines={1}
                   >
-                    {item.plan?.planName} ·{" "}
-                    {cycle === "yearly" ? "roczna" : "miesięczna"}
+                    {item.plan?.planName} · {cycle === "yearly" ? "roczna" : "miesięczna"}
                   </Text>
                 </View>
 
-                {/* Chevron wskazujący możliwość przejścia do szczegółów */}
                 <Text
                   style={{
                     fontSize: 20,
                     color: "#c7c7c7",
                     marginLeft: 10,
-                    fontWeight: "400",
+                    fontFamily: FONT_REGULAR,
                   }}
                 >
                   ›

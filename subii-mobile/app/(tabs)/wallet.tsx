@@ -19,11 +19,62 @@ import { storage } from "../../src/lib/storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { MaterialIcons } from "@expo/vector-icons";
-
+import {
+  useFonts,
+  Inter_100Thin,
+  Inter_200ExtraLight,
+  Inter_300Light,
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+  Inter_800ExtraBold,
+  Inter_900Black,
+} from "@expo-google-fonts/inter";
 
 export default function Payments() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+
+  const [fontsLoaded] = useFonts({
+    Inter_100Thin,
+    Inter_200ExtraLight,
+    Inter_300Light,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    Inter_800ExtraBold,
+    Inter_900Black,
+  });
+
+  const BG = "#f5f5f5";
+  const WHITE = "#fff";
+  const BLACK = "#252729";
+  const MUTED = "#666";
+  const SUBTLE = "#999";
+  const LIGHT_BG = "#f0f0f0";
+  const DIVIDER = "#f0f0f0";
+  const BORDER = "#eee";
+  const ITEM_BG = "#f5f5f5";
+  const WARNING_BG = "#fef3c7";
+  const WARNING_BORDER = "#fde68a";
+  const WARNING_DARK = "#d97706";
+  const WARNING_TEXT = "#92400e";
+  const SUCCESS_BG = "rgba(134,239,172,0.2)";
+  const SUCCESS_BORDER = "rgba(134,239,172,0.4)";
+  const SUCCESS_TEXT = "#16a34a";
+  const DANGER_BG = "rgba(239,68,68,0.12)";
+  const DANGER_BORDER = "rgba(239,68,68,0.4)";
+  const DANGER_TEXT = "#dc2626";
+  const AMBER = "#f59e0b";
+  const SHADOW = "#000";
+
+  const FONT_REGULAR = "Inter_400Regular";
+  const FONT_MEDIUM = "Inter_500Medium";
+  const FONT_SEMI = "Inter_600SemiBold";
+  const FONT_BOLD = "Inter_700Bold";
+  const FONT_EXTRABOLD = "Inter_800ExtraBold";
 
   const [preview, setPreview] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
@@ -40,7 +91,6 @@ export default function Payments() {
 
   useEffect(() => {
     loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadData = async () => {
@@ -125,10 +175,10 @@ export default function Payments() {
   };
 
   const toggleCycle = (cycleId: string) => {
-  setExpandedCycles((prev) =>
-    prev.includes(cycleId) ? prev.filter((id) => id !== cycleId) : [...prev, cycleId]
-  );
-};
+    setExpandedCycles((prev) =>
+      prev.includes(cycleId) ? prev.filter((id) => id !== cycleId) : [...prev, cycleId]
+    );
+  };
 
   const handleGenerateReport = async () => {
     setGeneratingReport(true);
@@ -136,7 +186,7 @@ export default function Payments() {
       await api.post("/api/reports/generate");
       const reportsRes = await api.get("/api/reports");
       setReports(reportsRes.data.reports || []);
-      Alert.alert("✅ Gotowe", "Raport został wygenerowany. Znajdziesz go w historii raportów.");
+      Alert.alert("Gotowe", "Raport został wygenerowany. Znajdziesz go w historii raportów.");
     } catch (error: any) {
       Alert.alert("Błąd", error.response?.data?.error || "Nie udało się wygenerować raportu");
     } finally {
@@ -155,7 +205,7 @@ export default function Payments() {
             await api.post("/api/reports/generate", { sendEmail: true });
             const reportsRes = await api.get("/api/reports");
             setReports(reportsRes.data.reports || []);
-            Alert.alert("✅ Wysłano", `Raport został wysłany na ${user?.email}`);
+            Alert.alert("Wysłano", `Raport został wysłany na ${user?.email}`);
           } catch (error: any) {
             Alert.alert("Błąd", error.response?.data?.error || "Nie udało się wysłać raportu");
           } finally {
@@ -198,38 +248,54 @@ export default function Payments() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#f5f5f5" }}>
-        <ActivityIndicator size="large" color="#000" />
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: BG,
+        }}
+      >
+        <ActivityIndicator size="large" color={BLACK} />
       </View>
     );
   }
 
-    return (
-    <View style={{ flex: 1, backgroundColor: "#f5f5f5" }}>
-      {/* ── EKRAN (ScrollView) ── */}
+  return (
+    <View style={{ flex: 1, backgroundColor: BG }}>
       <ScrollView
-        style={{ flex: 1, backgroundColor: "#f5f5f5" }}
+        style={{ flex: 1, backgroundColor: BG }}
         contentContainerStyle={{ paddingBottom: 40 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#000" />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={BLACK}
+          />
+        }
       >
-        {/* Header */}
         <View
           style={{
             padding: 20,
             paddingTop: insets.top + 10,
-            backgroundColor: "#fff",
+            backgroundColor: WHITE,
             flexDirection: "row",
             justifyContent: "space-between",
             alignItems: "center",
           }}
         >
-          <Text style={{ fontSize: 28, fontWeight: "600" }}>Płatności</Text>
-          <Pressable onPress={() => setShowReports(true)}style={{
-      position: "absolute",
-      right: 30, // ← regulujesz jak daleko od prawej
-      top: insets.top + 16,
-    }}>
-          <MaterialIcons name="bar-chart" size={26} color="#000" />
+          <Text style={{ fontSize: 28, fontFamily: FONT_SEMI, color: BLACK }}>
+            Płatności
+          </Text>
+          <Pressable
+            onPress={() => setShowReports(true)}
+            style={{
+              position: "absolute",
+              right: 30,
+              top: insets.top + 16,
+            }}
+          >
+            <MaterialIcons name="bar-chart" size={26} color={BLACK} />
           </Pressable>
         </View>
 
@@ -238,22 +304,33 @@ export default function Payments() {
             style={{
               paddingVertical: 12,
               paddingHorizontal: 20,
-              backgroundColor: "#fef3c7",
+              backgroundColor: WARNING_BG,
               borderWidth: 1,
-              borderColor: "#fde68a",
+              borderColor: WARNING_BORDER,
               flexDirection: "row",
               alignItems: "flex-start",
               gap: 10,
             }}
           >
-            <Ionicons name="warning-outline" size={20} color="#d97706" />
-
+            <Ionicons name="warning-outline" size={20} color={WARNING_DARK} />
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 12, color: "#92400e", fontWeight: "600" }}>
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: WARNING_TEXT,
+                  fontFamily: FONT_SEMI,
+                }}
+              >
                 Nie masz ustawionego dnia rozliczeniowego
               </Text>
-
-              <Text style={{ fontSize: 11, color: "#92400e", marginTop: 4 }}>
+              <Text
+                style={{
+                  fontSize: 11,
+                  color: WARNING_TEXT,
+                  marginTop: 4,
+                  fontFamily: FONT_REGULAR,
+                }}
+              >
                 Zostanie ustawiony przy dodaniu pierwszej subskrypcji.
               </Text>
             </View>
@@ -261,66 +338,87 @@ export default function Payments() {
         )}
 
         <View style={{ padding: 16, gap: 16 }}>
-          {/* Karta rozliczeniowa */}
           {user?.billingDay && (
-            <View style={{
-              backgroundColor: "#fff", borderRadius: 12, padding: 16,
-              gap: 0,
-              shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
-            }}>
+            <View
+              style={{
+                backgroundColor: WHITE,
+                borderRadius: 12,
+                padding: 16,
+                gap: 0,
+                shadowColor: SHADOW,
+                shadowOpacity: 0.06,
+                shadowRadius: 4,
+                elevation: 2,
+              }}
+            >
               <Text
                 style={{
-                  color: "#000",
+                  color: BLACK,
                   fontSize: 12,
-                  fontWeight: "400",
+                  fontFamily: FONT_REGULAR,
                   textTransform: "uppercase",
                   letterSpacing: 1,
                 }}
               >
                 Dzień rozliczeniowy
               </Text>
-
-              <Text style={{ color: "#000", fontSize: 24, fontWeight: "800", marginTop: 2 }}>
+              <Text
+                style={{
+                  color: BLACK,
+                  fontSize: 24,
+                  fontFamily: FONT_EXTRABOLD,
+                  marginTop: 2,
+                }}
+              >
                 {user.billingDay}. dnia każdego miesiąca
               </Text>
-
               <View
                 style={{
                   marginTop: 12,
                   paddingTop: 12,
                   borderTopWidth: 1,
-                  borderTopColor: "#000",
+                  borderTopColor: BLACK,
                 }}
               >
                 <Text
                   style={{
-                    color: "#000",
+                    color: BLACK,
                     fontSize: 12,
-                    fontWeight: "400",
+                    fontFamily: FONT_REGULAR,
                     textTransform: "uppercase",
                     letterSpacing: 1,
                   }}
                 >
                   Najbliższa płatność
                 </Text>
-
-                <Text style={{ color: "#000", fontSize: 18, fontWeight: "600", marginTop: 4 }}>
+                <Text
+                  style={{
+                    color: BLACK,
+                    fontSize: 18,
+                    fontFamily: FONT_SEMI,
+                    marginTop: 4,
+                  }}
+                >
                   {getNextBillingDate()}
                 </Text>
               </View>
             </View>
           )}
 
-          {/* Najbliższa płatność — pozycje */}
           {preview && preview.items?.length > 0 ? (
             <TouchableOpacity
               activeOpacity={0.85}
               onPress={() => setShowPaymentDetail(true)}
               style={{
-              backgroundColor: "#fff", borderRadius: 12, padding: 16,
-              gap: 0,
-              shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
-            }}
+                backgroundColor: WHITE,
+                borderRadius: 12,
+                padding: 16,
+                gap: 0,
+                shadowColor: SHADOW,
+                shadowOpacity: 0.06,
+                shadowRadius: 4,
+                elevation: 2,
+              }}
             >
               <View
                 style={{
@@ -330,8 +428,24 @@ export default function Payments() {
                   marginBottom: 0,
                 }}
               >
-                <Text style={{ fontSize: 16, fontWeight: "700" }}>Co wchodzi w tę płatność</Text>
-                <Text style={{ fontSize: 22, color: "#999", fontWeight: "400" }}>›</Text>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontFamily: FONT_BOLD,
+                    color: BLACK,
+                  }}
+                >
+                  Co wchodzi w tę płatność
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 22,
+                    color: SUBTLE,
+                    fontFamily: FONT_REGULAR,
+                  }}
+                >
+                  ›
+                </Text>
               </View>
 
               {preview.items.map((item: any, idx: number) => (
@@ -343,22 +457,33 @@ export default function Payments() {
                     alignItems: "center",
                     paddingVertical: 12,
                     borderTopWidth: idx === 0 ? 0 : 1,
-                    borderTopColor: "#f0f0f0",
+                    borderTopColor: DIVIDER,
                   }}
                 >
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 14, fontWeight: "700" }}>{item.providerName}</Text>
-                    <Text style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
+                    <Text style={{ fontSize: 14, fontFamily: FONT_BOLD, color: BLACK }}>
+                      {item.providerName}
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: "#888",
+                        marginTop: 2,
+                        fontFamily: FONT_REGULAR,
+                      }}
+                    >
                       {item.pendingPlanName ?? item.planName}
                       {item.chargeType === "upgrade_addon" && item.pendingCharge > 0 && (
-                        <Text style={{ color: "#f59e0b" }}>
+                        <Text style={{ color: AMBER, fontFamily: FONT_REGULAR }}>
                           {" "}
                           + dopłata {item.pendingCharge.toFixed(2)} zł
                         </Text>
                       )}
                     </Text>
                   </View>
-                  <Text style={{ fontSize: 15, fontWeight: "700" }}>{item.toPay.toFixed(2)} zł</Text>
+                  <Text style={{ fontSize: 15, fontFamily: FONT_BOLD, color: BLACK }}>
+                    {item.toPay.toFixed(2)} zł
+                  </Text>
                 </View>
               ))}
 
@@ -369,33 +494,62 @@ export default function Payments() {
                   paddingTop: 14,
                   marginTop: 4,
                   borderTopWidth: 2,
-                  borderTopColor: "#000",
+                  borderTopColor: BLACK,
                 }}
               >
-                <Text style={{ fontSize: 17, fontWeight: "800" }}>Razem</Text>
-                <Text style={{ fontSize: 17, fontWeight: "800" }}>{preview.totalToPay.toFixed(2)} zł</Text>
+                <Text style={{ fontSize: 17, fontFamily: FONT_EXTRABOLD, color: BLACK }}>
+                  Razem
+                </Text>
+                <Text style={{ fontSize: 17, fontFamily: FONT_EXTRABOLD, color: BLACK }}>
+                  {preview.totalToPay.toFixed(2)} zł
+                </Text>
               </View>
             </TouchableOpacity>
           ) : (
-            <View style={{ backgroundColor: "#fff", borderRadius: 20, padding: 20, alignItems: "center" }}>
-              <Text style={{ fontSize: 14, color: "#999" }}>Brak zaplanowanych płatności</Text>
+            <View
+              style={{
+                backgroundColor: WHITE,
+                borderRadius: 20,
+                padding: 20,
+                alignItems: "center",
+              }}
+            >
+              <Text
+                style={{ fontSize: 14, color: SUBTLE, fontFamily: FONT_REGULAR }}
+              >
+                Brak zaplanowanych płatności
+              </Text>
             </View>
           )}
 
-          {/* Historia płatności */}
           {history.length > 0 && (
-            <View style={{
-              backgroundColor: "#fff", borderRadius: 12, padding: 16,
-              gap: 0,
-              shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
-            }}>
-              <Text style={{ fontSize: 16, fontWeight: "700", marginBottom: 12 }}>Historia płatności</Text>
+            <View
+              style={{
+                backgroundColor: WHITE,
+                borderRadius: 12,
+                padding: 16,
+                gap: 0,
+                shadowColor: SHADOW,
+                shadowOpacity: 0.06,
+                shadowRadius: 4,
+                elevation: 2,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 16,
+                  fontFamily: FONT_BOLD,
+                  color: BLACK,
+                  marginBottom: 12,
+                }}
+              >
+                Historia płatności
+              </Text>
 
               {history.map((cycle: any, index: number) => {
                 const isExpanded = expandedCycles.includes(cycle.id);
                 return (
                   <View key={cycle.id}>
-                    {/* Wiersz z datą — klikalny */}
                     <Pressable
                       onPress={() => toggleCycle(cycle.id)}
                       style={{
@@ -404,37 +558,58 @@ export default function Payments() {
                         alignItems: "center",
                         paddingVertical: 14,
                         borderTopWidth: index === 0 ? 0 : 1,
-                        borderTopColor: "#f0f0f0",
+                        borderTopColor: DIVIDER,
                       }}
                     >
                       <View style={{ flex: 1, gap: 2 }}>
-                        <Text style={{ fontSize: 14, fontWeight: "600", color: "#000" }}>
+                        <Text
+                          style={{
+                            fontSize: 14,
+                            fontFamily: FONT_SEMI,
+                            color: BLACK,
+                          }}
+                        >
                           {new Date(cycle.billingDate).toLocaleDateString("pl-PL", {
                             day: "numeric",
                             month: "long",
                             year: "numeric",
                           })}
                         </Text>
-                        <Text style={{ fontSize: 12, color: "#999" }}>
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            color: SUBTLE,
+                            fontFamily: FONT_REGULAR,
+                          }}
+                        >
                           {cycle.totalPLN?.toFixed(2)} zł
                         </Text>
                       </View>
 
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 10,
+                        }}
+                      >
                         <View
                           style={{
                             paddingHorizontal: 8,
                             paddingVertical: 3,
-                            backgroundColor: cycle.status === "paid" ? "rgba(134,239,172,0.2)" : "rgba(239,68,68,0.12)",
-                            borderColor: cycle.status === "paid" ? "rgba(134,239,172,0.4)" : "rgba(239,68,68,0.4)",
+                            backgroundColor:
+                              cycle.status === "paid" ? SUCCESS_BG : DANGER_BG,
+                            borderColor:
+                              cycle.status === "paid" ? SUCCESS_BORDER : DANGER_BORDER,
                             borderRadius: 8,
                           }}
                         >
                           <Text
                             style={{
                               fontSize: 11,
-                              fontWeight: "700",
-                              color: cycle.status === "paid" ? "#16a34a" : "#dc2626",
+                              fontFamily: FONT_BOLD,
+                              color:
+                                cycle.status === "paid" ? SUCCESS_TEXT : DANGER_TEXT,
                             }}
                           >
                             {cycle.status === "paid" ? "Opłacone" : "Oczekuje"}
@@ -443,20 +618,21 @@ export default function Payments() {
                         <Ionicons
                           name={isExpanded ? "chevron-up" : "chevron-down"}
                           size={18}
-                          color="#999"
+                          color={SUBTLE}
                         />
                       </View>
                     </Pressable>
 
-                    {/* Szczegóły — widoczne po rozwinięciu */}
                     {isExpanded && (
-                      <View style={{
-                        backgroundColor: "#f5f5f5",
-                        borderRadius: 10,
-                        padding: 14,
-                        marginBottom: 8,
-                        gap: 8,
-                      }}>
+                      <View
+                        style={{
+                          backgroundColor: ITEM_BG,
+                          borderRadius: 10,
+                          padding: 14,
+                          marginBottom: 8,
+                          gap: 8,
+                        }}
+                      >
                         {cycle.items?.map((item: any, idx: number) => (
                           <View
                             key={idx}
@@ -468,12 +644,26 @@ export default function Payments() {
                               borderTopColor: "#e8e8e8",
                             }}
                           >
-                            <Text style={{ fontSize: 13, color: "#555" }}>
-                              {item.providerCode.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                            <Text
+                              style={{
+                                fontSize: 13,
+                                color: "#555",
+                                fontFamily: FONT_REGULAR,
+                              }}
+                            >
+                              {item.providerCode
+                                .replace(/_/g, " ")
+                                .replace(/\b\w/g, (c: string) => c.toUpperCase())}
                               {" · "}
                               {item.planName}
                             </Text>
-                            <Text style={{ fontSize: 13, fontWeight: "600", color: "#555" }}>
+                            <Text
+                              style={{
+                                fontSize: 13,
+                                fontFamily: FONT_SEMI,
+                                color: "#555",
+                              }}
+                            >
                               {item.pricePLN.toFixed(2)} zł
                             </Text>
                           </View>
@@ -488,8 +678,22 @@ export default function Payments() {
                             borderTopColor: "#ccc",
                           }}
                         >
-                          <Text style={{ fontSize: 14, fontWeight: "800", color: "#333" }}>Razem</Text>
-                          <Text style={{ fontSize: 14, fontWeight: "800", color: "#333" }}>
+                          <Text
+                            style={{
+                              fontSize: 14,
+                              fontFamily: FONT_EXTRABOLD,
+                              color: "#333",
+                            }}
+                          >
+                            Razem
+                          </Text>
+                          <Text
+                            style={{
+                              fontSize: 14,
+                              fontFamily: FONT_EXTRABOLD,
+                              color: "#333",
+                            }}
+                          >
                             {cycle.totalPLN?.toFixed(2)} zł
                           </Text>
                         </View>
@@ -503,7 +707,6 @@ export default function Payments() {
         </View>
       </ScrollView>
 
-      {/* ── MODAL: Szczegóły płatności ── */}
       <Modal
         visible={showPaymentDetail}
         animationType="slide"
@@ -512,14 +715,17 @@ export default function Payments() {
       >
         <View style={{ flex: 1 }}>
           <Pressable
-            style={[StyleSheet.absoluteFillObject, { backgroundColor: "rgba(0,0,0,0.5)" }]}
+            style={[
+              StyleSheet.absoluteFillObject,
+              { backgroundColor: "rgba(0,0,0,0.5)" },
+            ]}
             onPress={() => setShowPaymentDetail(false)}
           />
 
           <View
             style={{
               marginTop: "auto",
-              backgroundColor: "#fff",
+              backgroundColor: WHITE,
               borderTopLeftRadius: 24,
               borderTopRightRadius: 24,
               height: "85%",
@@ -536,9 +742,13 @@ export default function Payments() {
                 alignItems: "center",
               }}
             >
-              <Text style={{ fontSize: 20, fontWeight: "700" }}>Szczegóły płatności</Text>
+              <Text style={{ fontSize: 20, fontFamily: FONT_BOLD, color: BLACK }}>
+                Szczegóły płatności
+              </Text>
               <Pressable onPress={() => setShowPaymentDetail(false)}>
-                <Text style={{ fontSize: 22, color: "#999" }}>✕</Text>
+                <Text style={{ fontSize: 22, color: SUBTLE, fontFamily: FONT_REGULAR }}>
+                  ✕
+                </Text>
               </Pressable>
             </View>
 
@@ -559,53 +769,163 @@ export default function Payments() {
                   <View
                     key={idx}
                     style={{
-                      backgroundColor: "#f5f5f5",
+                      backgroundColor: ITEM_BG,
                       borderRadius: 12,
                       padding: 16,
                       gap: 10,
                     }}
                   >
-                    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        alignItems: "flex-start",
+                      }}
+                    >
                       <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 16, fontWeight: "700", color: "#000" }}>{item.providerName}</Text>
-                        <Text style={{ fontSize: 12, fontWeight: "400",color: "#666", marginTop: 2 }}>
+                        <Text
+                          style={{
+                            fontSize: 16,
+                            fontFamily: FONT_BOLD,
+                            color: BLACK,
+                          }}
+                        >
+                          {item.providerName}
+                        </Text>
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            fontFamily: FONT_REGULAR,
+                            color: MUTED,
+                            marginTop: 2,
+                          }}
+                        >
                           {item.pendingPlanName ?? item.planName}
                         </Text>
                       </View>
-                      <Text style={{ fontSize: 17, fontWeight: "700", color: "#000" }}>
+                      <Text
+                        style={{
+                          fontSize: 17,
+                          fontFamily: FONT_BOLD,
+                          color: BLACK,
+                        }}
+                      >
                         {item.toPay.toFixed(2)} zł
                       </Text>
                     </View>
 
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              
-                      <Text style={{ fontSize: 12, color: "#666", fontWeight: "500" }}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 6,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          color: MUTED,
+                          fontFamily: FONT_MEDIUM,
+                        }}
+                      >
                         {formatPeriod(item.periodFrom, item.periodTo)}
                       </Text>
                     </View>
 
                     {item.chargeType === "upgrade_addon" && item.pendingCharge > 0 && (
-                      <View style={{ gap: 6, borderTopWidth: 1, borderTopColor: "#eee", paddingTop: 8 }}>
+                      <View
+                        style={{
+                          gap: 6,
+                          borderTopWidth: 1,
+                          borderTopColor: BORDER,
+                          paddingTop: 8,
+                        }}
+                      >
                         {item.planName && item.pendingPlanName && (
-                          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                            <Text style={{ fontSize: 12, color: "#555" }}>{item.planName}</Text>
-                            <Text style={{ fontSize: 12, color: "#999" }}>→</Text>
-                            <Text style={{ fontSize: 12, color: "#555", fontWeight: "700" }}>
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 6,
+                              marginBottom: 2,
+                            }}
+                          >
+                            <Text
+                              style={{
+                                fontSize: 12,
+                                color: "#555",
+                                fontFamily: FONT_REGULAR,
+                              }}
+                            >
+                              {item.planName}
+                            </Text>
+                            <Text
+                              style={{
+                                fontSize: 12,
+                                color: SUBTLE,
+                                fontFamily: FONT_REGULAR,
+                              }}
+                            >
+                              →
+                            </Text>
+                            <Text
+                              style={{
+                                fontSize: 12,
+                                color: "#555",
+                                fontFamily: FONT_BOLD,
+                              }}
+                            >
                               {item.pendingPlanName}
                             </Text>
                           </View>
                         )}
-                        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                          <Text style={{ fontSize: 12, color: "#555" }}>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontSize: 12,
+                              color: "#555",
+                              fontFamily: FONT_REGULAR,
+                            }}
+                          >
                             Subskrypcja ({item.pendingPlanName ?? item.planName})
                           </Text>
-                          <Text style={{ fontSize: 12, fontWeight: "600", color: "#555" }}>
+                          <Text
+                            style={{
+                              fontSize: 12,
+                              fontFamily: FONT_SEMI,
+                              color: "#555",
+                            }}
+                          >
                             {item.pricePLN.toFixed(2)} zł
                           </Text>
                         </View>
-                        <View style={{ flexDirection: "row", justifyContent: "space-between",  }}>
-                          <Text style={{ fontSize: 12, color: "#f59e0b" }}>Dopłata za zmianę planu</Text>
-                          <Text style={{ fontSize: 12, fontWeight: "600", color: "#f59e0b" }}>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontSize: 12,
+                              color: AMBER,
+                              fontFamily: FONT_REGULAR,
+                            }}
+                          >
+                            Dopłata za zmianę planu
+                          </Text>
+                          <Text
+                            style={{
+                              fontSize: 12,
+                              fontFamily: FONT_SEMI,
+                              color: AMBER,
+                            }}
+                          >
                             +{item.pendingCharge.toFixed(2)} zł
                           </Text>
                         </View>
@@ -613,17 +933,72 @@ export default function Payments() {
                     )}
 
                     {item.chargeType === "renewal" && item.pendingPlanName && (
-                      <View style={{ gap: 6, borderTopWidth: 1, borderTopColor: "#eee", paddingTop: 8 }}>
-                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                          <Text style={{ fontSize: 12, color: "#555" }}>{item.planName}</Text>
-                          <Text style={{ fontSize: 12, color: "#999" }}>→</Text>
-                          <Text style={{ fontSize: 12, color: "#555", fontWeight: "700" }}>
+                      <View
+                        style={{
+                          gap: 6,
+                          borderTopWidth: 1,
+                          borderTopColor: BORDER,
+                          paddingTop: 8,
+                        }}
+                      >
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 6,
+                            marginBottom: 2,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontSize: 12,
+                              color: "#555",
+                              fontFamily: FONT_REGULAR,
+                            }}
+                          >
+                            {item.planName}
+                          </Text>
+                          <Text
+                            style={{
+                              fontSize: 12,
+                              color: SUBTLE,
+                              fontFamily: FONT_REGULAR,
+                            }}
+                          >
+                            →
+                          </Text>
+                          <Text
+                            style={{
+                              fontSize: 12,
+                              color: "#555",
+                              fontFamily: FONT_BOLD,
+                            }}
+                          >
                             {item.pendingPlanName}
                           </Text>
                         </View>
-                        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                          <Text style={{ fontSize: 12, color: "#555" }}>Subskrypcja ({item.pendingPlanName})</Text>
-                          <Text style={{ fontSize: 12, fontWeight: "600", color: "#555" }}>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontSize: 12,
+                              color: "#555",
+                              fontFamily: FONT_REGULAR,
+                            }}
+                          >
+                            Subskrypcja ({item.pendingPlanName})
+                          </Text>
+                          <Text
+                            style={{
+                              fontSize: 12,
+                              fontFamily: FONT_SEMI,
+                              color: "#555",
+                            }}
+                          >
                             {item.pricePLN.toFixed(2)} zł
                           </Text>
                         </View>
@@ -640,7 +1015,15 @@ export default function Payments() {
                           paddingVertical: 4,
                         }}
                       >
-                        <Text style={{ fontSize: 11, fontWeight: "700", color: tag.color }}>{tag.label}</Text>
+                        <Text
+                          style={{
+                            fontSize: 11,
+                            fontFamily: FONT_BOLD,
+                            color: tag.color,
+                          }}
+                        >
+                          {tag.label}
+                        </Text>
                       </View>
                     )}
                   </View>
@@ -653,28 +1036,45 @@ export default function Payments() {
                   justifyContent: "space-between",
                   paddingTop: 4,
                   borderTopWidth: 1,
-                  borderTopColor: "#000",
+                  borderTopColor: BLACK,
                 }}
               >
-                <Text style={{ fontSize: 17, fontWeight: "800" }}>Razem</Text>
-                <Text style={{ fontSize: 17, fontWeight: "800" }}>{preview?.totalToPay?.toFixed(2)} zł</Text>
+                <Text style={{ fontSize: 17, fontFamily: FONT_EXTRABOLD, color: BLACK }}>
+                  Razem
+                </Text>
+                <Text style={{ fontSize: 17, fontFamily: FONT_EXTRABOLD, color: BLACK }}>
+                  {preview?.totalToPay?.toFixed(2)} zł
+                </Text>
               </View>
             </ScrollView>
           </View>
         </View>
       </Modal>
 
-      {/* ── MODAL: Raporty ── */}
-      <Modal visible={showReports} animationType="slide" transparent onRequestClose={() => setShowReports(false)}>
-        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
+      <Modal
+        visible={showReports}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowReports(false)}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.5)",
+            justifyContent: "flex-end",
+          }}
+        >
           <Pressable
-            style={[StyleSheet.absoluteFillObject, { backgroundColor: "rgba(0,0,0,0.5)" }]}
+            style={[
+              StyleSheet.absoluteFillObject,
+              { backgroundColor: "rgba(0,0,0,0.5)" },
+            ]}
             onPress={() => setShowReports(false)}
           />
 
           <View
             style={{
-              backgroundColor: "#fff",
+              backgroundColor: WHITE,
               borderTopLeftRadius: 24,
               borderTopRightRadius: 24,
               padding: 24,
@@ -683,15 +1083,39 @@ export default function Payments() {
               height: "90%",
             }}
           >
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-              <Text style={{ fontSize: 20, fontWeight: "700" }}>Podsumowanie</Text>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <Text style={{ fontSize: 20, fontFamily: FONT_BOLD, color: BLACK }}>
+                Podsumowanie
+              </Text>
               <Pressable onPress={() => setShowReports(false)}>
-                <Text style={{ fontSize: 22, color: "#999" }}>✕</Text>
+                <Text
+                  style={{
+                    fontSize: 22,
+                    color: SUBTLE,
+                    fontFamily: FONT_REGULAR,
+                  }}
+                >
+                  ✕
+                </Text>
               </Pressable>
             </View>
 
-            <Text style={{ fontSize: 12, color: "#666", marginTop: -12 }}>
-              Podsumowanie subskrypcji i obejrzanych tytułów za ostatni okres rozliczeniowy.
+            <Text
+              style={{
+                fontSize: 12,
+                color: MUTED,
+                marginTop: -12,
+                fontFamily: FONT_REGULAR,
+              }}
+            >
+              Podsumowanie subskrypcji i obejrzanych tytułów za ostatni okres
+              rozliczeniowy.
             </Text>
 
             <View style={{ gap: 10 }}>
@@ -699,19 +1123,26 @@ export default function Payments() {
                 onPress={handleGenerateReport}
                 disabled={generatingReport || sendingEmail}
                 style={{
-              paddingVertical: 16,
-              backgroundColor: "#000",
-              borderRadius: 12,
-              marginBottom: 12,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-
+                  paddingVertical: 16,
+                  backgroundColor: BLACK,
+                  borderRadius: 12,
+                  marginBottom: 12,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
               >
                 {generatingReport ? (
-                  <ActivityIndicator color="#fff" size="small" />
+                  <ActivityIndicator color={WHITE} size="small" />
                 ) : (
-                  <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>Raport</Text>
+                  <Text
+                    style={{
+                      color: WHITE,
+                      fontFamily: FONT_BOLD,
+                      fontSize: 15,
+                    }}
+                  >
+                    Raport
+                  </Text>
                 )}
               </Pressable>
 
@@ -719,35 +1150,46 @@ export default function Payments() {
                 onPress={handleSendEmail}
                 disabled={generatingReport || sendingEmail}
                 style={{
-              padding: 14,
-              backgroundColor: "#f0f0f0",
-              borderRadius: 12,
-              alignItems: "center",
-              justifyContent: "center",
-              marginTop: -12,
-            }}
+                  padding: 14,
+                  backgroundColor: LIGHT_BG,
+                  borderRadius: 12,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginTop: -12,
+                }}
               >
                 {sendingEmail ? (
-                  <ActivityIndicator color="#000" size="small" />
+                  <ActivityIndicator color={BLACK} size="small" />
                 ) : (
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                  <Ionicons name="mail" size={16} color="#333" />
-                  <Text style={{ color: "#333", fontWeight: "700", fontSize: 14 }}>
-                     Wyślij na {user?.email}
-                  </Text>
+                  <View
+                    style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+                  >
+                    <Ionicons name="mail" size={16} color="#333" />
+                    <Text
+                      style={{
+                        color: "#333",
+                        fontFamily: FONT_BOLD,
+                        fontSize: 14,
+                      }}
+                    >
+                      Wyślij na {user?.email}
+                    </Text>
                   </View>
                 )}
               </Pressable>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 320 }}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              style={{ maxHeight: 320 }}
+            >
               {reports.length > 0 ? (
                 <View style={{ gap: 8 }}>
                   <Text
                     style={{
                       fontSize: 13,
-                      color: "#999",
-                      fontWeight: "600",
+                      color: SUBTLE,
+                      fontFamily: FONT_SEMI,
                       textTransform: "uppercase",
                       letterSpacing: 0.8,
                     }}
@@ -764,53 +1206,81 @@ export default function Payments() {
                         alignItems: "center",
                         paddingVertical: 12,
                         borderTopWidth: 1,
-                        borderTopColor: "#f0f0f0",
+                        borderTopColor: DIVIDER,
                       }}
                     >
                       <View style={{ flex: 1 }}>
-  <Text style={{ fontSize: 14, fontWeight: "700" }}>
-    {formatPeriodLabel(report.periodFrom, report.periodTo)}
-  </Text>
-
-  <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 }}>
-    <Ionicons
-      name="mail"
-      size={12}
-      color="#bbb"
-    />
-    <Text style={{ fontSize: 11, color: "#bbb" }}>
-      {report.sentAt
-        ? `Wysłano ${new Date(report.sentAt).toLocaleDateString("pl-PL")}`
-        : "Nie wysłano"}
-    </Text>
-  </View>
-</View>
+                        <Text
+                          style={{
+                            fontSize: 14,
+                            fontFamily: FONT_BOLD,
+                            color: BLACK,
+                          }}
+                        >
+                          {formatPeriodLabel(report.periodFrom, report.periodTo)}
+                        </Text>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 4,
+                            marginTop: 2,
+                          }}
+                        >
+                          <Ionicons name="mail" size={12} color="#bbb" />
+                          <Text
+                            style={{
+                              fontSize: 11,
+                              color: "#bbb",
+                              fontFamily: FONT_REGULAR,
+                            }}
+                          >
+                            {report.sentAt
+                              ? `Wysłano ${new Date(report.sentAt).toLocaleDateString("pl-PL")}`
+                              : "Nie wysłano"}
+                          </Text>
+                        </View>
+                      </View>
 
                       <Pressable
-  onPress={() => handleDownloadPDF(report.id, report.period)}
-  disabled={downloadingId === report.id}
-  style={{
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    marginLeft: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  }}
->
-  {downloadingId === report.id ? (
-    <ActivityIndicator size="small" color="#000" />
-  ) : (
-    <MaterialIcons name="file-download" size={20} color="#000" />
-  )}
-</Pressable>
+                        onPress={() => handleDownloadPDF(report.id, report.period)}
+                        disabled={downloadingId === report.id}
+                        style={{
+                          backgroundColor: WHITE,
+                          borderRadius: 8,
+                          paddingHorizontal: 14,
+                          paddingVertical: 8,
+                          marginLeft: 12,
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        {downloadingId === report.id ? (
+                          <ActivityIndicator size="small" color={BLACK} />
+                        ) : (
+                          <MaterialIcons
+                            name="file-download"
+                            size={20}
+                            color={BLACK}
+                          />
+                        )}
+                      </Pressable>
                     </View>
                   ))}
                 </View>
               ) : (
-                <View style={{ alignItems: "center", paddingVertical: 20 }}>
-                  <Text style={{ fontSize: 12, color: "#999" }}>Brak wygenerowanych raportów</Text>
+                <View
+                  style={{ alignItems: "center", paddingVertical: 20 }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: SUBTLE,
+                      fontFamily: FONT_REGULAR,
+                    }}
+                  >
+                    Brak wygenerowanych raportów
+                  </Text>
                 </View>
               )}
             </ScrollView>

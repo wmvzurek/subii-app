@@ -16,16 +16,53 @@ import {
   Dimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { api } from "../src/lib/api";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+
+import { api } from "../src/lib/api";
 import { storage } from "../src/lib/storage";
 
 export default function ChangePassword() {
   const scrollRef = useRef<ScrollView>(null);
   const scrollYRef = useRef(0);
   const keyboardHeightRef = useRef(0);
+
+  const currentPasswordRef = useRef<TextInput>(null);
+  const newPasswordRef = useRef<TextInput>(null);
+  const confirmPasswordRef = useRef<TextInput>(null);
+
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const BG = "#f5f5f5";
+  const WHITE = "#fff";
+  const BLACK = "#252729";
+  const MUTED = "#666";
+  const LIGHT_MUTED = "#999";
+  const BORDER = "#e0e0e0";
+  const INPUT_BG = "#f9f9f9";
+  const DIVIDER = "#f0f0f0";
+  const SUCCESS = "#22c55e";
+  const ERROR = "#ef4444";
+
+  const FONT_THIN = "Inter_100Thin";
+  const FONT_EXTRA_LIGHT = "Inter_200ExtraLight";
+  const FONT_LIGHT = "Inter_300Light";
+  const FONT_REGULAR = "Inter_400Regular";
+  const FONT_MEDIUM = "Inter_500Medium";
+  const FONT_SEMI = "Inter_600SemiBold";
+  const FONT_BOLD = "Inter_700Bold";
+  const FONT_EXTRA_BOLD = "Inter_800ExtraBold";
+  const FONT_BLACK = "Inter_900Black";
 
   useEffect(() => {
     const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
@@ -36,44 +73,40 @@ export default function ChangePassword() {
       keyboardHeightRef.current = h;
       setKeyboardHeight(h);
     });
+
     const hideSub = Keyboard.addListener(hideEvent as any, () => {
       keyboardHeightRef.current = 0;
       setKeyboardHeight(0);
     });
-    return () => { showSub.remove(); hideSub.remove(); };
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
   }, []);
 
   const scrollToInput = useCallback((inputRef: React.RefObject<TextInput>) => {
     const input = inputRef.current;
     if (!input || !scrollRef.current) return;
+
     const node = findNodeHandle(input);
     if (!node) return;
+
     UIManager.measureInWindow(node, (_x, y, _w, h) => {
       const screenH = Dimensions.get("window").height;
       const kbH = keyboardHeightRef.current;
       const keyboardTop = kbH > 0 ? screenH - kbH : screenH;
       const inputBottom = y + h;
       const overflow = inputBottom - (keyboardTop - 24);
+
       if (overflow > 0) {
-        scrollRef.current?.scrollTo({ y: scrollYRef.current + overflow, animated: true });
+        scrollRef.current?.scrollTo({
+          y: scrollYRef.current + overflow,
+          animated: true,
+        });
       }
     });
   }, []);
-
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
-
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [showCurrent, setShowCurrent] = useState(false);
-  const [showNew, setShowNew] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-
-  const currentPasswordRef = useRef<TextInput>(null);
-  const newPasswordRef = useRef<TextInput>(null);
-  const confirmPasswordRef = useRef<TextInput>(null);
 
   const checks = {
     length: newPassword.length >= 8,
@@ -82,106 +115,237 @@ export default function ChangePassword() {
     number: /[0-9]/.test(newPassword),
     special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword),
   };
+
   const allChecksPassed = Object.values(checks).every(Boolean);
   const passwordsMatch = newPassword === confirmPassword && confirmPassword.length > 0;
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (!currentPassword.trim()) {
       Alert.alert("Błąd", "Podaj obecne hasło.");
       return;
     }
+
     if (!allChecksPassed) {
       Alert.alert("Słabe hasło", "Hasło nie spełnia wymagań bezpieczeństwa.");
       return;
     }
+
     if (!passwordsMatch) {
       Alert.alert("Błąd", "Hasła nie są identyczne.");
       return;
     }
+
     setLoading(true);
     try {
       await api.post("/api/auth/change-password", { currentPassword, newPassword });
       await storage.clearAuth();
-      Alert.alert("Gotowe! 🎉", "Hasło zostało zmienione. Zaloguj się ponownie.", [
-        { text: "OK", onPress: () => router.replace("/login" as any) }
+      Alert.alert("Gotowe!", "Hasło zostało zmienione. Zaloguj się ponownie.", [
+        { text: "OK", onPress: () => router.replace("/login" as any) },
       ]);
     } catch (e: any) {
       Alert.alert("Błąd", e.response?.data?.error || "Nie udało się zmienić hasła");
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPassword, newPassword, allChecksPassed, passwordsMatch, router]);
 
   const Req = ({ met, text }: { met: boolean; text: string }) => (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-      <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: met ? "#22c55e" : "#e0e0e0", justifyContent: "center", alignItems: "center" }}>
-        <Text style={{ color: "#fff", fontSize: 11, fontWeight: "800" }}>{met ? "✓" : ""}</Text>
+      <View
+        style={{
+          width: 18,
+          height: 18,
+          borderRadius: 9,
+          backgroundColor: met ? SUCCESS : BORDER,
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <Text
+          style={{
+            color: WHITE,
+            fontSize: 11,
+            fontFamily: FONT_EXTRA_BOLD,
+          }}
+        >
+          {met ? "✓" : ""}
+        </Text>
       </View>
-      <Text style={{ fontSize: 13, color: met ? "#22c55e" : "#999" }}>{text}</Text>
+
+      <Text
+        style={{
+          fontSize: 13,
+          color: met ? SUCCESS : LIGHT_MUTED,
+          fontFamily: FONT_REGULAR,
+        }}
+      >
+        {text}
+      </Text>
     </View>
   );
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={{ flex: 1 }}
+    >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={{ flex: 1, backgroundColor: "#f5f5f5" }}>
-
-          {/* Header */}
-          <View style={{ backgroundColor: "#fff", paddingTop: insets.top + 10, paddingBottom: 16, paddingHorizontal: 20, flexDirection: "row", alignItems: "center", gap: 12, borderBottomWidth: 1, borderBottomColor: "#f0f0f0" }}>
+        <View style={{ flex: 1, backgroundColor: BG }}>
+          <View
+            style={{
+              backgroundColor: WHITE,
+              paddingTop: insets.top + 10,
+              paddingBottom: 16,
+              paddingHorizontal: 20,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 12,
+              borderBottomWidth: 1,
+              borderBottomColor: DIVIDER,
+            }}
+          >
             <Pressable onPress={() => router.back()} style={{ padding: 4 }}>
-              <Ionicons name="arrow-back" size={24} color="#000" />
+              <Ionicons name="arrow-back" size={24} color={BLACK} />
             </Pressable>
-            <Text style={{ fontSize: 20, fontWeight: "800" }}>Zmień hasło</Text>
+
+            <Text
+              style={{
+                fontSize: 20,
+                color: BLACK,
+                fontFamily: FONT_EXTRA_BOLD,
+              }}
+            >
+              Zmień hasło
+            </Text>
           </View>
 
           <ScrollView
             ref={scrollRef}
             contentContainerStyle={{ padding: 20, gap: 16 }}
             keyboardShouldPersistTaps="handled"
-            onScroll={(e) => { scrollYRef.current = e.nativeEvent.contentOffset.y; }}
+            onScroll={(e) => {
+              scrollYRef.current = e.nativeEvent.contentOffset.y;
+            }}
             scrollEventThrottle={16}
           >
+            <View
+              style={{
+                backgroundColor: WHITE,
+                borderRadius: 14,
+                padding: 20,
+                gap: 12,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: BLACK,
+                  fontFamily: FONT_BOLD,
+                }}
+              >
+                Obecne hasło
+              </Text>
 
-            {/* Obecne hasło */}
-            <View style={{ backgroundColor: "#fff", borderRadius: 14, padding: 20, gap: 12 }}>
-              <Text style={{ fontSize: 14, fontWeight: "700", color: "#000" }}>Obecne hasło</Text>
-              <View style={{ flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: "#e0e0e0", borderRadius: 10, backgroundColor: "#f9f9f9" }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  borderWidth: 1,
+                  borderColor: BORDER,
+                  borderRadius: 10,
+                  backgroundColor: INPUT_BG,
+                }}
+              >
                 <TextInput
                   value={currentPassword}
                   onChangeText={setCurrentPassword}
                   placeholder="Wpisz obecne hasło"
+                  placeholderTextColor={LIGHT_MUTED}
                   ref={currentPasswordRef}
-                  onFocus={() => { setTimeout(() => scrollToInput(currentPasswordRef), 100); }}
+                  onFocus={() => {
+                    setTimeout(() => scrollToInput(currentPasswordRef), 100);
+                  }}
                   secureTextEntry={!showCurrent}
                   autoCapitalize="none"
-                  style={{ flex: 1, padding: 14, fontSize: 15 }}
+                  style={{
+                    flex: 1,
+                    padding: 14,
+                    fontSize: 15,
+                    color: BLACK,
+                    fontFamily: FONT_REGULAR,
+                  }}
                 />
-                <Pressable onPress={() => setShowCurrent(!showCurrent)} style={{ padding: 14 }}>
-                  <Ionicons name={showCurrent ? "eye-off" : "eye"} size={20} color="#999" />
+
+                <Pressable
+                  onPress={() => setShowCurrent(!showCurrent)}
+                  style={{ padding: 14 }}
+                >
+                  <Ionicons
+                    name={showCurrent ? "eye-off" : "eye"}
+                    size={20}
+                    color={LIGHT_MUTED}
+                  />
                 </Pressable>
               </View>
             </View>
 
-            {/* Nowe hasło */}
-            <View style={{ backgroundColor: "#fff", borderRadius: 14, padding: 20, gap: 12 }}>
-              <Text style={{ fontSize: 14, fontWeight: "700", color: "#000" }}>Nowe hasło</Text>
-              <View style={{ flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: "#e0e0e0", borderRadius: 10, backgroundColor: "#f9f9f9" }}>
+            <View
+              style={{
+                backgroundColor: WHITE,
+                borderRadius: 14,
+                padding: 20,
+                gap: 12,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: BLACK,
+                  fontFamily: FONT_BOLD,
+                }}
+              >
+                Nowe hasło
+              </Text>
+
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  borderWidth: 1,
+                  borderColor: BORDER,
+                  borderRadius: 10,
+                  backgroundColor: INPUT_BG,
+                }}
+              >
                 <TextInput
                   value={newPassword}
                   onChangeText={setNewPassword}
                   placeholder="Wpisz nowe hasło"
+                  placeholderTextColor={LIGHT_MUTED}
                   ref={newPasswordRef}
-                  onFocus={() => { setTimeout(() => scrollToInput(newPasswordRef), 100); }}
+                  onFocus={() => {
+                    setTimeout(() => scrollToInput(newPasswordRef), 100);
+                  }}
                   secureTextEntry={!showNew}
                   autoCapitalize="none"
-                  style={{ flex: 1, padding: 14, fontSize: 15 }}
+                  style={{
+                    flex: 1,
+                    padding: 14,
+                    fontSize: 15,
+                    color: BLACK,
+                    fontFamily: FONT_REGULAR,
+                  }}
                 />
+
                 <Pressable onPress={() => setShowNew(!showNew)} style={{ padding: 14 }}>
-                  <Ionicons name={showNew ? "eye-off" : "eye"} size={20} color="#999" />
+                  <Ionicons
+                    name={showNew ? "eye-off" : "eye"}
+                    size={20}
+                    color={LIGHT_MUTED}
+                  />
                 </Pressable>
               </View>
 
-              {/* Wymagania */}
               <View style={{ gap: 6, marginTop: 4 }}>
                 <Req met={checks.length} text="Min. 8 znaków" />
                 <Req met={checks.upper} text="Wielka litera (A-Z)" />
@@ -191,40 +355,112 @@ export default function ChangePassword() {
               </View>
             </View>
 
-            {/* Powtórz hasło */}
-            <View style={{ backgroundColor: "#fff", borderRadius: 14, padding: 20, gap: 12 }}>
-              <Text style={{ fontSize: 14, fontWeight: "700", color: "#000" }}>Powtórz hasło</Text>
-              <View style={{ flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: confirmPassword.length > 0 ? (passwordsMatch ? "#22c55e" : "#ef4444") : "#e0e0e0", borderRadius: 10, backgroundColor: "#f9f9f9" }}>
+            <View
+              style={{
+                backgroundColor: WHITE,
+                borderRadius: 14,
+                padding: 20,
+                gap: 12,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: BLACK,
+                  fontFamily: FONT_BOLD,
+                }}
+              >
+                Powtórz hasło
+              </Text>
+
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  borderWidth: 1,
+                  borderColor:
+                    confirmPassword.length > 0
+                      ? passwordsMatch
+                        ? SUCCESS
+                        : ERROR
+                      : BORDER,
+                  borderRadius: 10,
+                  backgroundColor: INPUT_BG,
+                }}
+              >
                 <TextInput
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   placeholder="Powtórz nowe hasło"
+                  placeholderTextColor={LIGHT_MUTED}
                   ref={confirmPasswordRef}
-                  onFocus={() => { setTimeout(() => scrollToInput(confirmPasswordRef), 100); }}
+                  onFocus={() => {
+                    setTimeout(() => scrollToInput(confirmPasswordRef), 100);
+                  }}
                   secureTextEntry={!showConfirm}
                   autoCapitalize="none"
-                  style={{ flex: 1, padding: 14, fontSize: 15 }}
+                  style={{
+                    flex: 1,
+                    padding: 14,
+                    fontSize: 15,
+                    color: BLACK,
+                    fontFamily: FONT_REGULAR,
+                  }}
                 />
-                <Pressable onPress={() => setShowConfirm(!showConfirm)} style={{ padding: 14 }}>
-                  <Ionicons name={showConfirm ? "eye-off" : "eye"} size={20} color="#999" />
+
+                <Pressable
+                  onPress={() => setShowConfirm(!showConfirm)}
+                  style={{ padding: 14 }}
+                >
+                  <Ionicons
+                    name={showConfirm ? "eye-off" : "eye"}
+                    size={20}
+                    color={LIGHT_MUTED}
+                  />
                 </Pressable>
               </View>
+
               {confirmPassword.length > 0 && (
-                <Text style={{ fontSize: 13, color: passwordsMatch ? "#22c55e" : "#ef4444", fontWeight: "600" }}>
-                  {passwordsMatch ? "✓ Hasła są identyczne" : "✕ Hasła nie są identyczne"}
+                <Text
+                  style={{
+                    fontSize: 13,
+                    color: passwordsMatch ? SUCCESS : ERROR,
+                    fontFamily: FONT_SEMI,
+                  }}
+                >
+                  {passwordsMatch
+                    ? "✓ Hasła są identyczne"
+                    : "✕ Hasła nie są identyczne"}
                 </Text>
               )}
             </View>
 
-            {/* Przycisk */}
             <Pressable
               onPress={handleSubmit}
               disabled={loading}
-              style={{ backgroundColor: "#000", padding: 16, borderRadius: 14, alignItems: "center", opacity: loading ? 0.6 : 1, marginTop: 8 }}
+              style={{
+                backgroundColor: BLACK,
+                padding: 16,
+                borderRadius: 14,
+                alignItems: "center",
+                opacity: loading ? 0.6 : 1,
+                marginTop: 8,
+              }}
             >
-              {loading ? <ActivityIndicator color="#fff" /> : <Text style={{ color: "#fff", fontWeight: "800", fontSize: 16 }}>Potwierdź</Text>}
+              {loading ? (
+                <ActivityIndicator color={WHITE} />
+              ) : (
+                <Text
+                  style={{
+                    color: WHITE,
+                    fontSize: 16,
+                    fontFamily: FONT_EXTRA_BOLD,
+                  }}
+                >
+                  Potwierdź
+                </Text>
+              )}
             </Pressable>
-
           </ScrollView>
         </View>
       </TouchableWithoutFeedback>

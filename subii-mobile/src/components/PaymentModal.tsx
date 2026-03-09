@@ -24,6 +24,18 @@ import {
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { api } from "../lib/api";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  useFonts,
+  Inter_100Thin,
+  Inter_200ExtraLight,
+  Inter_300Light,
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+  Inter_800ExtraBold,
+  Inter_900Black,
+} from "@expo-google-fonts/inter";
 
 interface SavedCard {
   brand: string;
@@ -49,7 +61,43 @@ export default function PaymentModal({
   description,
 }: PaymentModalProps) {
   const { confirmPayment } = useStripe();
-  const { isPlatformPaySupported, confirmPlatformPayPayment } = usePlatformPay();
+  const { isPlatformPaySupported, confirmPlatformPayPayment } =
+    usePlatformPay();
+
+  const [fontsLoaded] = useFonts({
+    Inter_100Thin,
+    Inter_200ExtraLight,
+    Inter_300Light,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    Inter_800ExtraBold,
+    Inter_900Black,
+  });
+
+  const WHITE = "#fff";
+  const BLACK = "#252729";
+  const MUTED = "#666";
+  const SUBTLE = "#999";
+  const PLACEHOLDER = "#bbb";
+  const LIGHT_BG = "#f0f0f0";
+  const INPUT_BG = "#f9f9f9";
+  const NEAR_WHITE = "#fafafa";
+  const BLUE_LIGHT = "#f0f9ff";
+  const BORDER = "#e0e0e0";
+  const ICON_COLOR = "#333";
+  const DANGER = "#dc2626";
+  const DANGER_BG = "#fef2f2";
+  const DANGER_BORDER = "#fca5a5";
+  const DISABLED = "#ccc";
+  const DISABLED_BTN = "#999";
+
+  const FONT_REGULAR = "Inter_400Regular";
+  const FONT_SEMI = "Inter_600SemiBold";
+  const FONT_BOLD = "Inter_700Bold";
+  const FONT_EXTRABOLD = "Inter_800ExtraBold";
+  const FONT_BLACK = "Inter_900Black";
 
   const [savedCard, setSavedCard] = useState<SavedCard | null>(null);
   const [loadingCard, setLoadingCard] = useState(true);
@@ -62,7 +110,6 @@ export default function PaymentModal({
   const [blikWaiting, setBlikWaiting] = useState(false);
   const [blikSeconds, setBlikSeconds] = useState(60);
   const [googlePayReady, setGooglePayReady] = useState(false);
-  
 
   const blikInterval = useRef<ReturnType<typeof setInterval> | null>(null);
   const blikTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -150,7 +197,6 @@ export default function PaymentModal({
     }
   };
 
-  // ── Płatność zapisaną kartą ──
   const handleSavedCardPayment = async () => {
     if (!savedCard) return;
     setProcessing(true);
@@ -187,7 +233,6 @@ export default function PaymentModal({
     }
   };
 
-  // ── Płatność BLIK (wizualna symulacja z prawdziwym flow kartą) ──
   const handleBlikPayment = async () => {
     if (blikCode.length !== 6) {
       Alert.alert("Błąd", "Wpisz 6-cyfrowy kod BLIK.");
@@ -219,7 +264,9 @@ export default function PaymentModal({
             res.data.clientSecret,
             {
               paymentMethodType: "Card",
-              paymentMethodData: { paymentMethodId: savedCard.paymentMethodId },
+              paymentMethodData: {
+                paymentMethodId: savedCard.paymentMethodId,
+              },
             }
           );
           if (error) {
@@ -241,7 +288,6 @@ export default function PaymentModal({
     }, 4000);
   };
 
-  // ── Płatność Google Pay ──
   const handleGooglePayPayment = async () => {
     setProcessing(true);
     try {
@@ -250,19 +296,22 @@ export default function PaymentModal({
         paymentMethodType: "google_pay",
       });
 
-      const { error } = await confirmPlatformPayPayment(res.data.clientSecret, {
-        googlePay: {
-          testEnv: true,
-          merchantName: "Subii",
-          merchantCountryCode: "PL",
-          currencyCode: "PLN",
-          billingAddressConfig: {
-            format: PlatformPay.BillingAddressFormat.Full,
-            isPhoneNumberRequired: false,
-            isRequired: false,
+      const { error } = await confirmPlatformPayPayment(
+        res.data.clientSecret,
+        {
+          googlePay: {
+            testEnv: true,
+            merchantName: "Subii",
+            merchantCountryCode: "PL",
+            currencyCode: "PLN",
+            billingAddressConfig: {
+              format: PlatformPay.BillingAddressFormat.Full,
+              isPhoneNumberRequired: false,
+              isRequired: false,
+            },
           },
-        },
-      });
+        }
+      );
 
       if (error) {
         if (error.code !== "Canceled") {
@@ -283,7 +332,6 @@ export default function PaymentModal({
     }
   };
 
-  // ── Płatność nową kartą ──
   const handleNewCardPayment = async () => {
     if (!newCardDetails?.complete) {
       Alert.alert("Błąd", "Uzupełnij wszystkie dane karty.");
@@ -346,10 +394,14 @@ export default function PaymentModal({
     }
   };
 
-  // ── Ekran oczekiwania BLIK ──
   if (blikWaiting) {
     return (
-      <Modal visible={visible} transparent animationType="slide" onRequestClose={() => {}}>
+      <Modal
+        visible={visible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => {}}
+      >
         <View
           style={{
             flex: 1,
@@ -359,7 +411,7 @@ export default function PaymentModal({
         >
           <View
             style={{
-              backgroundColor: "#fff",
+              backgroundColor: WHITE,
               borderTopLeftRadius: 24,
               borderTopRightRadius: 24,
               padding: 32,
@@ -373,20 +425,22 @@ export default function PaymentModal({
                   width: 80,
                   height: 80,
                   borderRadius: 40,
-                  backgroundColor: "#f0f9ff",
+                  backgroundColor: BLUE_LIGHT,
                   justifyContent: "center",
                   alignItems: "center",
                 }}
               >
-                <Text style={{ fontSize: 36 }}>📱</Text>
+                <Text style={{ fontSize: 36, fontFamily: FONT_REGULAR }}>
+                  📱
+                </Text>
               </View>
             </Animated.View>
 
             <Text
               style={{
                 fontSize: 20,
-                fontWeight: "800",
-                color: "#000",
+                fontFamily: FONT_EXTRABOLD,
+                color: BLACK,
                 textAlign: "center",
               }}
             >
@@ -396,9 +450,10 @@ export default function PaymentModal({
             <Text
               style={{
                 fontSize: 14,
-                color: "#666",
+                color: MUTED,
                 textAlign: "center",
                 lineHeight: 22,
+                fontFamily: FONT_REGULAR,
               }}
             >
               Otwórz aplikację swojego banku i potwierdź płatność BLIK.
@@ -409,25 +464,33 @@ export default function PaymentModal({
                 width: 72,
                 height: 72,
                 borderRadius: 36,
-                backgroundColor: blikSeconds <= 10 ? "#fef2f2" : "#f9f9f9",
+                backgroundColor: blikSeconds <= 10 ? DANGER_BG : INPUT_BG,
                 justifyContent: "center",
                 alignItems: "center",
                 borderWidth: 2,
-                borderColor: blikSeconds <= 10 ? "#fca5a5" : "#e0e0e0",
+                borderColor: blikSeconds <= 10 ? DANGER_BORDER : BORDER,
               }}
             >
               <Text
                 style={{
                   fontSize: 24,
-                  fontWeight: "900",
-                  color: blikSeconds <= 10 ? "#dc2626" : "#000",
+                  fontFamily: FONT_BLACK,
+                  color: blikSeconds <= 10 ? DANGER : BLACK,
                 }}
               >
                 {blikSeconds}
               </Text>
             </View>
 
-            <Text style={{ fontSize: 12, color: "#999" }}>sekund pozostało</Text>
+            <Text
+              style={{
+                fontSize: 12,
+                color: SUBTLE,
+                fontFamily: FONT_REGULAR,
+              }}
+            >
+              sekund pozostało
+            </Text>
 
             <Pressable
               onPress={() => {
@@ -438,11 +501,13 @@ export default function PaymentModal({
               style={{
                 paddingVertical: 12,
                 paddingHorizontal: 24,
-                backgroundColor: "#f0f0f0",
+                backgroundColor: LIGHT_BG,
                 borderRadius: 12,
               }}
             >
-              <Text style={{ fontWeight: "600", color: "#333" }}>Anuluj</Text>
+              <Text style={{ fontFamily: FONT_SEMI, color: ICON_COLOR }}>
+                Anuluj
+              </Text>
             </Pressable>
           </View>
         </View>
@@ -450,19 +515,23 @@ export default function PaymentModal({
     );
   }
 
-  // ── Render główny ──
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-  <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-    <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)" }}>
-      <KeyboardAvoidingView
-        style={{ flex: 1, justifyContent: "flex-end" }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={0} // ← ważne: zero na iOS
-      >
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)" }}>
+          <KeyboardAvoidingView
+            style={{ flex: 1, justifyContent: "flex-end" }}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            keyboardVerticalOffset={0}
+          >
             <View
               style={{
-                backgroundColor: "#fff",
+                backgroundColor: WHITE,
                 borderTopLeftRadius: 24,
                 borderTopRightRadius: 24,
                 padding: 24,
@@ -475,7 +544,6 @@ export default function PaymentModal({
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: 18 }}
               >
-                {/* Nagłówek */}
                 <View
                   style={{
                     flexDirection: "row",
@@ -484,15 +552,22 @@ export default function PaymentModal({
                   }}
                 >
                   <View>
-                    <Text style={{ fontSize: 20, fontWeight: "700", marginBottom: 6 }}>
+                    <Text
+                      style={{
+                        fontSize: 20,
+                        fontFamily: FONT_BOLD,
+                        color: BLACK,
+                        marginBottom: 6,
+                      }}
+                    >
                       Wybierz metodę płatności
                     </Text>
                     <Text
                       style={{
                         fontSize: 12,
-                        color: "#666",
+                        color: MUTED,
                         marginBottom: 16,
-                        fontWeight: "400",
+                        fontFamily: FONT_REGULAR,
                       }}
                     >
                       {description} · {amountPLN.toFixed(2)} zł
@@ -500,24 +575,27 @@ export default function PaymentModal({
                   </View>
 
                   <Pressable onPress={onClose} style={{ padding: 4 }}>
-                    <Ionicons name="close" size={24} color="#000" />
+                    <Ionicons name="close" size={24} color={BLACK} />
                   </Pressable>
                 </View>
 
-                {/* Zapisana karta */}
                 {loadingCard ? (
-                  <ActivityIndicator color="#000" />
+                  <ActivityIndicator color={BLACK} />
                 ) : savedCard ? (
                   <Pressable
                     onPress={() =>
-                      setSelectedMethod(selectedMethod === "saved_card" ? null : "saved_card")
+                      setSelectedMethod(
+                        selectedMethod === "saved_card" ? null : "saved_card"
+                      )
                     }
                     style={{
                       padding: 16,
                       borderRadius: 12,
                       borderWidth: 2,
-                      borderColor: selectedMethod === "saved_card" ? "#000" : "#e0e0e0",
-                      backgroundColor: selectedMethod === "saved_card" ? "#f9f9f9" : "#fff",
+                      borderColor:
+                        selectedMethod === "saved_card" ? BLACK : BORDER,
+                      backgroundColor:
+                        selectedMethod === "saved_card" ? INPUT_BG : WHITE,
                       gap: 12,
                       marginBottom: 10,
                     }}
@@ -529,40 +607,48 @@ export default function PaymentModal({
                         justifyContent: "space-between",
                       }}
                     >
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 12,
+                        }}
+                      >
                         <View
                           style={{
                             width: 44,
                             height: 44,
                             borderRadius: 12,
-                            backgroundColor: "#f0f0f0",
+                            backgroundColor: LIGHT_BG,
                             justifyContent: "center",
                             alignItems: "center",
                           }}
                         >
-                          <Ionicons name="card" size={22} color="#333" />
+                          <Ionicons name="card" size={22} color={ICON_COLOR} />
                         </View>
 
                         <View>
                           <Text
                             style={{
                               fontSize: 13,
-                              fontWeight: "700",
-                              color: "#000",
+                              fontFamily: FONT_BOLD,
+                              color: BLACK,
                               marginBottom: 2,
                             }}
                           >
-                            {savedCard.brand.toUpperCase()} •••• {savedCard.last4}
+                            {savedCard.brand.toUpperCase()} ····{" "}
+                            {savedCard.last4}
                           </Text>
                           <Text
                             style={{
                               fontSize: 12,
-                              fontWeight: "400",
-                              color: "#666",
+                              fontFamily: FONT_REGULAR,
+                              color: MUTED,
                               marginBottom: 2,
                             }}
                           >
-                            Wygasa {savedCard.expMonth.toString().padStart(2, "0")}/
+                            Wygasa{" "}
+                            {savedCard.expMonth.toString().padStart(2, "0")}/
                             {savedCard.expYear} · Domyślna
                           </Text>
                         </View>
@@ -574,12 +660,16 @@ export default function PaymentModal({
                             width: 24,
                             height: 24,
                             borderRadius: 12,
-                            backgroundColor: "#000",
+                            backgroundColor: BLACK,
                             justifyContent: "center",
                             alignItems: "center",
                           }}
                         >
-                          <Ionicons name="checkmark" size={14} color="#fff" />
+                          <Ionicons
+                            name="checkmark"
+                            size={14}
+                            color={WHITE}
+                          />
                         </View>
                       )}
                     </View>
@@ -589,7 +679,7 @@ export default function PaymentModal({
                         onPress={handleSavedCardPayment}
                         disabled={processing}
                         style={{
-                          backgroundColor: "#000",
+                          backgroundColor: BLACK,
                           paddingVertical: 12,
                           borderRadius: 12,
                           alignItems: "center",
@@ -597,13 +687,13 @@ export default function PaymentModal({
                         }}
                       >
                         {processing ? (
-                          <ActivityIndicator color="#fff" size="small" />
+                          <ActivityIndicator color={WHITE} size="small" />
                         ) : (
                           <Text
                             style={{
-                              color: "#fff",
+                              color: WHITE,
                               textAlign: "center",
-                              fontWeight: "700",
+                              fontFamily: FONT_BOLD,
                               fontSize: 15,
                             }}
                           >
@@ -615,7 +705,6 @@ export default function PaymentModal({
                   </Pressable>
                 ) : null}
 
-                {/* Google Pay — tylko Android */}
                 {Platform.OS === "android" && googlePayReady && (
                   <Pressable
                     onPress={() => {
@@ -626,8 +715,9 @@ export default function PaymentModal({
                       padding: 16,
                       borderRadius: 14,
                       borderWidth: 2,
-                      borderColor: selectedMethod === "google_pay" ? "#000" : "#e0e0e0",
-                      backgroundColor: "#fff",
+                      borderColor:
+                        selectedMethod === "google_pay" ? BLACK : BORDER,
+                      backgroundColor: WHITE,
                       flexDirection: "row",
                       alignItems: "center",
                       gap: 12,
@@ -639,38 +729,60 @@ export default function PaymentModal({
                         width: 44,
                         height: 44,
                         borderRadius: 10,
-                        backgroundColor: "#f0f0f0",
+                        backgroundColor: LIGHT_BG,
                         justifyContent: "center",
                         alignItems: "center",
                       }}
                     >
-                      <Text style={{ fontSize: 20, fontWeight: "700" }}>G</Text>
+                      <Text
+                        style={{ fontSize: 20, fontFamily: FONT_BOLD }}
+                      >
+                        G
+                      </Text>
                     </View>
 
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 13, fontWeight: "700", color: "#000", marginBottom: 2 }} >
+                      <Text
+                        style={{
+                          fontSize: 13,
+                          fontFamily: FONT_BOLD,
+                          color: BLACK,
+                          marginBottom: 2,
+                        }}
+                      >
                         Google Pay
                       </Text>
-                      <Text style={{ fontSize: 12, fontWeight: "400", color: "#666", marginBottom: 2 }}>
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          fontFamily: FONT_REGULAR,
+                          color: MUTED,
+                          marginBottom: 2,
+                        }}
+                      >
                         Zapłać przez Google Pay
                       </Text>
                     </View>
 
                     {processing && selectedMethod === "google_pay" && (
-                      <ActivityIndicator color="#000" size="small" />
+                      <ActivityIndicator color={BLACK} size="small" />
                     )}
                   </Pressable>
                 )}
 
-                {/* BLIK */}
                 <Pressable
-                  onPress={() => setSelectedMethod(selectedMethod === "blik" ? null : "blik")}
+                  onPress={() =>
+                    setSelectedMethod(
+                      selectedMethod === "blik" ? null : "blik"
+                    )
+                  }
                   style={{
                     padding: 16,
                     borderRadius: 14,
                     borderWidth: 2,
-                    borderColor: selectedMethod === "blik" ? "#000" : "#e0e0e0",
-                    backgroundColor: selectedMethod === "blik" ? "#f9f9f9" : "#fff",
+                    borderColor: selectedMethod === "blik" ? BLACK : BORDER,
+                    backgroundColor:
+                      selectedMethod === "blik" ? INPUT_BG : WHITE,
                     gap: 12,
                     marginBottom: 10,
                   }}
@@ -682,18 +794,30 @@ export default function PaymentModal({
                       justifyContent: "space-between",
                     }}
                   >
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 12,
+                      }}
+                    >
                       <View
                         style={{
                           width: 44,
                           height: 44,
                           borderRadius: 10,
-                          backgroundColor: "#f0f0f0",
+                          backgroundColor: LIGHT_BG,
                           justifyContent: "center",
                           alignItems: "center",
                         }}
                       >
-                        <Text style={{ fontSize: 14, fontWeight: "900", color: "#333" }}>
+                        <Text
+                          style={{
+                            fontSize: 14,
+                            fontFamily: FONT_BLACK,
+                            color: ICON_COLOR,
+                          }}
+                        >
                           BLIK
                         </Text>
                       </View>
@@ -702,8 +826,8 @@ export default function PaymentModal({
                         <Text
                           style={{
                             fontSize: 13,
-                            fontWeight: "700",
-                            color: "#000",
+                            fontFamily: FONT_BOLD,
+                            color: BLACK,
                             marginBottom: 2,
                           }}
                         >
@@ -712,8 +836,8 @@ export default function PaymentModal({
                         <Text
                           style={{
                             fontSize: 12,
-                            fontWeight: "400",
-                            color: "#666",
+                            fontFamily: FONT_REGULAR,
+                            color: MUTED,
                             marginBottom: 2,
                           }}
                         >
@@ -728,12 +852,12 @@ export default function PaymentModal({
                           width: 24,
                           height: 24,
                           borderRadius: 12,
-                          backgroundColor: "#000",
+                          backgroundColor: BLACK,
                           justifyContent: "center",
                           alignItems: "center",
                         }}
                       >
-                        <Ionicons name="checkmark" size={14} color="#fff" />
+                        <Ionicons name="checkmark" size={14} color={WHITE} />
                       </View>
                     )}
                   </View>
@@ -742,24 +866,34 @@ export default function PaymentModal({
                     <View style={{ gap: 10 }}>
                       <TextInput
                         value={blikCode}
-                        onChangeText={(t) => setBlikCode(t.replace(/\D/g, "").slice(0, 6))}
+                        onChangeText={(t) =>
+                          setBlikCode(t.replace(/\D/g, "").slice(0, 6))
+                        }
                         placeholder="000000"
                         keyboardType="number-pad"
                         maxLength={6}
                         style={{
                           borderWidth: 1.5,
-                          borderColor: blikCode.length === 6 ? "#000" : "#999",
+                          borderColor:
+                            blikCode.length === 6 ? BLACK : SUBTLE,
                           borderRadius: 12,
                           padding: 14,
                           fontSize: 28,
-                          fontWeight: "800",
+                          fontFamily: FONT_EXTRABOLD,
                           textAlign: "center",
                           letterSpacing: 8,
-                          backgroundColor: "#fff",
+                          backgroundColor: WHITE,
                         }}
                       />
 
-                      <Text style={{ fontSize: 11, color: "#999", textAlign: "center" }}>
+                      <Text
+                        style={{
+                          fontSize: 11,
+                          color: SUBTLE,
+                          textAlign: "center",
+                          fontFamily: FONT_REGULAR,
+                        }}
+                      >
                         Otwórz aplikację bankową i skopiuj kod BLIK
                       </Text>
 
@@ -767,7 +901,8 @@ export default function PaymentModal({
                         onPress={handleBlikPayment}
                         disabled={processing || blikCode.length !== 6}
                         style={{
-                          backgroundColor: blikCode.length === 6 ? "#000" : "#999",
+                          backgroundColor:
+                            blikCode.length === 6 ? BLACK : DISABLED_BTN,
                           paddingVertical: 12,
                           borderRadius: 12,
                           alignItems: "center",
@@ -775,13 +910,13 @@ export default function PaymentModal({
                         }}
                       >
                         {processing ? (
-                          <ActivityIndicator color="#fff" size="small" />
+                          <ActivityIndicator color={WHITE} size="small" />
                         ) : (
                           <Text
                             style={{
-                              color: "#fff",
+                              color: WHITE,
                               textAlign: "center",
-                              fontWeight: "700",
+                              fontFamily: FONT_BOLD,
                               fontSize: 15,
                             }}
                           >
@@ -793,14 +928,13 @@ export default function PaymentModal({
                   )}
                 </Pressable>
 
-                {/* Apple Pay — wkrótce */}
                 <View
                   style={{
                     padding: 16,
                     borderRadius: 14,
                     borderWidth: 2,
-                    borderColor: "#e0e0e0",
-                    backgroundColor: "#fafafa",
+                    borderColor: BORDER,
+                    backgroundColor: NEAR_WHITE,
                     flexDirection: "row",
                     alignItems: "center",
                     gap: 12,
@@ -813,23 +947,33 @@ export default function PaymentModal({
                       width: 44,
                       height: 44,
                       borderRadius: 10,
-                      backgroundColor: "#f0f0f0",
+                      backgroundColor: LIGHT_BG,
                       justifyContent: "center",
                       alignItems: "center",
                     }}
                   >
-                    <Ionicons name="logo-apple" size={22} color="#333" />
+                    <Ionicons
+                      name="logo-apple"
+                      size={22}
+                      color={ICON_COLOR}
+                    />
                   </View>
 
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 15, fontWeight: "700", color: "#000" }}>
+                    <Text
+                      style={{
+                        fontSize: 15,
+                        fontFamily: FONT_BOLD,
+                        color: BLACK,
+                      }}
+                    >
                       Apple Pay
                     </Text>
                     <Text
                       style={{
                         fontSize: 12,
-                        fontWeight: "400",
-                        color: "#666",
+                        fontFamily: FONT_REGULAR,
+                        color: MUTED,
                         marginBottom: 2,
                       }}
                     >
@@ -839,34 +983,42 @@ export default function PaymentModal({
 
                   <View
                     style={{
-                      backgroundColor: "#f0f0f0",
+                      backgroundColor: LIGHT_BG,
                       paddingHorizontal: 8,
                       paddingVertical: 4,
                       borderRadius: 8,
                     }}
                   >
-                    <Text style={{ fontSize: 10, fontWeight: "700", color: "#000" }}>
+                    <Text
+                      style={{
+                        fontSize: 10,
+                        fontFamily: FONT_BOLD,
+                        color: BLACK,
+                      }}
+                    >
                       WKRÓTCE
                     </Text>
                   </View>
                 </View>
 
-                {/* Inna karta (NAPRAWIONE: klik w CardField nie zamyka sekcji) */}
                 <View
                   style={{
                     padding: 16,
                     borderRadius: 14,
                     borderWidth: 2,
-                    borderColor: selectedMethod === "new_card" ? "#000" : "#e0e0e0",
-                    backgroundColor: selectedMethod === "new_card" ? "#f9f9f9" : "#fff",
+                    borderColor:
+                      selectedMethod === "new_card" ? BLACK : BORDER,
+                    backgroundColor:
+                      selectedMethod === "new_card" ? INPUT_BG : WHITE,
                     gap: 12,
                     marginBottom: 12,
                   }}
                 >
-                  {/* Toggle tylko na nagłówku */}
                   <Pressable
                     onPress={() =>
-                      setSelectedMethod(selectedMethod === "new_card" ? null : "new_card")
+                      setSelectedMethod(
+                        selectedMethod === "new_card" ? null : "new_card"
+                      )
                     }
                   >
                     <View
@@ -876,26 +1028,36 @@ export default function PaymentModal({
                         justifyContent: "space-between",
                       }}
                     >
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 12,
+                        }}
+                      >
                         <View
                           style={{
                             width: 44,
                             height: 44,
                             borderRadius: 10,
-                            backgroundColor: "#f0f0f0",
+                            backgroundColor: LIGHT_BG,
                             justifyContent: "center",
                             alignItems: "center",
                           }}
                         >
-                          <MaterialIcons name="add-card" size={22} color="#333" />
+                          <MaterialIcons
+                            name="add-card"
+                            size={22}
+                            color={ICON_COLOR}
+                          />
                         </View>
 
                         <View>
                           <Text
                             style={{
                               fontSize: 13,
-                              fontWeight: "700",
-                              color: "#000",
+                              fontFamily: FONT_BOLD,
+                              color: BLACK,
                               marginBottom: 2,
                             }}
                           >
@@ -904,8 +1066,8 @@ export default function PaymentModal({
                           <Text
                             style={{
                               fontSize: 12,
-                              fontWeight: "400",
-                              color: "#666",
+                              fontFamily: FONT_REGULAR,
+                              color: MUTED,
                               marginBottom: 2,
                             }}
                           >
@@ -920,27 +1082,30 @@ export default function PaymentModal({
                             width: 24,
                             height: 24,
                             borderRadius: 12,
-                            backgroundColor: "#000",
+                            backgroundColor: BLACK,
                             justifyContent: "center",
                             alignItems: "center",
                           }}
                         >
-                          <Ionicons name="checkmark" size={14} color="#fff" />
+                          <Ionicons
+                            name="checkmark"
+                            size={14}
+                            color={WHITE}
+                          />
                         </View>
                       )}
                     </View>
                   </Pressable>
 
-                  {/* Body nie jest w Pressable => CardField działa normalnie */}
                   {selectedMethod === "new_card" && (
                     <View style={{ gap: 10 }}>
                       <CardField
                         postalCodeEnabled={false}
                         placeholders={{ number: "1234 5678 9012 3456" }}
                         cardStyle={{
-                          backgroundColor: "#fff",
-                          textColor: "#000",
-                          borderColor: "#e0e0e0",
+                          backgroundColor: WHITE,
+                          textColor: BLACK,
+                          borderColor: BORDER,
                           borderWidth: 1,
                           borderRadius: 12,
                           fontSize: 15,
@@ -953,7 +1118,9 @@ export default function PaymentModal({
                         onPress={handleNewCardPayment}
                         disabled={processing || !newCardDetails?.complete}
                         style={{
-                          backgroundColor: newCardDetails?.complete ? "#000" : "#ccc",
+                          backgroundColor: newCardDetails?.complete
+                            ? BLACK
+                            : DISABLED,
                           paddingVertical: 12,
                           borderRadius: 12,
                           alignItems: "center",
@@ -961,13 +1128,13 @@ export default function PaymentModal({
                         }}
                       >
                         {processing ? (
-                          <ActivityIndicator color="#fff" size="small" />
+                          <ActivityIndicator color={WHITE} size="small" />
                         ) : (
                           <Text
                             style={{
-                              color: "#fff",
+                              color: WHITE,
                               textAlign: "center",
-                              fontWeight: "700",
+                              fontFamily: FONT_BOLD,
                               fontSize: 15,
                             }}
                           >
@@ -979,7 +1146,6 @@ export default function PaymentModal({
                   )}
                 </View>
 
-                {/* Stopka */}
                 <View
                   style={{
                     flexDirection: "row",
@@ -989,8 +1155,14 @@ export default function PaymentModal({
                     paddingBottom: 8,
                   }}
                 >
-                  <Ionicons name="lock-closed" size={12} color="#bbb" />
-                  <Text style={{ fontSize: 11, color: "#bbb" }}>
+                  <Ionicons name="lock-closed" size={12} color={PLACEHOLDER} />
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: PLACEHOLDER,
+                      fontFamily: FONT_REGULAR,
+                    }}
+                  >
                     Płatności obsługiwane przez Stripe · 256-bit SSL
                   </Text>
                 </View>

@@ -13,13 +13,8 @@ Notifications.setNotificationHandler({
   }),
 });
 
-/**
- * Rejestruje urządzenie do push notyfikacji i wysyła token do backendu.
- * Wywołaj po zalogowaniu użytkownika.
- */
 export async function registerForPushNotifications(): Promise<void> {
   if (!Device.isDevice) {
-    // Emulator — push nie działają
     return;
   }
 
@@ -44,19 +39,21 @@ export async function registerForPushNotifications(): Promise<void> {
     });
   }
 
-try {
+  try {
     const constants = await import("expo-constants");
-    const projectId = constants.default.expoConfig?.extra?.eas?.projectId
-      ?? constants.default.easConfig?.projectId;
+    const projectId =
+      constants.default.expoConfig?.extra?.eas?.projectId ??
+      constants.default.easConfig?.projectId;
 
     if (!projectId) {
-      // Expo Go bez projectId — push nie działają, cicho pomijamy
       return;
     }
 
     const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
     const pushToken = tokenData.data;
+
     await api.post("/api/push-token", { token: pushToken });
+
     console.log("[push] Token zarejestrowany:", pushToken);
   } catch (err) {
     console.error("[push] Błąd rejestracji tokenu:", err);

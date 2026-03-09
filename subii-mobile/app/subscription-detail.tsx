@@ -1,5 +1,3 @@
-//subscription-detail.tsx
-
 import { useState, useEffect, useCallback } from "react";
 import {
   View,
@@ -22,29 +20,19 @@ import { getProviderLogo, getProviderName } from "../src/lib/provider-logos";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getNextBillingDateStr } from "../src/lib/billing";
 import { Ionicons } from "@expo/vector-icons";
+import {
+  useFonts,
+  Inter_100Thin,
+  Inter_200ExtraLight,
+  Inter_300Light,
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+  Inter_800ExtraBold,
+  Inter_900Black,
+} from "@expo-google-fonts/inter";
 
-/**
- * Wylicza datę kolejnego odnowienia subskrypcji:
- * - yearly: co rok od createdAt (szuka pierwszej daty > dziś)
- * - monthly: najbliższy renewalDay po dzisiejszej dacie
- */
-
-/**
- * Zwraca tekstową datę najbliższej "zintegrowanej płatności" użytkownika
- * na podstawie user.billingDay.
- */
-
-/**
- * Mapowanie kodu providera na nazwę do UI.
- * (Fallback: zwróć kod, jeśli nie ma w mapie)
- */
-
-/**
- * Modal "bottom sheet" z własną animacją:
- * - when visible=true: fade-in backdrop + slide-up sheet
- * - when close: fade-out backdrop + slide-down sheet, dopiero potem unmount
- * - klik w tło uruchamia animację zamknięcia (bez "sztywnego" znikania)
- */
 function AnimatedSheetModal({
   visible,
   onClose,
@@ -54,18 +42,13 @@ function AnimatedSheetModal({
   onClose: () => void;
   children: React.ReactNode;
 }) {
-  // mounted kontroluje czy Modal ma w ogóle istnieć w drzewie
   const [mounted, setMounted] = useState(visible);
-
-  // animowane wartości
   const backdropOpacity = useState(() => new Animated.Value(0))[0];
   const sheetTranslateY = useState(() => new Animated.Value(24))[0];
 
   useEffect(() => {
-    // otwarcie
     if (visible) {
       setMounted(true);
-
       Animated.parallel([
         Animated.timing(backdropOpacity, {
           toValue: 1,
@@ -83,7 +66,6 @@ function AnimatedSheetModal({
       return;
     }
 
-    // zamknięcie gdy rodzic ustawi visible=false
     if (mounted) {
       Animated.parallel([
         Animated.timing(backdropOpacity, {
@@ -104,10 +86,6 @@ function AnimatedSheetModal({
     }
   }, [visible, mounted, backdropOpacity, sheetTranslateY]);
 
-  /**
-   * Zamykanie po kliknięciu w tło (lub back button na Androidzie):
-   * najpierw animacja, potem unmount + onClose w rodzicu.
-   */
   const closeWithAnimation = () => {
     Animated.parallel([
       Animated.timing(backdropOpacity, {
@@ -125,7 +103,7 @@ function AnimatedSheetModal({
     ]).start(({ finished }) => {
       if (finished) {
         setMounted(false);
-        onClose(); // dopiero po animacji zmieniamy stan w rodzicu
+        onClose();
       }
     });
   };
@@ -140,18 +118,13 @@ function AnimatedSheetModal({
       onRequestClose={closeWithAnimation}
     >
       <View style={{ flex: 1 }}>
-        {/* Backdrop (zacienienie) z płynnym fade */}
         <Animated.View
           style={[
             StyleSheet.absoluteFillObject,
             { backgroundColor: "rgba(0,0,0,0.5)", opacity: backdropOpacity },
           ]}
         />
-
-        {/* Obszar klikalny tła (klik = zamknięcie) */}
         <Pressable style={{ flex: 1 }} onPress={closeWithAnimation} />
-
-        {/* Sheet (zjeżdża z dołu) */}
         <Animated.View style={{ transform: [{ translateY: sheetTranslateY }] }}>
           {children}
         </Animated.View>
@@ -162,42 +135,71 @@ function AnimatedSheetModal({
 
 export default function SubscriptionDetail() {
   const router = useRouter();
-  // id subskrypcji z parametrów routingu
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  // dane
+  const [fontsLoaded] = useFonts({
+    Inter_100Thin,
+    Inter_200ExtraLight,
+    Inter_300Light,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    Inter_800ExtraBold,
+    Inter_900Black,
+  });
+
+  const BG = "#f5f5f5";
+  const WHITE = "#fff";
+  const BLACK = "#252729";
+  const MUTED = "#666";
+  const SUBTLE = "#999";
+  const LIGHT_BG = "#f0f0f0";
+  const BORDER = "#eee";
+  const SHADOW = "#000";
+  const DANGER = "#dc2626";
+  const DANGER_BG = "rgba(239,68,68,0.12)";
+  const DANGER_BORDER = "rgba(239,68,68,0.4)";
+  const BLUE = "#2563eb";
+  const BLUE_BG = "rgba(59,130,246,0.12)";
+  const BLUE_BORDER = "rgba(59,130,246,0.4)";
+  const BLUE_DARK = "#1d4ed8";
+  const BLUE_LIGHT_BG = "#eff6ff";
+  const BLUE_LIGHT_BORDER = "#bfdbfe";
+  const SUCCESS_BG = "rgba(134,239,172,0.2)";
+  const SUCCESS_BORDER = "rgba(134,239,172,0.4)";
+  const SUCCESS_TEXT = "#16a34a";
+  const CANCEL_BG = "#fff5f5";
+  const CANCEL_BORDER = "#fecaca";
+  const CANCEL_ICON = "#eb3c3c";
+
+  const FONT_REGULAR = "Inter_400Regular";
+  const FONT_SEMI = "Inter_600SemiBold";
+  const FONT_BOLD = "Inter_700Bold";
+  const FONT_EXTRABOLD = "Inter_800ExtraBold";
+
   const [subscription, setSubscription] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
-
-  // sterowanie modalami
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showReactivateConfirm, setShowReactivateConfirm] = useState(false);
-
-  // "Nowości" (tytuły z providera)
   const [movies, setMovies] = useState<any[]>([]);
   const [moviesLoading, setMoviesLoading] = useState(false);
 
   const insets = useSafeAreaInsets();
 
-  // załaduj dane przy wejściu / zmianie id
   useFocusEffect(
     useCallback(() => {
       loadData();
     }, [id])
   );
 
-  /**
-   * Ładuje użytkownika ze storage + subskrypcje z API,
-   * znajduje subskrypcję po id i dociąga tytuły (movies) dla providera.
-   */
   const loadData = async () => {
     try {
       const { storage } = await import("../src/lib/storage");
       const savedUser = await storage.getUser();
       setUser(savedUser);
 
-      // pobierz listę subskrypcji i znajdź tę konkretną
       const res = await api.get("/api/subscriptions");
       const all = res.data.subscriptions || [];
       const found = all.find((s: any) => String(s.id) === String(id));
@@ -212,19 +214,14 @@ export default function SubscriptionDetail() {
       }
 
       setSubscription(found);
-      // dociągnij tytuły dla providera subskrypcji
       loadMovies(found.providerCode);
     } catch {
-      // ogólny komunikat (brak tytułu = tytuł alertu w RN)
       Alert.alert("Sprawdź połączenie z internetem i spróbuj ponownie.");
     } finally {
       setLoading(false);
     }
   };
 
-  /**
-   * Pobiera tytuły/nowości dla danego providera przez endpoint backendu.
-   */
   const loadMovies = async (providerCode: string) => {
     setMoviesLoading(true);
     try {
@@ -237,11 +234,6 @@ export default function SubscriptionDetail() {
     }
   };
 
-  /**
-   * Potwierdzenie reaktywacji:
-   * ustawia status na "active" i czyści activeUntil/cancelledAt,
-   * potem pokazuje Alert i odświeża dane.
-   */
   const handleReactivateConfirm = async () => {
     setShowReactivateConfirm(false);
     try {
@@ -263,12 +255,6 @@ export default function SubscriptionDetail() {
     }
   };
 
-  /**
-   * Potwierdzenie anulowania:
-   * wywołuje endpoint delete. Zakładane zachowanie: backend "soft-cancel"
-   * (ustawia pending_cancellation i zwraca activeUntil).
-   * Po sukcesie pokazuje datę wygaśnięcia dostępu i wraca ekranem wstecz.
-   */
   const handleCancelSubscription = async () => {
     if (!subscription) return;
     setShowCancelConfirm(false);
@@ -290,27 +276,22 @@ export default function SubscriptionDetail() {
     }
   };
 
-  /**
-   * Przejście na ekran wyboru planu dla danego providera.
-   */
   const handleOpenChangePlan = () => {
     router.push(
       `/subscriptions-select-plan?provider=${subscription.providerCode}` as any
     );
   };
 
-  // loader ekranu
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color="#000" />
+        <ActivityIndicator size="large" color={BLACK} />
       </View>
     );
   }
 
   if (!subscription) return null;
 
-  // dane do UI
   const logo = getProviderLogo(subscription.providerCode);
   const providerName = getProviderName(subscription.providerCode);
   const cycle = subscription.plan?.cycle || "monthly";
@@ -322,7 +303,6 @@ export default function SubscriptionDetail() {
       ? subscription.pendingPlan.pricePLN
       : subscription.priceOverridePLN || subscription.plan?.pricePLN || 0;
 
-  // daty do UI (odnowienie i zintegrowana płatność)
   const nextRenewalStr = subscription.nextRenewalDate
     ? new Date(subscription.nextRenewalDate).toLocaleDateString("pl-PL")
     : "—";
@@ -343,29 +323,24 @@ export default function SubscriptionDetail() {
   const oldCycle = subscription.plan?.cycle ?? "monthly";
   const newCycle = pendingPlan?.cycle ?? oldCycle;
 
-  // Data wygaśnięcia dostępu (dla komunikatów) - jeśli backend ustawi activeUntil, użyj tego,
-  // w innym wypadku fallback do nextRenewal.
   const accessUntilStr = subscription.activeUntil
     ? new Date(subscription.activeUntil).toLocaleDateString("pl-PL")
     : nextRenewalStr;
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#f5f5f5" }}>
-      {/* Header */}
+    <View style={{ flex: 1, backgroundColor: BG }}>
       <View
         style={{
           paddingTop: insets.top + 16,
           paddingBottom: 20,
           paddingHorizontal: 20,
-          backgroundColor: "#fff",
+          backgroundColor: WHITE,
         }}
       >
-        {/* back */}
         <Pressable onPress={() => router.back()} style={{ marginBottom: -5 }}>
-          <Text style={{ fontSize: 28 }}>←</Text>
+          <Text style={{ fontSize: 28, fontFamily: FONT_REGULAR }}>←</Text>
         </Pressable>
 
-        {/* logo + nazwa + status */}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
           {logo && (
             <Image
@@ -375,43 +350,44 @@ export default function SubscriptionDetail() {
           )}
 
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 24, fontWeight: "600" }}>{providerName}</Text>
-            <Text style={{ fontSize: 12, color: "#666" }}>
+            <Text style={{ fontSize: 24, fontFamily: FONT_SEMI, color: BLACK }}>
+              {providerName}
+            </Text>
+            <Text style={{ fontSize: 12, color: MUTED, fontFamily: FONT_REGULAR }}>
               {subscription.plan?.planName}
             </Text>
           </View>
 
-          {/* status pill */}
           <View
             style={{
               width: 100,
               alignItems: "center",
-    justifyContent: "center",
+              justifyContent: "center",
               paddingHorizontal: 10,
               paddingVertical: 6,
               borderRadius: 10,
               backgroundColor: isPendingCancellation
-                ? "rgba(239,68,68,0.12)"
+                ? DANGER_BG
                 : isPendingChange
-                ? "rgba(59,130,246,0.12)"
-                : "rgba(134,239,172,0.2)",
+                ? BLUE_BG
+                : SUCCESS_BG,
               borderWidth: 1,
               borderColor: isPendingCancellation
-                ? "rgba(239,68,68,0.4)"
+                ? DANGER_BORDER
                 : isPendingChange
-                ? "rgba(59,130,246,0.4)"
-                : "rgba(134,239,172,0.4)",
+                ? BLUE_BORDER
+                : SUCCESS_BORDER,
             }}
           >
             <Text
               style={{
                 fontSize: 9,
-                fontWeight: "800",
+                fontFamily: FONT_EXTRABOLD,
                 color: isPendingCancellation
-                  ? "#dc2626"
+                  ? DANGER
                   : isPendingChange
-                  ? "#2563eb"
-                  : "#16a34a",
+                  ? BLUE
+                  : SUCCESS_TEXT,
               }}
             >
               {isPendingCancellation
@@ -426,87 +402,67 @@ export default function SubscriptionDetail() {
 
       {isPendingCancellation && (
         <Pressable
-          onPress={() => setShowReactivateConfirm(true)} // ← Twoja funkcja otwierająca modal
+          onPress={() => setShowReactivateConfirm(true)}
           style={({ pressed }) => ({
-            backgroundColor: "#fff5f5",
+            backgroundColor: CANCEL_BG,
             paddingVertical: 14,
             paddingHorizontal: 20,
             flexDirection: "row",
             alignItems: "center",
             gap: 12,
             borderWidth: 1,
-            borderColor: "#fecaca",
+            borderColor: CANCEL_BORDER,
             opacity: pressed ? 0.85 : 1,
           })}
         >
-          <Ionicons name="close-circle-outline" size={30} color="#eb3c3c" />
+          <Ionicons name="close-circle-outline" size={30} color={CANCEL_ICON} />
 
           <View style={{ flex: 1, gap: 4 }}>
-            {/* Nagłówek */}
-            <Text
-              style={{
-                fontSize: 14,
-                fontFamily: "Inter_700Bold",
-                color: "#dc2626",
-              }}
-            >
+            <Text style={{ fontSize: 14, fontFamily: FONT_BOLD, color: DANGER }}>
               Subskrypcja została anulowana
             </Text>
-
-            {/* Informacja o wygaśnięciu */}
             <Text
               style={{
                 fontSize: 13,
-                fontFamily: "Inter_400Regular",
-                color: "#dc2626",
+                fontFamily: FONT_REGULAR,
+                color: DANGER,
                 lineHeight: 16,
               }}
             >
               Dostęp wygaśnie{" "}
-              <Text style={{ fontFamily: "Inter_700Bold" }}>{accessUntilStr}</Text>
+              <Text style={{ fontFamily: FONT_BOLD }}>{accessUntilStr}</Text>
             </Text>
-
-            {/* CTA */}
-            <Text
-              style={{
-                fontSize: 13,
-                fontFamily: "Inter_600SemiBold",
-                color: "#dc2626",
-              }}
-            >
+            <Text style={{ fontSize: 13, fontFamily: FONT_SEMI, color: DANGER }}>
               Naciśnij, aby ponownie włączyć subskrypcję
             </Text>
           </View>
         </Pressable>
       )}
 
-      {/* Karta informacyjna gdy jest pending_change i jest pendingPlan */}
       {isPendingChange && subscription.pendingPlan && (
         <View
           style={{
-            backgroundColor: "#eff6ff",
+            backgroundColor: BLUE_LIGHT_BG,
             paddingVertical: 14,
             paddingHorizontal: 20,
             gap: 4,
             borderWidth: 1,
-            borderColor: "#bfdbfe",
+            borderColor: BLUE_LIGHT_BORDER,
           }}
         >
-          <Text style={{ fontSize: 14, fontWeight: "700", color: "#1d4ed8" }}>
+          <Text style={{ fontSize: 14, fontFamily: FONT_BOLD, color: BLUE_DARK }}>
             Zmiana planu w toku
           </Text>
-
           <Text
             style={{
               fontSize: 13,
-              fontWeight: "400",
-              color: "#1d4ed8",
+              fontFamily: FONT_REGULAR,
+              color: BLUE_DARK,
               lineHeight: 20,
             }}
           >
             {subscription.plan?.planName} → {subscription.pendingPlan.planName}
           </Text>
-
           <InfoRow label="Obecny plan do" value={nextRenewalStr} highlight />
           <InfoRow
             label="Nowa cena od następnego okresu"
@@ -517,17 +473,25 @@ export default function SubscriptionDetail() {
         </View>
       )}
 
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 40 }}>
-        {/* Szczegóły planu */}
+      <ScrollView
+        contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 40 }}
+      >
         <View
           style={{
-            backgroundColor: "#fff",
+            backgroundColor: WHITE,
             borderRadius: 12,
             padding: 20,
             gap: 8,
           }}
         >
-          <Text style={{ fontSize: 16, fontWeight: "700", marginBottom: 4 }}>
+          <Text
+            style={{
+              fontSize: 16,
+              fontFamily: FONT_BOLD,
+              color: BLACK,
+              marginBottom: 4,
+            }}
+          >
             Szczegóły planu
           </Text>
 
@@ -576,12 +540,18 @@ export default function SubscriptionDetail() {
                   cycle === "yearly" ? "rok" : "mies."
                 }`}
               />
-              <InfoRow label="Ekrany" value={String(subscription.plan?.screens ?? "—")} />
+              <InfoRow
+                label="Ekrany"
+                value={String(subscription.plan?.screens ?? "—")}
+              />
               <InfoRow
                 label="Jakość"
                 value={subscription.plan?.uhd ? "4K Ultra HD" : "HD"}
               />
-              <InfoRow label="Reklamy" value={subscription.plan?.ads ? "Tak" : "Nie"} />
+              <InfoRow
+                label="Reklamy"
+                value={subscription.plan?.ads ? "Tak" : "Nie"}
+              />
               <InfoRow
                 label="Typ cyklu"
                 value={cycle === "yearly" ? "Roczna" : "Miesięczna"}
@@ -590,16 +560,22 @@ export default function SubscriptionDetail() {
           )}
         </View>
 
-        {/* Rozliczenie */}
         <View
           style={{
-            backgroundColor: "#fff",
+            backgroundColor: WHITE,
             borderRadius: 12,
             padding: 20,
             gap: 8,
           }}
         >
-          <Text style={{ fontSize: 16, fontWeight: "700", marginBottom: 4 }}>
+          <Text
+            style={{
+              fontSize: 16,
+              fontFamily: FONT_BOLD,
+              color: BLACK,
+              marginBottom: 4,
+            }}
+          >
             Rozliczenie
           </Text>
           <InfoRow
@@ -618,7 +594,9 @@ export default function SubscriptionDetail() {
           />
           <InfoRow
             label="Cena"
-            value={`${price.toFixed(2)} zł / ${cycle === "yearly" ? "rok" : "mies."}`}
+            value={`${price.toFixed(2)} zł / ${
+              cycle === "yearly" ? "rok" : "mies."
+            }`}
           />
           <InfoRow
             label="Najbliższa płatność zbiorcza"
@@ -627,14 +605,20 @@ export default function SubscriptionDetail() {
           />
         </View>
 
-        {/* Nowości */}
         <View style={{ gap: 8 }}>
-          <Text style={{ fontSize: 16, fontWeight: "700", paddingHorizontal: 2 }}>
+          <Text
+            style={{
+              fontSize: 16,
+              fontFamily: FONT_BOLD,
+              color: BLACK,
+              paddingHorizontal: 2,
+            }}
+          >
             Nowości na {providerName}
           </Text>
 
           {moviesLoading ? (
-            <ActivityIndicator color="#000" style={{ marginVertical: 16 }} />
+            <ActivityIndicator color={BLACK} style={{ marginVertical: 16 }} />
           ) : movies.length > 0 ? (
             <FlatList
               horizontal
@@ -645,19 +629,17 @@ export default function SubscriptionDetail() {
               renderItem={({ item }) => (
                 <Pressable
                   onPress={() =>
-                    router.push(
-                      {
-                        pathname: "/titles/[tmdbId]",
-                        params: { tmdbId: String(item.id), mediaType: "movie" },
-                      } as any
-                    )
+                    router.push({
+                      pathname: "/titles/[tmdbId]",
+                      params: { tmdbId: String(item.id), mediaType: "movie" },
+                    } as any)
                   }
                   style={{
                     width: 120,
-                    backgroundColor: "#fff",
+                    backgroundColor: WHITE,
                     borderRadius: 12,
                     overflow: "hidden",
-                    shadowColor: "#000",
+                    shadowColor: SHADOW,
                     shadowOffset: { width: 0, height: 1 },
                     shadowOpacity: 0.07,
                     shadowRadius: 4,
@@ -665,32 +647,37 @@ export default function SubscriptionDetail() {
                   }}
                 >
                   {item.posterUrl ? (
-  <Image
-    source={{ uri: item.posterUrl }}
-    style={{ width: 120, height: 170, resizeMode: "cover" }}
-  />
-) : (
-  <View
-    style={{
-      width: 120,
-      height: 170,
-      backgroundColor: "#f0f0f0",
-      justifyContent: "center",
-      alignItems: "center",
-    }}
-  >
-    <Ionicons name="film-outline" size={36} color="#999" />
-  </View>
-)}
+                    <Image
+                      source={{ uri: item.posterUrl }}
+                      style={{ width: 120, height: 170, resizeMode: "cover" }}
+                    />
+                  ) : (
+                    <View
+                      style={{
+                        width: 120,
+                        height: 170,
+                        backgroundColor: LIGHT_BG,
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Ionicons name="film-outline" size={36} color={SUBTLE} />
+                    </View>
+                  )}
 
-                  <View style={{ padding: 8, height: 70, justifyContent: "space-between" }}>
+                  <View
+                    style={{
+                      padding: 8,
+                      height: 70,
+                      justifyContent: "space-between",
+                    }}
+                  >
                     <View style={{ flex: 1, justifyContent: "center" }}>
                       <Text
                         style={{
                           fontSize: 11,
-                          fontWeight: "700",
-                          color: "#000",
-                          
+                          fontFamily: FONT_BOLD,
+                          color: BLACK,
                         }}
                         numberOfLines={2}
                       >
@@ -705,12 +692,32 @@ export default function SubscriptionDetail() {
                         alignItems: "center",
                       }}
                     >
-                      <Text style={{ fontSize: 10,fontWeight:"400", color: "#999" }}>{item.year}</Text>
+                      <Text
+                        style={{
+                          fontSize: 10,
+                          fontFamily: FONT_REGULAR,
+                          color: SUBTLE,
+                        }}
+                      >
+                        {item.year}
+                      </Text>
 
                       {item.rating && (
-                        <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                          <MaterialIcons name="star" size={12} color="#999" />
-                          <Text style={{ fontSize: 10, color: "#999", fontWeight: "600" }}>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 4,
+                          }}
+                        >
+                          <MaterialIcons name="star" size={12} color={SUBTLE} />
+                          <Text
+                            style={{
+                              fontSize: 10,
+                              color: SUBTLE,
+                              fontFamily: FONT_SEMI,
+                            }}
+                          >
                             {item.rating}
                           </Text>
                         </View>
@@ -721,13 +728,19 @@ export default function SubscriptionDetail() {
               )}
             />
           ) : (
-            <Text style={{ color: "#999", fontSize: 13, paddingHorizontal: 2 }}>
+            <Text
+              style={{
+                color: SUBTLE,
+                fontSize: 13,
+                paddingHorizontal: 2,
+                fontFamily: FONT_REGULAR,
+              }}
+            >
               Brak dostępnych tytułów
             </Text>
           )}
         </View>
 
-        {/* Akcje (tylko gdy nie wygasa) */}
         {!isPendingCancellation && (
           <View style={{ gap: 10, marginTop: 8 }}>
             <Pressable
@@ -735,13 +748,15 @@ export default function SubscriptionDetail() {
               style={{
                 paddingVertical: 16,
                 paddingHorizontal: 16,
-                backgroundColor: "#000",
+                backgroundColor: BLACK,
                 borderRadius: 12,
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              <Text style={{ fontWeight: "700", fontSize: 15, color: "#fff" }}>
+              <Text
+                style={{ fontFamily: FONT_BOLD, fontSize: 15, color: WHITE }}
+              >
                 Zmień plan
               </Text>
             </Pressable>
@@ -750,13 +765,15 @@ export default function SubscriptionDetail() {
               onPress={() => setShowCancelConfirm(true)}
               style={{
                 paddingVertical: 14,
-                backgroundColor: "#f0f0f0",
+                backgroundColor: LIGHT_BG,
                 borderRadius: 12,
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              <Text style={{ color: "#333", fontWeight: "700", fontSize: 14 }}>
+              <Text
+                style={{ color: "#333", fontFamily: FONT_BOLD, fontSize: 14 }}
+              >
                 Anuluj subskrypcję
               </Text>
             </Pressable>
@@ -764,60 +781,84 @@ export default function SubscriptionDetail() {
         )}
       </ScrollView>
 
-      {/* MODAL: Reaktywacja */}
       <AnimatedSheetModal
         visible={showReactivateConfirm}
         onClose={() => setShowReactivateConfirm(false)}
       >
         <View
           style={{
-            backgroundColor: "#fff",
+            backgroundColor: WHITE,
             borderTopLeftRadius: 24,
             borderTopRightRadius: 24,
             padding: 24,
           }}
         >
-          <Text style={{ fontSize: 20, fontWeight: "700", marginBottom: 6  }}>
+          <Text
+            style={{
+              fontSize: 20,
+              fontFamily: FONT_BOLD,
+              color: BLACK,
+              marginBottom: 6,
+            }}
+          >
             Aktywować subskrypcję {providerName}?
           </Text>
 
           <Text
             style={{
-              fontSize: 12, color: "#666", marginBottom: 16, fontWeight:"400"
+              fontSize: 12,
+              color: MUTED,
+              marginBottom: 16,
+              fontFamily: FONT_REGULAR,
             }}
           >
-            Subskrypcja zostanie ponownie aktywowana. Dostęp pozostanie bez przerwy.
+            Subskrypcja zostanie ponownie aktywowana. Dostęp pozostanie bez
+            przerwy.
           </Text>
 
           <View style={{ gap: 12, marginBottom: 20 }}>
             <View
               style={{
                 padding: 16,
-                backgroundColor: "#fff",
+                backgroundColor: WHITE,
                 borderRadius: 12,
                 borderWidth: 1,
-                borderColor: "#eee",
+                borderColor: BORDER,
                 gap: 10,
               }}
             >
-              <InfoRow label="Najbliższe odnowienie" value={nextRenewalStr} highlight />
+              <InfoRow
+                label="Najbliższe odnowienie"
+                value={nextRenewalStr}
+                highlight
+              />
               <InfoRow
                 label="Kwota"
-                value={`${price.toFixed(2)} zł / ${cycle === "yearly" ? "rok" : "mies."}`}
+                value={`${price.toFixed(2)} zł / ${
+                  cycle === "yearly" ? "rok" : "mies."
+                }`}
               />
             </View>
 
             <View
               style={{
                 padding: 12,
-                backgroundColor: "#f5f5f5",
+                backgroundColor: BG,
                 borderRadius: 10,
                 borderWidth: 1,
-                borderColor: "#eee",
+                borderColor: BORDER,
               }}
             >
-              <Text style={{ fontSize: 12, color: "#666", lineHeight: 18, fontWeight:"400" }}>
-                Opłata zostanie doliczona do najbliższej płatności: {nextBillingStr}.
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: MUTED,
+                  lineHeight: 18,
+                  fontFamily: FONT_REGULAR,
+                }}
+              >
+                Opłata zostanie doliczona do najbliższej płatności:{" "}
+                {nextBillingStr}.
               </Text>
             </View>
           </View>
@@ -826,16 +867,16 @@ export default function SubscriptionDetail() {
             onPress={handleReactivateConfirm}
             style={{
               paddingVertical: 16,
-              backgroundColor: "#000",
+              backgroundColor: BLACK,
               borderRadius: 12,
               marginBottom: 12,
             }}
           >
             <Text
               style={{
-                color: "#fff",
+                color: WHITE,
                 textAlign: "center",
-                fontWeight: "700",
+                fontFamily: FONT_BOLD,
                 fontSize: 15,
               }}
             >
@@ -847,36 +888,49 @@ export default function SubscriptionDetail() {
             onPress={() => setShowReactivateConfirm(false)}
             style={{
               paddingVertical: 14,
-              backgroundColor: "#f0f0f0",
+              backgroundColor: LIGHT_BG,
               borderRadius: 12,
               alignItems: "center",
             }}
           >
-            <Text style={{ fontWeight: "700", color: "#333", fontSize:14 }}>Anuluj</Text>
+            <Text style={{ fontFamily: FONT_BOLD, color: "#333", fontSize: 14 }}>
+              Anuluj
+            </Text>
           </Pressable>
-
-          
         </View>
       </AnimatedSheetModal>
 
-      {/* MODAL: Rezygnacja */}
       <AnimatedSheetModal
         visible={showCancelConfirm}
         onClose={() => setShowCancelConfirm(false)}
       >
         <View
           style={{
-            backgroundColor: "#fff",
+            backgroundColor: WHITE,
             borderTopLeftRadius: 24,
             borderTopRightRadius: 24,
             padding: 24,
           }}
         >
-          <Text style={{ fontSize: 20, fontWeight: "700", marginBottom: 6 }}>
+          <Text
+            style={{
+              fontSize: 20,
+              fontFamily: FONT_BOLD,
+              color: BLACK,
+              marginBottom: 6,
+            }}
+          >
             Czy na pewno chcesz zrezygnować z {providerName}?
           </Text>
 
-          <Text style={{ fontSize: 12, color: "#666", marginBottom: 16, fontWeight:"400" }}>
+          <Text
+            style={{
+              fontSize: 12,
+              color: MUTED,
+              marginBottom: 16,
+              fontFamily: FONT_REGULAR,
+            }}
+          >
             {subscription?.plan?.planName} · {price.toFixed(2)} zł/
             {cycle === "yearly" ? "rok" : "mies."}
           </Text>
@@ -884,24 +938,45 @@ export default function SubscriptionDetail() {
           <View
             style={{
               padding: 16,
-              backgroundColor: "#f5f5f5",
+              backgroundColor: BG,
               borderRadius: 10,
               marginBottom: 20,
               borderWidth: 1,
-              borderColor: "#eee",
+              borderColor: BORDER,
               gap: 10,
             }}
           >
-            <Text style={{ fontSize: 12, color: "#666", lineHeight: 18 }}>
+            <Text
+              style={{
+                fontSize: 12,
+                color: MUTED,
+                lineHeight: 18,
+                fontFamily: FONT_REGULAR,
+              }}
+            >
               Dostęp pozostanie aktywny do{" "}
-              <Text style={{ fontWeight: "800" }}>{accessUntilStr} </Text>.
+              <Text style={{ fontFamily: FONT_EXTRABOLD }}>{accessUntilStr} </Text>.
             </Text>
 
-            <Text style={{ fontSize: 12, color: "#666", lineHeight: 18 }}>
+            <Text
+              style={{
+                fontSize: 12,
+                color: MUTED,
+                lineHeight: 18,
+                fontFamily: FONT_REGULAR,
+              }}
+            >
               Po tej dacie subskrypcja wygaśnie automatycznie.
             </Text>
 
-            <Text style={{ fontSize: 12, color: "#666", lineHeight: 18 }}>
+            <Text
+              style={{
+                fontSize: 12,
+                color: MUTED,
+                lineHeight: 18,
+                fontFamily: FONT_REGULAR,
+              }}
+            >
               Opłata za kolejny okres nie zostanie pobrana.
             </Text>
           </View>
@@ -910,7 +985,7 @@ export default function SubscriptionDetail() {
             onPress={handleCancelSubscription}
             style={{
               paddingVertical: 16,
-              backgroundColor: "#000",
+              backgroundColor: BLACK,
               borderRadius: 12,
               marginBottom: 12,
               alignItems: "center",
@@ -919,9 +994,9 @@ export default function SubscriptionDetail() {
           >
             <Text
               style={{
-                color: "#fff",
+                color: WHITE,
                 textAlign: "center",
-                fontWeight: "700",
+                fontFamily: FONT_BOLD,
                 fontSize: 15,
               }}
             >
@@ -933,13 +1008,15 @@ export default function SubscriptionDetail() {
             onPress={() => setShowCancelConfirm(false)}
             style={{
               padding: 14,
-              backgroundColor: "#f0f0f0",
+              backgroundColor: LIGHT_BG,
               borderRadius: 12,
               alignItems: "center",
               justifyContent: "center",
             }}
           >
-            <Text style={{ fontWeight: "700", color: "#333", fontSize:14 }}>Anuluj</Text>
+            <Text style={{ fontFamily: FONT_BOLD, color: "#333", fontSize: 14 }}>
+              Anuluj
+            </Text>
           </Pressable>
         </View>
       </AnimatedSheetModal>
@@ -947,10 +1024,6 @@ export default function SubscriptionDetail() {
   );
 }
 
-/**
- * Prosty wiersz etykieta → wartość
- * highlight: pogrubia wartość (np. ważna data)
- */
 function InfoRow({
   label,
   value,
@@ -964,6 +1037,10 @@ function InfoRow({
   danger?: boolean;
   muted?: boolean;
 }) {
+  const FONT_REGULAR = "Inter_400Regular";
+  const FONT_SEMI = "Inter_600SemiBold";
+  const FONT_EXTRABOLD = "Inter_800ExtraBold";
+
   return (
     <View
       style={{
@@ -972,12 +1049,20 @@ function InfoRow({
         alignItems: "center",
       }}
     >
-      <Text style={{ fontSize: 14, color: "#666" }}>{label}</Text>
+      <Text style={{ fontSize: 14, color: "#666", fontFamily: FONT_REGULAR }}>
+        {label}
+      </Text>
       <Text
         style={{
           fontSize: 14,
-          fontWeight: highlight ? "800" : "600",
-          color: danger ? "#dc2626" : muted ? "#aaa" : highlight ? "#000" : "#333",
+          fontFamily: highlight ? FONT_EXTRABOLD : FONT_SEMI,
+          color: danger
+            ? "#dc2626"
+            : muted
+            ? "#aaa"
+            : highlight
+            ? "#252729"
+            : "#333",
         }}
       >
         {value}
@@ -997,6 +1082,10 @@ function InfoRowTransition({
   newValue: string;
   changed: boolean;
 }) {
+  const FONT_REGULAR = "Inter_400Regular";
+  const FONT_SEMI = "Inter_600SemiBold";
+  const FONT_BOLD = "Inter_700Bold";
+
   if (!changed) {
     return (
       <View
@@ -1006,8 +1095,10 @@ function InfoRowTransition({
           alignItems: "center",
         }}
       >
-        <Text style={{ fontSize: 14, color: "#666" }}>{label}</Text>
-        <Text style={{ fontSize: 14, fontWeight: "600", color: "#333" }}>
+        <Text style={{ fontSize: 14, color: "#666", fontFamily: FONT_REGULAR }}>
+          {label}
+        </Text>
+        <Text style={{ fontSize: 14, fontFamily: FONT_SEMI, color: "#333" }}>
           {oldValue}
         </Text>
       </View>
@@ -1022,19 +1113,24 @@ function InfoRowTransition({
         alignItems: "center",
       }}
     >
-      <Text style={{ fontSize: 14, color: "#666" }}>{label}</Text>
+      <Text style={{ fontSize: 14, color: "#666", fontFamily: FONT_REGULAR }}>
+        {label}
+      </Text>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
         <Text
           style={{
             fontSize: 14,
             color: "#aaa",
             textDecorationLine: "line-through",
+            fontFamily: FONT_REGULAR,
           }}
         >
           {oldValue}
         </Text>
-        <Text style={{ fontSize: 13, color: "#aaa" }}>→</Text>
-        <Text style={{ fontSize: 14, fontWeight: "700", color: "#1d4ed8" }}>
+        <Text style={{ fontSize: 13, color: "#aaa", fontFamily: FONT_REGULAR }}>
+          →
+        </Text>
+        <Text style={{ fontSize: 14, fontFamily: FONT_BOLD, color: "#1d4ed8" }}>
           {newValue}
         </Text>
       </View>

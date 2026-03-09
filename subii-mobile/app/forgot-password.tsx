@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -13,42 +13,49 @@ import {
   ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { api } from "../src/lib/api";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+
+import { api } from "../src/lib/api";
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const validateEmail = (email: string) => EMAIL_RE.test(email);
 
 export default function ForgotPassword() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
 
-  // ====== STYLE (tylko UI) ======
   const BG = "#fff";
-  const MUTED = "#666";
+  const WHITE = "#fff";
   const BLACK = "#252729";
+  const MUTED = "#666";
   const BORDER = "#ddd";
   const INPUT_BG = "#f9f9f9";
-
-  // dodatkowe stałe (porządek jak w innych ekranach)
-  const WHITE = "#fff";
   const PLACEHOLDER = "#9a9a9a";
 
-  // ====== FONTS (Inter) ======
+  const FONT_THIN = "Inter_100Thin";
+  const FONT_EXTRA_LIGHT = "Inter_200ExtraLight";
   const FONT_LIGHT = "Inter_300Light";
-  const FONT_REG = "Inter_400Regular";
+  const FONT_REGULAR = "Inter_400Regular";
+  const FONT_MEDIUM = "Inter_500Medium";
   const FONT_SEMI = "Inter_600SemiBold";
   const FONT_BOLD = "Inter_700Bold";
+  const FONT_EXTRA_BOLD = "Inter_800ExtraBold";
+  const FONT_BLACK = "Inter_900Black";
 
-  const handleSend = async () => {
+  const handleSend = useCallback(async () => {
     const trimmed = email.trim().toLowerCase();
+
     if (!trimmed) {
       Alert.alert("Błąd", "Podaj adres email");
       return;
     }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(trimmed)) {
+
+    if (!validateEmail(trimmed)) {
       Alert.alert("Błąd", "Podaj prawidłowy adres email");
       return;
     }
@@ -58,12 +65,11 @@ export default function ForgotPassword() {
       await api.post("/api/auth/forgot-password", { email: trimmed });
       setSent(true);
     } catch {
-      // Zawsze pokazujemy sukces — nie zdradzamy czy email istnieje
       setSent(true);
     } finally {
       setLoading(false);
     }
-  };
+  }, [email]);
 
   if (sent) {
     return (
@@ -77,7 +83,12 @@ export default function ForgotPassword() {
           alignItems: "center",
         }}
       >
-        <Ionicons name="mail-outline" size={55} color={MUTED} style={{ marginBottom: 18 }} />
+        <Ionicons
+          name="mail-outline"
+          size={55}
+          color={MUTED}
+          style={{ marginBottom: 18 }}
+        />
 
         <Text
           style={{
@@ -85,7 +96,7 @@ export default function ForgotPassword() {
             color: BLACK,
             textAlign: "center",
             marginBottom: 10,
-            fontFamily: FONT_SEMI, // było 600
+            fontFamily: FONT_SEMI,
           }}
         >
           Sprawdź swoją skrzynkę
@@ -98,7 +109,7 @@ export default function ForgotPassword() {
             textAlign: "center",
             lineHeight: 20,
             marginBottom: 24,
-            fontFamily: FONT_LIGHT, // było 300
+            fontFamily: FONT_LIGHT,
           }}
         >
           Jeśli konto o podanym adresie istnieje, wysłaliśmy link do resetowania hasła.
@@ -119,7 +130,7 @@ export default function ForgotPassword() {
             style={{
               color: WHITE,
               fontSize: 15,
-              fontFamily: FONT_BOLD, // było 700
+              fontFamily: FONT_BOLD,
             }}
           >
             Wróć do logowania
@@ -147,7 +158,6 @@ export default function ForgotPassword() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* HEADER: strzałka + tytuł w jednej linii */}
           <View
             style={{
               height: 44,
@@ -168,7 +178,13 @@ export default function ForgotPassword() {
               }}
               hitSlop={10}
             >
-              <Text style={{ fontSize: 26, color: BLACK, fontFamily: FONT_LIGHT }}>
+              <Text
+                style={{
+                  fontSize: 26,
+                  color: BLACK,
+                  fontFamily: FONT_LIGHT,
+                }}
+              >
                 ←
               </Text>
             </Pressable>
@@ -185,7 +201,6 @@ export default function ForgotPassword() {
             </Text>
           </View>
 
-          {/* OPIS: od lewej */}
           <Text
             style={{
               fontSize: 14,
@@ -199,7 +214,6 @@ export default function ForgotPassword() {
             Wpisz adres email przypisany do konta. Wyślemy Ci link do ustawienia nowego hasła.
           </Text>
 
-          {/* INPUT jak w loginie (bez labela) */}
           <View style={{ gap: 6, marginBottom: 14 }}>
             <TextInput
               value={email}
